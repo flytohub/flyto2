@@ -18,7 +18,12 @@ import os
     description_key='modules.db.postgresql.query.description',
     icon='Database',
     color='#336791',
-    params_schema={
+
+    # Connection types
+    input_types=['json', 'object'],
+    output_types=['json', 'array'],
+    can_receive_from=['data.*', 'api.*'],
+    can_connect_to=['data.*', 'notification.*'],    params_schema={
         'connection_string': {
             'type': 'string',
             'label': 'Connection String',

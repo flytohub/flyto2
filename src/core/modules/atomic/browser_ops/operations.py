@@ -20,7 +20,10 @@ from ...registry import register_module
     description_key='modules.browser.launch.description',
     icon='Monitor',
     color='#4A90E2',
-    params_schema={
+
+    # Connection types
+    input_types=['any'],
+    output_types=['any'],    params_schema={
         'headless': {
             'type': 'boolean',
             'label': 'Headless Mode',

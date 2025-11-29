@@ -20,7 +20,12 @@ import os
     description_key='modules.api.anthropic.chat.description',
     icon='Brain',
     color='#D97757',
-    params_schema={
+
+    # Connection types
+    input_types=['text', 'json'],
+    output_types=['text', 'json'],
+    can_receive_from=['data.*', 'file.*', 'browser.*'],
+    can_connect_to=['data.*', 'notification.*', 'file.*'],    params_schema={
         'api_key': {
             'type': 'string',
             'label': 'API Key',

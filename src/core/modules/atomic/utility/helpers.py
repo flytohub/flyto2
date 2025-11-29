@@ -24,7 +24,10 @@ import uuid
     description_key='modules.utility.delay.description',
     icon='Clock',
     color='#6B7280',
-    params_schema={
+
+    # Connection types
+    input_types=['any'],
+    output_types=['any'],    params_schema={
         'duration_ms': {
             'type': 'number',
             'label': 'Duration (milliseconds)',

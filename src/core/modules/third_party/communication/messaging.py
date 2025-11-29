@@ -23,7 +23,11 @@ from email.mime.multipart import MIMEMultipart
     description_key='modules.notification.slack.send_message.description',
     icon='MessageCircle',
     color='#4A154B',
-    params_schema={
+
+    # Connection types
+    input_types=['text', 'json', 'any'],
+    output_types=['api_response'],
+    can_receive_from=['data.*', 'api.*', 'string.*'],    params_schema={
         'webhook_url': {
             'type': 'string',
             'label': 'Webhook URL',

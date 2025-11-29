@@ -20,7 +20,10 @@ import os
     description_key='modules.api.notion.create_page.description',
     icon='FileText',
     color='#000000',
-    params_schema={
+
+    # Connection types
+    input_types=['any'],
+    output_types=['any'],    params_schema={
         'api_key': {
             'type': 'string',
             'label': 'API Key',

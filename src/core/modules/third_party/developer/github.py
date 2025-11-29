@@ -20,7 +20,10 @@ import os
     description_key='modules.api.github.get_repo.description',
     icon='Github',
     color='#24292e',
-    params_schema={
+
+    # Connection types
+    input_types=['any'],
+    output_types=['any'],    params_schema={
         'owner': {
             'type': 'string',
             'label': 'Owner',

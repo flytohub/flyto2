@@ -22,7 +22,10 @@ import shutil
     description_key='modules.file.read.description',
     icon='FileText',
     color='#6B7280',
-    params_schema={
+
+    # Connection types
+    output_types=['text', 'binary'],
+    can_connect_to=['data.*', 'string.*'],    params_schema={
         'path': {
             'type': 'string',
             'label': 'File Path',

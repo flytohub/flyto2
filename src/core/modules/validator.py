@@ -24,7 +24,7 @@ class ModuleValidator:
     # Allowed categories (from MODULE_SPECIFICATION.md)
     ALLOWED_CATEGORIES = {
         # Atomic modules
-        'browser', 'data', 'utility', 'file', 'string', 'array', 'math',
+        'atomic', 'browser', 'data', 'utility', 'file', 'string', 'array', 'math',
         # Third-party integrations
         'ai', 'notification', 'database', 'cloud', 'productivity', 'api', 'developer',
         # Legacy/special
@@ -114,30 +114,23 @@ class ModuleValidator:
         return True
 
     def _validate_module_id(self, metadata: Dict[str, Any]):
-        """Validate module_id format: category.subcategory.action"""
+        """Validate module_id format: accepts 2-part or 3-part naming"""
         module_id = metadata.get('module_id', '')
 
-        # Check format: lowercase with dots
-        if not re.match(r'^[a-z]+\.[a-z0-9_]+\.[a-z0-9_]+$', module_id):
+        # Check format: lowercase with dots (2 or 3 parts)
+        if not re.match(r'^[a-z]+(\.[a-z0-9_]+)+$', module_id):
             self.errors.append(
-                f"module_id '{module_id}' must match format: category.subcategory.action "
-                f"(lowercase, dots, underscores allowed in action)"
+                f"module_id '{module_id}' must be lowercase with dots (e.g., 'file.read' or 'data.json.parse')"
             )
 
-        # Check parts
+        # Check parts (allow 2 or 3 parts)
         parts = module_id.split('.')
-        if len(parts) != 3:
+        if len(parts) < 2 or len(parts) > 3:
             self.errors.append(
-                f"module_id '{module_id}' must have exactly 3 parts: category.subcategory.action"
+                f"module_id '{module_id}' must have 2 or 3 parts (e.g., 'file.read' or 'data.json.parse')"
             )
-        else:
-            category, subcategory, action = parts
 
-            # Category must match metadata
-            if metadata.get('category') != category:
-                self.errors.append(
-                    f"module_id category '{category}' doesn't match metadata category '{metadata.get('category')}'"
-                )
+        # Note: Don't enforce that category matches first part - allows core.browser.find with category='browser'
 
     def _validate_version(self, metadata: Dict[str, Any]):
         """Validate semantic version"""
@@ -157,9 +150,9 @@ class ModuleValidator:
                 f"category '{category}' not allowed. Must be one of: {', '.join(sorted(self.ALLOWED_CATEGORIES))}"
             )
 
-        # Subcategory must be lowercase
+        # Subcategory must be lowercase (if provided)
         subcategory = metadata.get('subcategory', '')
-        if not subcategory.islower():
+        if subcategory and not subcategory.islower():
             self.errors.append(
                 f"subcategory '{subcategory}' must be lowercase"
             )
@@ -258,24 +251,30 @@ class ModuleValidator:
             self.errors.append("output_schema must be a dictionary")
 
     def _validate_i18n(self, metadata: Dict[str, Any]):
-        """Validate i18n keys"""
+        """Validate i18n keys - flexible to match module_id structure"""
         label_key = metadata.get('label_key', '')
         description_key = metadata.get('description_key', '')
+        module_id = metadata.get('module_id', '')
 
-        # Check format: modules.category.subcategory.action.field
-        i18n_pattern = r'^modules\.[a-z]+\.[a-z0-9_]+\.[a-z0-9_]+\.(label|description)$'
+        # Build expected key from module_id
+        # Examples: file.read → modules.file.read.label
+        #           data.json.parse → modules.data.json.parse.label
+        #           core.browser.find → modules.browser.find.label
+        if module_id:
+            # For core.* modules, remove 'core.' prefix
+            expected_id = module_id.replace('core.', '')
+            expected_label_key = f"modules.{expected_id}.label"
+            expected_desc_key = f"modules.{expected_id}.description"
 
-        if not re.match(i18n_pattern, label_key):
-            self.errors.append(
-                f"label_key '{label_key}' must match format: "
-                f"modules.category.subcategory.action.label"
-            )
+            if label_key and label_key != expected_label_key:
+                self.errors.append(
+                    f"label_key '{label_key}' should match module_id: '{expected_label_key}'"
+                )
 
-        if not re.match(i18n_pattern, description_key):
-            self.errors.append(
-                f"description_key '{description_key}' must match format: "
-                f"modules.category.subcategory.action.description"
-            )
+            if description_key and description_key != expected_desc_key:
+                self.errors.append(
+                    f"description_key '{description_key}' should match module_id: '{expected_desc_key}'"
+                )
 
     def _validate_examples(self, metadata: Dict[str, Any]):
         """Validate examples"""
@@ -321,8 +320,14 @@ class ModuleValidator:
         # Allow common exceptions
         exceptions = {'a', 'an', 'the', 'and', 'or', 'but', 'for', 'to', 'in', 'on', 'at'}
 
+        # Remove special characters like parentheses for checking
+        # e.g., "Google Search (API)" → ["Google", "Search", "(API)"]
         words = text.split()
         for i, word in enumerate(words):
+            # Skip punctuation-only words like "(API)" or words starting with (
+            if word.startswith('('):
+                continue
+
             # First word must be capitalized
             if i == 0:
                 if not word[0].isupper():

@@ -19,7 +19,10 @@ from ..registry import register_module
     description_key='modules.flow.loop.description',
     icon='Repeat',
     color='#3498DB',
-    params_schema={
+
+    # Connection types
+    input_types=['any'],
+    output_types=['any'],    params_schema={
         'items': {
             'type': 'array',
             'label': 'Items',

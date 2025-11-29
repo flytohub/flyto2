@@ -22,7 +22,11 @@ import os
     description_key='modules.data.csv.read.description',
     icon='FileText',
     color='#10B981',
-    params_schema={
+
+    # Connection types
+    input_types=['text', 'file_path'],
+    output_types=['array', 'object'],
+    can_connect_to=['data.*', 'file.*'],    params_schema={
         'file_path': {
             'type': 'string',
             'label': 'File Path',

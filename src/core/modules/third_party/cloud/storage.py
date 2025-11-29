@@ -19,7 +19,10 @@ import base64
     description_key='modules.cloud.aws_s3.upload.description',
     icon='Cloud',
     color='#FF9900',
-    params_schema={
+
+    # Connection types
+    input_types=['any'],
+    output_types=['any'],    params_schema={
         'aws_access_key_id': {
             'type': 'string',
             'label': 'AWS Access Key ID',

@@ -16,11 +16,21 @@ from .element_registry import ElementRegistry
     module_id='core.element.query',
     version='1.0.0',
     category='element',
+    subcategory='element',
     tags=['element', 'query', 'find'],
     label='Query Element',
     label_key='modules.element.query.label',
     description='Find child elements within element',
     description_key='modules.element.query.description',
+    icon='Search',
+    color='#8B5CF6',
+
+    # Connection types
+    input_types=['element'],
+    output_types=['element', 'array'],
+    can_receive_from=['browser.find', 'element.query'],
+    can_connect_to=['element.*', 'data.*'],
+
     params_schema={
         'element_id': {
             'type': 'string',
@@ -54,6 +64,13 @@ from .element_registry import ElementRegistry
         'element_ids': {'type': 'array', 'optional': True},
         'count': {'type': 'number', 'optional': True}
     },
+    examples=[{
+        'title': 'Find child element',
+        'params': {
+            'element_id': '${result_item}',
+            'selector': 'h3'
+        }
+    }],
     author='Flyto2 Team',
     license='MIT'
 )
@@ -127,11 +144,21 @@ class ElementQueryModule(BaseModule):
     module_id='core.element.text',
     version='1.0.0',
     category='element',
+    subcategory='element',
     tags=['element', 'text', 'content'],
     label='Get Text',
     label_key='modules.element.text.label',
     description="Get element's text content",
     description_key='modules.element.text.description',
+    icon='FileText',
+    color='#8B5CF6',
+
+    # Connection types
+    input_types=['element'],
+    output_types=['text', 'string'],
+    can_receive_from=['browser.find', 'element.*'],
+    can_connect_to=['data.*', 'string.*', 'notification.*'],
+
     params_schema={
         'element_id': {
             'type': 'string',
@@ -146,6 +173,12 @@ class ElementQueryModule(BaseModule):
         'status': {'type': 'string'},
         'text': {'type': 'string'}
     },
+    examples=[{
+        'title': 'Get element text',
+        'params': {
+            'element_id': '${title_element}'
+        }
+    }],
     author='Flyto2 Team',
     license='MIT'
 )
@@ -195,11 +228,21 @@ class ElementTextModule(BaseModule):
     module_id='core.element.attribute',
     version='1.0.0',
     category='element',
+    subcategory='element',
     tags=['element', 'attribute', 'property'],
     label='Get Attribute',
     label_key='modules.element.attribute.label',
     description="Get element's attribute value",
     description_key='modules.element.attribute.description',
+    icon='Tag',
+    color='#8B5CF6',
+
+    # Connection types
+    input_types=['element'],
+    output_types=['text', 'string'],
+    can_receive_from=['browser.find', 'element.*'],
+    can_connect_to=['data.*', 'string.*'],
+
     params_schema={
         'element_id': {
             'type': 'string',
@@ -223,6 +266,13 @@ class ElementTextModule(BaseModule):
         'status': {'type': 'string'},
         'value': {'type': 'string'}
     },
+    examples=[{
+        'title': 'Get href attribute',
+        'params': {
+            'element_id': '${link_element}',
+            'name': 'href'
+        }
+    }],
     author='Flyto2 Team',
     license='MIT'
 )

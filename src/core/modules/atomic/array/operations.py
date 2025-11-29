@@ -20,7 +20,10 @@ from ...registry import register_module
     description_key='modules.array.filter.description',
     icon='Filter',
     color='#10B981',
-    params_schema={
+
+    # Connection types
+    input_types=['any'],
+    output_types=['any'],    params_schema={
         'array': {
             'type': 'array',
             'label': 'Array',

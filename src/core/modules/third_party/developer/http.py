@@ -12,6 +12,7 @@ import os
     module_id='core.api.google_search',
     version='1.0.0',
     category='api',
+    subcategory='api',
     tags=['api', 'search', 'google', 'official'],
     label='Google Search (API)',
     label_key='modules.api.google_search.label',
@@ -19,6 +20,12 @@ import os
     description_key='modules.api.google_search.description',
     icon='Search',
     color='#4285F4',
+
+    # Connection types
+    input_types=[],
+    output_types=['json', 'array', 'api_response'],
+    can_connect_to=['data.*', 'notification.*', 'file.*'],
+
     params_schema={
         'keyword': {
             'type': 'string',
@@ -47,6 +54,13 @@ import os
         'count': {'type': 'number'},
         'total_results': {'type': 'number', 'optional': True}
     },
+    examples=[{
+        'title': 'Search Python tutorials',
+        'params': {
+            'keyword': 'python tutorial',
+            'limit': 10
+        }
+    }],
     author='Flyto2 Team',
     license='MIT'
 )
@@ -124,6 +138,7 @@ class GoogleSearchAPIModule(BaseModule):
     module_id='core.api.serpapi_search',
     version='1.0.0',
     category='api',
+    subcategory='api',
     tags=['api', 'search', 'google', 'serpapi', 'third-party'],
     label='Google Search (SerpAPI)',
     label_key='modules.api.serpapi_search.label',
@@ -131,6 +146,12 @@ class GoogleSearchAPIModule(BaseModule):
     description_key='modules.api.serpapi_search.description',
     icon='Search',
     color='#F39C12',
+
+    # Connection types
+    input_types=[],
+    output_types=['json', 'array', 'api_response'],
+    can_connect_to=['data.*', 'notification.*', 'file.*'],
+
     params_schema={
         'keyword': {
             'type': 'string',
@@ -158,6 +179,13 @@ class GoogleSearchAPIModule(BaseModule):
         'data': {'type': 'array'},
         'count': {'type': 'number'}
     },
+    examples=[{
+        'title': 'Search with SerpAPI',
+        'params': {
+            'keyword': 'machine learning',
+            'limit': 10
+        }
+    }],
     author='Flyto2 Team',
     license='MIT'
 )
@@ -229,11 +257,68 @@ class SerpAPISearchModule(BaseModule):
     module_id='core.api.http_get',
     version='1.0.0',
     category='api',
+    subcategory='api',
     tags=['api', 'http', 'request', 'get'],
     label='HTTP GET Request',
     label_key='modules.api.http_get.label',
     description='Send HTTP GET request to any URL',
     description_key='modules.api.http_get.description',
+    icon='Globe',
+    color='#3B82F6',
+
+    # Connection types
+    input_types=[],
+    output_types=['json', 'text', 'api_response'],
+    can_connect_to=['data.*', 'notification.*', 'file.*'],
+
+    params_schema={
+        'url': {
+            'type': 'string',
+            'label': 'URL',
+            'label_key': 'modules.api.http_get.params.url.label',
+            'description': 'Target URL',
+            'description_key': 'modules.api.http_get.params.url.description',
+            'placeholder': 'https://api.example.com/data',
+            'required': True
+        },
+        'headers': {
+            'type': 'object',
+            'label': 'Headers',
+            'label_key': 'modules.api.http_get.params.headers.label',
+            'description': 'HTTP headers (optional)',
+            'description_key': 'modules.api.http_get.params.headers.description',
+            'required': False
+        },
+        'params': {
+            'type': 'object',
+            'label': 'Query Parameters',
+            'label_key': 'modules.api.http_get.params.params.label',
+            'description': 'Query parameters (optional)',
+            'description_key': 'modules.api.http_get.params.params.description',
+            'required': False
+        },
+        'timeout': {
+            'type': 'number',
+            'label': 'Timeout',
+            'label_key': 'modules.api.http_get.params.timeout.label',
+            'description': 'Request timeout in seconds',
+            'description_key': 'modules.api.http_get.params.timeout.description',
+            'default': 30,
+            'required': False
+        }
+    },
+    output_schema={
+        'status_code': {'type': 'number'},
+        'headers': {'type': 'object'},
+        'body': {'type': 'string'},
+        'json': {'type': 'object', 'optional': True}
+    },
+    examples=[{
+        'title': 'Fetch API data',
+        'params': {
+            'url': 'https://api.github.com/users/octocat'
+        }
+    }],
     author='Flyto2 Team',
     license='MIT'
 )
@@ -303,11 +388,79 @@ class HTTPGetModule(BaseModule):
     module_id='core.api.http_post',
     version='1.0.0',
     category='api',
+    subcategory='api',
     tags=['api', 'http', 'request', 'post'],
     label='HTTP POST Request',
     label_key='modules.api.http_post.label',
     description='Send HTTP POST request to any URL',
     description_key='modules.api.http_post.description',
+    icon='Send',
+    color='#3B82F6',
+
+    # Connection types
+    input_types=['json', 'text', 'any'],
+    output_types=['json', 'text', 'api_response'],
+    can_receive_from=['data.*'],
+    can_connect_to=['data.*', 'notification.*', 'file.*'],
+
+    params_schema={
+        'url': {
+            'type': 'string',
+            'label': 'URL',
+            'label_key': 'modules.api.http_post.params.url.label',
+            'description': 'Target URL',
+            'description_key': 'modules.api.http_post.params.url.description',
+            'placeholder': 'https://api.example.com/data',
+            'required': True
+        },
+        'headers': {
+            'type': 'object',
+            'label': 'Headers',
+            'label_key': 'modules.api.http_post.params.headers.label',
+            'description': 'HTTP headers (optional)',
+            'description_key': 'modules.api.http_post.params.headers.description',
+            'required': False
+        },
+        'body': {
+            'type': 'string',
+            'label': 'Body',
+            'label_key': 'modules.api.http_post.params.body.label',
+            'description': 'Request body (string)',
+            'description_key': 'modules.api.http_post.params.body.description',
+            'required': False,
+            'multiline': True
+        },
+        'json': {
+            'type': 'object',
+            'label': 'JSON Data',
+            'label_key': 'modules.api.http_post.params.json.label',
+            'description': 'JSON data to send',
+            'description_key': 'modules.api.http_post.params.json.description',
+            'required': False
+        },
+        'timeout': {
+            'type': 'number',
+            'label': 'Timeout',
+            'label_key': 'modules.api.http_post.params.timeout.label',
+            'description': 'Request timeout in seconds',
+            'description_key': 'modules.api.http_post.params.timeout.description',
+            'default': 30,
+            'required': False
+        }
+    },
+    output_schema={
+        'status_code': {'type': 'number'},
+        'headers': {'type': 'object'},
+        'body': {'type': 'string'},
+        'json': {'type': 'object', 'optional': True}
+    },
+    examples=[{
+        'title': 'Post JSON data',
+        'params': {
+            'url': 'https://api.example.com/users',
+            'json': {'name': 'John', 'email': 'john@example.com'}
+        }
+    }],
     author='Flyto2 Team',
     license='MIT'
 )

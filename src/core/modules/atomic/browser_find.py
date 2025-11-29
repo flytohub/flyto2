@@ -13,11 +13,21 @@ from .element_registry import ElementRegistry
     module_id='core.browser.find',
     version='1.0.0',
     category='browser',
+    subcategory='browser',
     tags=['browser', 'find', 'element', 'selector'],
     label='Find Elements',
     label_key='modules.browser.find.label',
     description='Find elements in page and return element ID list',
     description_key='modules.browser.find.description',
+    icon='Search',
+    color='#8B5CF6',
+
+    # Connection types
+    input_types=['browser_instance', 'page_instance'],
+    output_types=['element', 'array'],
+    can_receive_from=['browser.page.*'],
+    can_connect_to=['element.*', 'data.*'],
+
     params_schema={
         'selector': {
             'type': 'string',
@@ -42,6 +52,13 @@ from .element_registry import ElementRegistry
         'count': {'type': 'number'},
         'element_ids': {'type': 'array'}
     },
+    examples=[{
+        'title': 'Find search results',
+        'params': {
+            'selector': 'div.tF2Cxc',
+            'limit': 10
+        }
+    }],
     author='Flyto2 Team',
     license='MIT'
 )

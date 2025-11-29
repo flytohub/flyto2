@@ -21,7 +21,10 @@ import re
     description_key='modules.string.split.description',
     icon='Split',
     color='#8B5CF6',
-    params_schema={
+
+    # Connection types
+    input_types=['any'],
+    output_types=['any'],    params_schema={
         'text': {
             'type': 'string',
             'label': 'Text',

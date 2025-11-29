@@ -21,7 +21,10 @@ import math
     description_key='modules.math.calculate.description',
     icon='Calculator',
     color='#F59E0B',
-    params_schema={
+
+    # Connection types
+    input_types=['any'],
+    output_types=['any'],    params_schema={
         'operation': {
             'type': 'string',
             'label': 'Operation',

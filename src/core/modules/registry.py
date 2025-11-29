@@ -249,6 +249,12 @@ def register_module(
     icon: Optional[str] = None,
     color: Optional[str] = None,
 
+    # Connection types (for UI compatibility)
+    input_types: Optional[List[str]] = None,
+    output_types: Optional[List[str]] = None,
+    can_receive_from: Optional[List[str]] = None,
+    can_connect_to: Optional[List[str]] = None,
+
     # Schema
     params_schema: Optional[Dict[str, Any]] = None,
     output_schema: Optional[Dict[str, Any]] = None,
@@ -269,9 +275,15 @@ def register_module(
             module_id="browser.goto",
             version="1.0.0",
             category="browser",
+            subcategory="browser",
             label={"en": "Go to URL", "zh": "Go to URL"},
-            description={"en": "Navigate to URL", "zh": "Navigate to specifiedURL"},
+            description={"en": "Navigate to URL", "zh": "Navigate to specified URL"},
             icon="Globe",
+            color="#8B5CF6",
+            input_types=["browser_instance"],
+            output_types=["page_instance"],
+            can_receive_from=["browser.launch"],
+            can_connect_to=["browser.*", "element.*"],
             params_schema={
                 "url": {
                     "type": "string",
@@ -292,9 +304,15 @@ def register_module(
         subcategory: Optional subcategory
         tags: List of tags for filtering
         label: Display name (string or i18n dict)
+        label_key: i18n translation key for label
         description: Description (string or i18n dict)
+        description_key: i18n translation key for description
         icon: Icon name (e.g., "Globe", "Keyboard")
         color: Hex color code
+        input_types: List of accepted input types
+        output_types: List of produced output types
+        can_receive_from: List of module patterns this can receive from
+        can_connect_to: List of module patterns this can connect to
         params_schema: Parameter definitions
         output_schema: Output structure definition
         requires: List of required module IDs
@@ -320,6 +338,10 @@ def register_module(
             "description_key": description_key,  # i18n key
             "icon": icon,
             "color": color,
+            "input_types": input_types or [],
+            "output_types": output_types or [],
+            "can_receive_from": can_receive_from or [],
+            "can_connect_to": can_connect_to or [],
             "params_schema": params_schema or {},
             "output_schema": output_schema or {},
             "requires": requires or [],
