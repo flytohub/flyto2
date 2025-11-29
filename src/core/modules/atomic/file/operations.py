@@ -25,7 +25,20 @@ import shutil
 
     # Connection types
     output_types=['text', 'binary'],
-    can_connect_to=['data.*', 'string.*'],    params_schema={
+    can_connect_to=['data.*', 'string.*'],
+
+    # Phase 2: Execution settings
+    timeout=30,  # File reads can timeout on network filesystems
+    retryable=True,  # Can retry failed reads
+    max_retries=2,
+    concurrent_safe=True,  # Reading different files is safe
+
+    # Phase 2: Security settings
+    requires_credentials=False,
+    handles_sensitive_data=True,  # Files may contain sensitive data
+    required_permissions=['file.read'],
+
+    params_schema={
         'path': {
             'type': 'string',
             'label': 'File Path',
@@ -97,6 +110,17 @@ async def file_read(context):
     description_key='modules.file.write.description',
     icon='FileText',
     color='#6B7280',
+
+    # Phase 2: Execution settings
+    timeout=30,  # File writes can timeout on network filesystems
+    retryable=False,  # Don't retry writes (could cause duplicates)
+    concurrent_safe=False,  # Writing to same file is not thread-safe
+
+    # Phase 2: Security settings
+    requires_credentials=False,
+    handles_sensitive_data=True,  # File content may be sensitive
+    required_permissions=['file.write'],
+
     params_schema={
         'path': {
             'type': 'string',
@@ -192,6 +216,18 @@ async def file_write(context):
     description_key='modules.file.exists.description',
     icon='FileSearch',
     color='#6B7280',
+
+    # Phase 2: Execution settings
+    # No timeout needed - file existence check is instant
+    retryable=True,  # Can retry if filesystem temporarily unavailable
+    max_retries=2,
+    concurrent_safe=True,  # Stateless check operation
+
+    # Phase 2: Security settings
+    requires_credentials=False,
+    handles_sensitive_data=False,
+    required_permissions=['file.read'],
+
     params_schema={
         'path': {
             'type': 'string',

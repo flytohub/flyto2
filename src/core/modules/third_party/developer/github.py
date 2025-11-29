@@ -23,7 +23,20 @@ import os
 
     # Connection types
     input_types=['any'],
-    output_types=['any'],    params_schema={
+    output_types=['any'],
+
+    # Phase 2: Execution settings
+    timeout=30,  # API calls should complete within 30s
+    retryable=True,  # Network errors can be retried
+    max_retries=3,
+    concurrent_safe=True,  # Multiple API calls can run in parallel
+
+    # Phase 2: Security settings
+    requires_credentials=True,  # Needs GITHUB_TOKEN (recommended)
+    handles_sensitive_data=False,  # Repository data is typically public
+    required_permissions=['network.access'],
+
+    params_schema={
         'owner': {
             'type': 'string',
             'label': 'Owner',
@@ -129,6 +142,22 @@ class GitHubGetRepoModule(BaseModule):
     description_key='modules.api.github.list_issues.description',
     icon='AlertCircle',
     color='#24292e',
+
+    # Connection types
+    input_types=['any'],
+    output_types=['any'],
+
+    # Phase 2: Execution settings
+    timeout=30,  # API calls should complete within 30s
+    retryable=True,  # Network errors can be retried
+    max_retries=3,
+    concurrent_safe=True,  # Multiple API calls can run in parallel
+
+    # Phase 2: Security settings
+    requires_credentials=True,  # Needs GITHUB_TOKEN (recommended)
+    handles_sensitive_data=False,  # Issue data is typically public
+    required_permissions=['network.access'],
+
     params_schema={
         'owner': {
             'type': 'string',
@@ -275,6 +304,21 @@ class GitHubListIssuesModule(BaseModule):
     description_key='modules.api.github.create_issue.description',
     icon='Plus',
     color='#24292e',
+
+    # Connection types
+    input_types=['any'],
+    output_types=['any'],
+
+    # Phase 2: Execution settings
+    timeout=30,  # API calls should complete within 30s
+    retryable=False,  # Could create duplicate issues if retried
+    concurrent_safe=True,  # Multiple API calls can run in parallel
+
+    # Phase 2: Security settings
+    requires_credentials=True,  # Needs GITHUB_TOKEN (required for creation)
+    handles_sensitive_data=False,  # Issue data is typically public
+    required_permissions=['network.access'],
+
     params_schema={
         'owner': {
             'type': 'string',

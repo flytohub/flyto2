@@ -22,7 +22,20 @@ import base64
 
     # Connection types
     input_types=['any'],
-    output_types=['any'],    params_schema={
+    output_types=['any'],
+
+    # Phase 2: Execution settings
+    timeout=60,  # Cloud uploads can take time depending on file size
+    retryable=True,  # Network errors can be retried
+    max_retries=3,
+    concurrent_safe=True,  # Multiple uploads can run in parallel
+
+    # Phase 2: Security settings
+    requires_credentials=True,  # Needs AWS credentials
+    handles_sensitive_data=True,  # Files may contain sensitive data
+    required_permissions=['network.access', 'cloud.storage'],
+
+    params_schema={
         'aws_access_key_id': {
             'type': 'string',
             'label': 'AWS Access Key ID',
@@ -231,6 +244,22 @@ async def aws_s3_upload(context):
     description_key='modules.cloud.aws_s3.download.description',
     icon='Cloud',
     color='#FF9900',
+
+    # Connection types
+    input_types=['any'],
+    output_types=['any'],
+
+    # Phase 2: Execution settings
+    timeout=60,  # Cloud downloads can take time depending on file size
+    retryable=True,  # Network errors can be retried
+    max_retries=3,
+    concurrent_safe=True,  # Multiple downloads can run in parallel
+
+    # Phase 2: Security settings
+    requires_credentials=True,  # Needs AWS credentials
+    handles_sensitive_data=True,  # Files may contain sensitive data
+    required_permissions=['network.access', 'cloud.storage'],
+
     params_schema={
         'aws_access_key_id': {
             'type': 'string',

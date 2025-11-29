@@ -28,6 +28,17 @@ from .element_registry import ElementRegistry
     can_receive_from=['browser.page.*'],
     can_connect_to=['element.*', 'data.*'],
 
+    # Phase 2: Execution settings
+    timeout=10,  # Finding elements should complete within 10s
+    retryable=True,  # Can retry if elements not ready
+    max_retries=2,
+    concurrent_safe=True,  # Stateless find operation
+
+    # Phase 2: Security settings
+    requires_credentials=False,
+    handles_sensitive_data=False,
+    required_permissions=['browser.read'],
+
     params_schema={
         'selector': {
             'type': 'string',

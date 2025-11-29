@@ -23,7 +23,19 @@ import os
 
     # Connection types
     input_types=['any'],
-    output_types=['any'],    params_schema={
+    output_types=['any'],
+
+    # Phase 2: Execution settings
+    timeout=30,  # API calls should complete within 30s
+    retryable=False,  # Could create duplicate pages if retried
+    concurrent_safe=True,  # Multiple API calls can run in parallel
+
+    # Phase 2: Security settings
+    requires_credentials=True,  # Needs NOTION_API_KEY
+    handles_sensitive_data=True,  # Page content may be sensitive
+    required_permissions=['network.access'],
+
+    params_schema={
         'api_key': {
             'type': 'string',
             'label': 'API Key',
@@ -171,6 +183,22 @@ async def notion_create_page(context):
     description_key='modules.api.notion.query_database.description',
     icon='Search',
     color='#000000',
+
+    # Connection types
+    input_types=['any'],
+    output_types=['any'],
+
+    # Phase 2: Execution settings
+    timeout=30,  # API calls should complete within 30s
+    retryable=True,  # Network errors can be retried
+    max_retries=3,
+    concurrent_safe=True,  # Multiple API calls can run in parallel
+
+    # Phase 2: Security settings
+    requires_credentials=True,  # Needs NOTION_API_KEY
+    handles_sensitive_data=True,  # Database content may be sensitive
+    required_permissions=['network.access'],
+
     params_schema={
         'api_key': {
             'type': 'string',
@@ -309,6 +337,22 @@ async def notion_query_database(context):
     description_key='modules.api.google_sheets.read.description',
     icon='Table',
     color='#0F9D58',
+
+    # Connection types
+    input_types=['any'],
+    output_types=['any'],
+
+    # Phase 2: Execution settings
+    timeout=30,  # API calls should complete within 30s
+    retryable=True,  # Network errors can be retried
+    max_retries=3,
+    concurrent_safe=True,  # Multiple API calls can run in parallel
+
+    # Phase 2: Security settings
+    requires_credentials=True,  # Needs Google credentials
+    handles_sensitive_data=True,  # Spreadsheet data may be sensitive
+    required_permissions=['network.access'],
+
     params_schema={
         'credentials': {
             'type': 'object',
@@ -463,6 +507,21 @@ async def google_sheets_read(context):
     description_key='modules.api.google_sheets.write.description',
     icon='Table',
     color='#0F9D58',
+
+    # Connection types
+    input_types=['any'],
+    output_types=['any'],
+
+    # Phase 2: Execution settings
+    timeout=30,  # API calls should complete within 30s
+    retryable=False,  # Could create duplicate data if retried
+    concurrent_safe=True,  # Multiple API calls can run in parallel
+
+    # Phase 2: Security settings
+    requires_credentials=True,  # Needs Google credentials
+    handles_sensitive_data=True,  # Spreadsheet data may be sensitive
+    required_permissions=['network.access'],
+
     params_schema={
         'credentials': {
             'type': 'object',

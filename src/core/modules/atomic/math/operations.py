@@ -24,7 +24,19 @@ import math
 
     # Connection types
     input_types=['any'],
-    output_types=['any'],    params_schema={
+    output_types=['any'],
+
+    # Phase 2: Execution settings
+    # No timeout - instant math operation
+    retryable=False,  # Logic errors won't fix themselves
+    concurrent_safe=True,  # Stateless operation
+
+    # Phase 2: Security settings
+    requires_credentials=False,
+    handles_sensitive_data=False,
+    required_permissions=[],
+
+    params_schema={
         'operation': {
             'type': 'string',
             'label': 'Operation',

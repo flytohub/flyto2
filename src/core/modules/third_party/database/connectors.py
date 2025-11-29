@@ -23,7 +23,20 @@ import os
     input_types=['json', 'object'],
     output_types=['json', 'array'],
     can_receive_from=['data.*', 'api.*'],
-    can_connect_to=['data.*', 'notification.*'],    params_schema={
+    can_connect_to=['data.*', 'notification.*'],
+
+    # Phase 2: Execution settings
+    timeout=60,  # Database queries can take time
+    retryable=True,  # Network errors can be retried for read queries
+    max_retries=3,
+    concurrent_safe=True,  # Multiple queries can run in parallel
+
+    # Phase 2: Security settings
+    requires_credentials=True,  # Needs database credentials
+    handles_sensitive_data=True,  # Database data is typically sensitive
+    required_permissions=['network.access', 'database.read'],
+
+    params_schema={
         'connection_string': {
             'type': 'string',
             'label': 'Connection String',
@@ -134,6 +147,24 @@ async def postgresql_query(context):
     description_key='modules.db.mysql.query.description',
     icon='Database',
     color='#00758F',
+
+    # Connection types
+    input_types=['json', 'object'],
+    output_types=['json', 'array'],
+    can_receive_from=['data.*', 'api.*'],
+    can_connect_to=['data.*', 'notification.*'],
+
+    # Phase 2: Execution settings
+    timeout=60,  # Database queries can take time
+    retryable=True,  # Network errors can be retried for read queries
+    max_retries=3,
+    concurrent_safe=True,  # Multiple queries can run in parallel
+
+    # Phase 2: Security settings
+    requires_credentials=True,  # Needs database credentials
+    handles_sensitive_data=True,  # Database data is typically sensitive
+    required_permissions=['network.access', 'database.read'],
+
     params_schema={
         'host': {
             'type': 'string',
@@ -285,6 +316,24 @@ async def mysql_query(context):
     description_key='modules.db.mongodb.find.description',
     icon='Database',
     color='#00ED64',
+
+    # Connection types
+    input_types=['json', 'object'],
+    output_types=['json', 'array'],
+    can_receive_from=['data.*', 'api.*'],
+    can_connect_to=['data.*', 'notification.*'],
+
+    # Phase 2: Execution settings
+    timeout=60,  # Database queries can take time
+    retryable=True,  # Network errors can be retried for read queries
+    max_retries=3,
+    concurrent_safe=True,  # Multiple queries can run in parallel
+
+    # Phase 2: Security settings
+    requires_credentials=True,  # Needs database credentials
+    handles_sensitive_data=True,  # Database data is typically sensitive
+    required_permissions=['network.access', 'database.read'],
+
     params_schema={
         'connection_string': {
             'type': 'string',
@@ -454,6 +503,23 @@ async def mongodb_find(context):
     description_key='modules.db.mongodb.insert.description',
     icon='Database',
     color='#00ED64',
+
+    # Connection types
+    input_types=['json', 'object'],
+    output_types=['json', 'array'],
+    can_receive_from=['data.*', 'api.*'],
+    can_connect_to=['data.*', 'notification.*'],
+
+    # Phase 2: Execution settings
+    timeout=30,  # Insert operations should be faster than queries
+    retryable=False,  # Could create duplicate documents if retried
+    concurrent_safe=True,  # Multiple inserts can run in parallel
+
+    # Phase 2: Security settings
+    requires_credentials=True,  # Needs database credentials
+    handles_sensitive_data=True,  # Database data is typically sensitive
+    required_permissions=['network.access', 'database.write'],
+
     params_schema={
         'connection_string': {
             'type': 'string',

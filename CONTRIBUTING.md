@@ -688,6 +688,16 @@ git push origin module/{namespace}-{category}-{action}
 - [ ] Unit tests (>80% coverage)
 - [ ] Updated i18n translation files
 - [ ] No hardcoded secrets
+- [ ] **Phase 2: Execution settings configured**
+  - [ ] `timeout` set if module can hang (API calls, browser operations, network requests)
+  - [ ] `retryable` enabled if temporary failures expected (network errors, rate limits)
+  - [ ] `max_retries` appropriate for use case (typically 2-3)
+  - [ ] `concurrent_safe` set to `False` if uses shared resources (browser, files, global state)
+- [ ] **Phase 2: Security settings declared**
+  - [ ] `requires_credentials` set to `True` if needs API keys or authentication
+  - [ ] `handles_sensitive_data` set to `True` if processes PII, passwords, or user data
+  - [ ] `required_permissions` list all permissions needed (e.g., `['network.access', 'file.write']`)
+- [ ] Ran `python scripts/validate_all_modules.py` with no errors
 
 ---
 

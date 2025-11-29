@@ -22,7 +22,19 @@ from ..registry import register_module
 
     # Connection types
     input_types=['any'],
-    output_types=['any'],    params_schema={
+    output_types=['any'],
+
+    # Phase 2: Execution settings
+    # No timeout - let sub-steps handle their own timeouts
+    retryable=False,  # Logic errors won't fix themselves
+    concurrent_safe=True,  # Stateless flow control
+
+    # Phase 2: Security settings
+    requires_credentials=False,
+    handles_sensitive_data=False,
+    required_permissions=['flow.control'],
+
+    params_schema={
         'items': {
             'type': 'array',
             'label': 'Items',

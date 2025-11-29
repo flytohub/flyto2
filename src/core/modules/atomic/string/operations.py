@@ -24,7 +24,19 @@ import re
 
     # Connection types
     input_types=['any'],
-    output_types=['any'],    params_schema={
+    output_types=['any'],
+
+    # Phase 2: Execution settings
+    # No timeout - instant string operation
+    retryable=False,  # Logic errors won't fix themselves
+    concurrent_safe=True,  # Stateless operation
+
+    # Phase 2: Security settings
+    requires_credentials=False,
+    handles_sensitive_data=False,
+    required_permissions=[],
+
+    params_schema={
         'text': {
             'type': 'string',
             'label': 'Text',
@@ -107,6 +119,17 @@ async def string_split(context):
     description_key='modules.string.replace.description',
     icon='Replace',
     color='#8B5CF6',
+
+    # Phase 2: Execution settings
+    # No timeout - instant string operation
+    retryable=False,  # Logic errors won't fix themselves
+    concurrent_safe=True,  # Stateless operation
+
+    # Phase 2: Security settings
+    requires_credentials=False,
+    handles_sensitive_data=False,
+    required_permissions=[],
+
     params_schema={
         'text': {
             'type': 'string',
@@ -202,6 +225,17 @@ async def string_replace(context):
     description_key='modules.string.regex_match.description',
     icon='Search',
     color='#8B5CF6',
+
+    # Phase 2: Execution settings
+    # No timeout - instant regex operation
+    retryable=False,  # Logic errors won't fix themselves
+    concurrent_safe=True,  # Stateless operation
+
+    # Phase 2: Security settings
+    requires_credentials=False,
+    handles_sensitive_data=False,
+    required_permissions=[],
+
     params_schema={
         'text': {
             'type': 'string',

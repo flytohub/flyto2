@@ -23,7 +23,19 @@ from ...registry import register_module
 
     # Connection types
     input_types=['any'],
-    output_types=['any'],    params_schema={
+    output_types=['any'],
+
+    # Phase 2: Execution settings
+    # No timeout - instant array operation
+    retryable=False,  # Logic errors won't fix themselves
+    concurrent_safe=True,  # Stateless operation
+
+    # Phase 2: Security settings
+    requires_credentials=False,
+    handles_sensitive_data=False,
+    required_permissions=[],
+
+    params_schema={
         'array': {
             'type': 'array',
             'label': 'Array',
@@ -129,6 +141,17 @@ async def array_filter(context):
     description_key='modules.array.sort.description',
     icon='ArrowUpDown',
     color='#10B981',
+
+    # Phase 2: Execution settings
+    # No timeout - instant array operation
+    retryable=False,  # Logic errors won't fix themselves
+    concurrent_safe=True,  # Stateless operation
+
+    # Phase 2: Security settings
+    requires_credentials=False,
+    handles_sensitive_data=False,
+    required_permissions=[],
+
     params_schema={
         'array': {
             'type': 'array',
@@ -201,6 +224,17 @@ async def array_sort(context):
     description_key='modules.array.unique.description',
     icon='Layers',
     color='#10B981',
+
+    # Phase 2: Execution settings
+    # No timeout - instant array operation
+    retryable=False,  # Logic errors won't fix themselves
+    concurrent_safe=True,  # Stateless operation
+
+    # Phase 2: Security settings
+    requires_credentials=False,
+    handles_sensitive_data=False,
+    required_permissions=[],
+
     params_schema={
         'array': {
             'type': 'array',

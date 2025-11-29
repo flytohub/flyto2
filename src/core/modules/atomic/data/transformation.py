@@ -26,7 +26,20 @@ import os
     # Connection types
     input_types=['text', 'file_path'],
     output_types=['array', 'object'],
-    can_connect_to=['data.*', 'file.*'],    params_schema={
+    can_connect_to=['data.*', 'file.*'],
+
+    # Phase 2: Execution settings
+    timeout=30,  # File reads can timeout on network filesystems
+    retryable=True,  # Can retry failed reads
+    max_retries=2,
+    concurrent_safe=True,  # Reading different files is safe
+
+    # Phase 2: Security settings
+    requires_credentials=False,
+    handles_sensitive_data=True,  # CSV files may contain sensitive data
+    required_permissions=['file.read'],
+
+    params_schema={
         'file_path': {
             'type': 'string',
             'label': 'File Path',
@@ -150,6 +163,17 @@ class CSVReadModule(BaseModule):
     description_key='modules.data.csv.write.description',
     icon='Save',
     color='#10B981',
+
+    # Phase 2: Execution settings
+    timeout=30,  # File writes can timeout on network filesystems
+    retryable=False,  # Don't retry writes (could cause duplicates)
+    concurrent_safe=False,  # Writing to same file is not thread-safe
+
+    # Phase 2: Security settings
+    requires_credentials=False,
+    handles_sensitive_data=True,  # CSV data may be sensitive
+    required_permissions=['file.write'],
+
     params_schema={
         'file_path': {
             'type': 'string',
@@ -267,6 +291,17 @@ class CSVWriteModule(BaseModule):
     description_key='modules.data.json.parse.description',
     icon='Code',
     color='#F59E0B',
+
+    # Phase 2: Execution settings
+    # No timeout - JSON parsing is instant
+    retryable=False,  # Parse errors won't fix themselves
+    concurrent_safe=True,  # Stateless operation
+
+    # Phase 2: Security settings
+    requires_credentials=False,
+    handles_sensitive_data=False,
+    required_permissions=[],
+
     params_schema={
         'json_string': {
             'type': 'text',
@@ -333,6 +368,17 @@ class JSONParseModule(BaseModule):
     description_key='modules.data.json.stringify.description',
     icon='FileCode',
     color='#F59E0B',
+
+    # Phase 2: Execution settings
+    # No timeout - JSON stringify is instant
+    retryable=False,  # Serialization errors won't fix themselves
+    concurrent_safe=True,  # Stateless operation
+
+    # Phase 2: Security settings
+    requires_credentials=False,
+    handles_sensitive_data=False,
+    required_permissions=[],
+
     params_schema={
         'data': {
             'type': 'object',
@@ -422,6 +468,17 @@ class JSONStringifyModule(BaseModule):
     description_key='modules.data.text.template.description',
     icon='FileText',
     color='#8B5CF6',
+
+    # Phase 2: Execution settings
+    # No timeout - template filling is instant
+    retryable=False,  # Template errors won't fix themselves
+    concurrent_safe=True,  # Stateless operation
+
+    # Phase 2: Security settings
+    requires_credentials=False,
+    handles_sensitive_data=False,
+    required_permissions=[],
+
     params_schema={
         'template': {
             'type': 'text',

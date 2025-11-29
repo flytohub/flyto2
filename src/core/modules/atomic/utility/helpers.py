@@ -27,7 +27,18 @@ import uuid
 
     # Connection types
     input_types=['any'],
-    output_types=['any'],    params_schema={
+    output_types=['any'],
+
+    # Phase 2: Execution settings
+    retryable=False,  # Delay operations are deterministic
+    concurrent_safe=True,  # Multiple delays can run in parallel
+
+    # Phase 2: Security settings
+    requires_credentials=False,  # No credentials needed
+    handles_sensitive_data=False,  # No sensitive data handled
+    required_permissions=[],  # No special permissions needed
+
+    params_schema={
         'duration_ms': {
             'type': 'number',
             'label': 'Duration (milliseconds)',
@@ -110,6 +121,20 @@ class DelayModule(BaseModule):
     description_key='modules.utility.random.number.description',
     icon='Shuffle',
     color='#EC4899',
+
+    # Connection types
+    input_types=['any'],
+    output_types=['any'],
+
+    # Phase 2: Execution settings
+    retryable=False,  # Random generation is deterministic
+    concurrent_safe=True,  # Multiple random operations can run in parallel
+
+    # Phase 2: Security settings
+    requires_credentials=False,  # No credentials needed
+    handles_sensitive_data=False,  # No sensitive data handled
+    required_permissions=[],  # No special permissions needed
+
     params_schema={
         'min': {
             'type': 'number',
@@ -204,6 +229,20 @@ class RandomNumberModule(BaseModule):
     description_key='modules.utility.random.string.description',
     icon='Key',
     color='#EC4899',
+
+    # Connection types
+    input_types=['any'],
+    output_types=['any'],
+
+    # Phase 2: Execution settings
+    retryable=False,  # Random generation is deterministic
+    concurrent_safe=True,  # Multiple random operations can run in parallel
+
+    # Phase 2: Security settings
+    requires_credentials=False,  # No credentials needed
+    handles_sensitive_data=False,  # No sensitive data handled
+    required_permissions=[],  # No special permissions needed
+
     params_schema={
         'length': {
             'type': 'number',
@@ -301,6 +340,20 @@ class RandomStringModule(BaseModule):
     description_key='modules.utility.datetime.now.description',
     icon='Calendar',
     color='#3B82F6',
+
+    # Connection types
+    input_types=['any'],
+    output_types=['any'],
+
+    # Phase 2: Execution settings
+    retryable=False,  # Time operations are instant and deterministic
+    concurrent_safe=True,  # Multiple time operations can run in parallel
+
+    # Phase 2: Security settings
+    requires_credentials=False,  # No credentials needed
+    handles_sensitive_data=False,  # No sensitive data handled
+    required_permissions=[],  # No special permissions needed
+
     params_schema={
         'format': {
             'type': 'select',
@@ -411,6 +464,20 @@ class DateTimeNowModule(BaseModule):
     description_key='modules.utility.hash.md5.description',
     icon='Hash',
     color='#8B5CF6',
+
+    # Connection types
+    input_types=['any'],
+    output_types=['any'],
+
+    # Phase 2: Execution settings
+    retryable=False,  # Hash operations are deterministic
+    concurrent_safe=True,  # Multiple hash operations can run in parallel
+
+    # Phase 2: Security settings
+    requires_credentials=False,  # No credentials needed
+    handles_sensitive_data=False,  # Hash input might be sensitive but output is not
+    required_permissions=[],  # No special permissions needed
+
     params_schema={
         'text': {
             'type': 'text',

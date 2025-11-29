@@ -220,6 +220,24 @@ async def anthropic_chat(context):
     description_key='modules.api.google_gemini.chat.description',
     icon='Sparkles',
     color='#4285F4',
+
+    # Connection types
+    input_types=['text', 'json'],
+    output_types=['text', 'json'],
+    can_receive_from=['data.*', 'file.*', 'browser.*'],
+    can_connect_to=['data.*', 'notification.*', 'file.*'],
+
+    # Phase 2: Execution settings
+    timeout=60,  # AI responses can take up to 60s
+    retryable=True,  # Network errors can be retried
+    max_retries=3,
+    concurrent_safe=True,  # Multiple AI calls can run in parallel
+
+    # Phase 2: Security settings
+    requires_credentials=True,  # Needs GOOGLE_AI_API_KEY
+    handles_sensitive_data=True,  # User prompts may contain sensitive info
+    required_permissions=['network.access', 'ai.api'],
+
     params_schema={
         'api_key': {
             'type': 'string',

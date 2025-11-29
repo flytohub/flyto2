@@ -185,11 +185,14 @@ steps:
 - [Module Registry](docs/MODULES.md) - All available modules with parameters
 - [CLI Usage](docs/CLI.md) - Command-line interface guide
 
-🛠️ **Development**
-- [Writing Modules](docs/WRITING_MODULES.md) - Create custom modules
+🛠️ **Module Development**
+- [Module Specification](docs/MODULE_SPECIFICATION.md) - Complete module specification
+- [Module Quick Reference](docs/MODULE_QUICK_REFERENCE.md) - Fast lookup guide
+- [Phase 2 Features](docs/MODULE_PHASE2_FEATURES.md) - Execution control & security features
 - [Contributing Guide](CONTRIBUTING.md) - How to contribute
 
-🏗️ **Architecture**
+🏗️ **Architecture & Integration**
+- [Phase 2 UI Integration](docs/PHASE2_UI_INTEGRATION.md) - Integrate Phase 2 features in UI
 - [System Architecture](docs/ARCHITECTURE.md) - Engine design
 - [UI Builder Integration](docs/UI_BUILDER_INTEGRATION.md) - For UI developers
 

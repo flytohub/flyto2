@@ -27,7 +27,20 @@ from email.mime.multipart import MIMEMultipart
     # Connection types
     input_types=['text', 'json', 'any'],
     output_types=['api_response'],
-    can_receive_from=['data.*', 'api.*', 'string.*'],    params_schema={
+    can_receive_from=['data.*', 'api.*', 'string.*'],
+
+    # Phase 2: Execution settings
+    timeout=30,  # API calls should complete within 30s
+    retryable=True,  # Network errors can be retried
+    max_retries=3,
+    concurrent_safe=True,  # Multiple messages can be sent in parallel
+
+    # Phase 2: Security settings
+    requires_credentials=True,  # Needs SLACK_WEBHOOK_URL
+    handles_sensitive_data=True,  # Messages may contain sensitive info
+    required_permissions=['network.access'],
+
+    params_schema={
         'webhook_url': {
             'type': 'string',
             'label': 'Webhook URL',
@@ -161,6 +174,23 @@ class SlackSendMessageModule(BaseModule):
     description_key='modules.notification.discord.send_message.description',
     icon='MessageSquare',
     color='#5865F2',
+
+    # Connection types
+    input_types=['text', 'json', 'any'],
+    output_types=['api_response'],
+    can_receive_from=['data.*', 'api.*', 'string.*'],
+
+    # Phase 2: Execution settings
+    timeout=30,  # API calls should complete within 30s
+    retryable=True,  # Network errors can be retried
+    max_retries=3,
+    concurrent_safe=True,  # Multiple messages can be sent in parallel
+
+    # Phase 2: Security settings
+    requires_credentials=True,  # Needs DISCORD_WEBHOOK_URL
+    handles_sensitive_data=True,  # Messages may contain sensitive info
+    required_permissions=['network.access'],
+
     params_schema={
         'webhook_url': {
             'type': 'string',
@@ -275,6 +305,23 @@ class DiscordSendMessageModule(BaseModule):
     description_key='modules.notification.telegram.send_message.description',
     icon='Send',
     color='#0088CC',
+
+    # Connection types
+    input_types=['text', 'json', 'any'],
+    output_types=['api_response'],
+    can_receive_from=['data.*', 'api.*', 'string.*'],
+
+    # Phase 2: Execution settings
+    timeout=30,  # API calls should complete within 30s
+    retryable=True,  # Network errors can be retried
+    max_retries=3,
+    concurrent_safe=True,  # Multiple messages can be sent in parallel
+
+    # Phase 2: Security settings
+    requires_credentials=True,  # Needs TELEGRAM_BOT_TOKEN
+    handles_sensitive_data=True,  # Messages may contain sensitive info
+    required_permissions=['network.access'],
+
     params_schema={
         'bot_token': {
             'type': 'string',
@@ -405,6 +452,23 @@ class TelegramSendMessageModule(BaseModule):
     description_key='modules.notification.email.send.description',
     icon='Mail',
     color='#EA4335',
+
+    # Connection types
+    input_types=['text', 'json', 'any'],
+    output_types=['api_response'],
+    can_receive_from=['data.*', 'api.*', 'string.*'],
+
+    # Phase 2: Execution settings
+    timeout=30,  # SMTP operations should complete within 30s
+    retryable=True,  # Network errors can be retried
+    max_retries=2,
+    concurrent_safe=True,  # Multiple emails can be sent in parallel
+
+    # Phase 2: Security settings
+    requires_credentials=True,  # Needs SMTP credentials
+    handles_sensitive_data=True,  # Email content may be sensitive
+    required_permissions=['network.access'],
+
     params_schema={
         'smtp_server': {
             'type': 'string',

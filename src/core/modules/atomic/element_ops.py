@@ -31,6 +31,17 @@ from .element_registry import ElementRegistry
     can_receive_from=['browser.find', 'element.query'],
     can_connect_to=['element.*', 'data.*'],
 
+    # Phase 2: Execution settings
+    timeout=5,  # Element query should be quick
+    retryable=True,  # Can retry if element not ready
+    max_retries=2,
+    concurrent_safe=True,  # Stateless element operations
+
+    # Phase 2: Security settings
+    requires_credentials=False,
+    handles_sensitive_data=False,
+    required_permissions=['browser.read'],
+
     params_schema={
         'element_id': {
             'type': 'string',
@@ -159,6 +170,17 @@ class ElementQueryModule(BaseModule):
     can_receive_from=['browser.find', 'element.*'],
     can_connect_to=['data.*', 'string.*', 'notification.*'],
 
+    # Phase 2: Execution settings
+    timeout=5,  # Text extraction should be quick
+    retryable=True,  # Can retry if element not ready
+    max_retries=2,
+    concurrent_safe=True,  # Stateless element operations
+
+    # Phase 2: Security settings
+    requires_credentials=False,
+    handles_sensitive_data=False,
+    required_permissions=['browser.read'],
+
     params_schema={
         'element_id': {
             'type': 'string',
@@ -242,6 +264,17 @@ class ElementTextModule(BaseModule):
     output_types=['text', 'string'],
     can_receive_from=['browser.find', 'element.*'],
     can_connect_to=['data.*', 'string.*'],
+
+    # Phase 2: Execution settings
+    timeout=5,  # Attribute extraction should be quick
+    retryable=True,  # Can retry if element not ready
+    max_retries=2,
+    concurrent_safe=True,  # Stateless element operations
+
+    # Phase 2: Security settings
+    requires_credentials=False,
+    handles_sensitive_data=False,
+    required_permissions=['browser.read'],
 
     params_schema={
         'element_id': {
