@@ -6,6 +6,7 @@ Thank you for your interest in contributing! This guide covers everything you ne
 
 ## Table of Contents
 
+- [Module Specification (REQUIRED READING)](#module-specification)
 - [Getting Started](#getting-started)
 - [Atomic Design Philosophy](#atomic-design-philosophy)
 - [Internationalization (i18n)](#internationalization-i18n)
@@ -13,6 +14,95 @@ Thank you for your interest in contributing! This guide covers everything you ne
 - [Quality Standards](#quality-standards)
 - [Testing](#testing)
 - [Submission Process](#submission-process)
+
+---
+
+## Module Specification
+
+### ⚠️ REQUIRED READING
+
+**Before creating any module**, you MUST read and follow the Module Specification:
+
+📘 **[Complete Specification](docs/MODULE_SPECIFICATION.md)** - Comprehensive rules and guidelines
+📋 **[Quick Reference](docs/MODULE_QUICK_REFERENCE.md)** - Fast lookup guide
+
+### Why This Matters
+
+Our module system powers the visual UI. Inconsistent modules break:
+- ✗ UI block generation
+- ✗ Module connection logic
+- ✗ Type compatibility checking
+- ✗ Professional appearance
+
+Following the specification ensures:
+- ✅ Your module works in the UI
+- ✅ Users can connect modules properly
+- ✅ Professional quality
+- ✅ Faster PR approval
+
+### Quick Checklist
+
+Before submitting a module PR:
+
+- [ ] Read [MODULE_SPECIFICATION.md](docs/MODULE_SPECIFICATION.md)
+- [ ] Module ID follows `category.subcategory.action` format
+- [ ] All required fields present (17 required)
+- [ ] `input_types` and `output_types` declared
+- [ ] Label is Title Case, 2-5 words
+- [ ] Color is valid hex (#RRGGBB)
+- [ ] i18n keys follow pattern: `modules.category.subcategory.action.field`
+- [ ] At least 1 working example included
+- [ ] Ran `python scripts/lint_modules.py path/to/module.py` with no errors
+- [ ] Added i18n translations to `i18n/en.json`
+
+### Tools Available
+
+**Create a new module:**
+```bash
+python scripts/create_module.py \
+    --category data \
+    --subcategory xml \
+    --action parse \
+    --label "Parse XML"
+```
+
+**Validate your module:**
+```bash
+python scripts/lint_modules.py src/core/modules/your_module.py
+```
+
+**Validate all modules:**
+```bash
+python scripts/lint_modules.py --strict
+```
+
+### Module Connection Example
+
+```python
+@register_module(
+    module_id='browser.page.screenshot',
+    # ... other fields ...
+
+    # Define what types this module accepts
+    input_types=['browser_instance'],
+
+    # Define what types this module produces
+    output_types=['screenshot', 'image'],
+
+    # Define which modules can send data to this one
+    can_receive_from=[
+        'browser.instance.launch',
+        'browser.page.navigate',
+    ],
+
+    # Define which modules can receive this module's output
+    can_connect_to=[
+        'file.write',
+        'cloud.s3.upload',
+        'ai.vision.*',
+    ],
+)
+```
 
 ---
 

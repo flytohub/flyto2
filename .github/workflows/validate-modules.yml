@@ -1,0 +1,93 @@
+name: Validate Modules
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'src/core/modules/**/*.py'
+      - 'scripts/lint_modules.py'
+      - '.github/workflows/validate-modules.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'src/core/modules/**/*.py'
+      - 'scripts/lint_modules.py'
+
+jobs:
+  lint-modules:
+    name: Lint Module Specifications
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run module linter
+        run: |
+          python scripts/lint_modules.py --strict
+        continue-on-error: false
+
+      - name: Check for validation errors
+        if: failure()
+        run: |
+          echo "❌ Module validation failed!"
+          echo "Please fix the errors above and ensure all modules comply with MODULE_SPECIFICATION.md"
+          echo ""
+          echo "Quick fixes:"
+          echo "  1. Run: python scripts/lint_modules.py"
+          echo "  2. Fix errors shown in output"
+          echo "  3. See docs/MODULE_SPECIFICATION.md for details"
+          exit 1
+
+  module-count:
+    name: Verify Module Count
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Count registered modules
+        run: |
+          python -c "
+          import sys
+          sys.path.insert(0, 'src')
+          from core.modules.registry import ModuleRegistry
+          from core.modules import atomic, third_party
+
+          registry = ModuleRegistry()
+          all_modules = registry.list_all()
+
+          print(f'✓ Successfully registered {len(all_modules)} modules')
+
+          if len(all_modules) < 50:
+              print(f'⚠ Warning: Expected 50+ modules, found {len(all_modules)}')
+              sys.exit(1)
+          "
+
+      - name: Summary
+        run: |
+          echo "✓ All modules validated successfully"
+          echo "✓ Module count verified"
+          echo ""
+          echo "See docs/MODULE_SPECIFICATION.md for specification details"
