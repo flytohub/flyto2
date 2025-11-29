@@ -26,6 +26,12 @@ from .element_ops import (
 from .loop import LoopModule
 from .element_registry import ElementRegistry
 
+# Import new atomic module categories
+from . import file
+from . import string
+from . import array
+from . import math
+
 __all__ = [
     'BrowserFindModule',
     'ElementQueryModule',
