@@ -1,12 +1,16 @@
-# Flyto2
+<div align="center">
+  <img src="assets/logo.svg" alt="Flyto2 Logo" width="200"/>
 
-> **The Git-Native Workflow Automation Engine**
->
-> Browser automation + AI + API integration in portable YAML workflows
+  # Flyto2
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+  **The Git-Native Workflow Automation Engine**
+
+  Browser automation + AI + API integration in portable YAML workflows
+
+  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+  [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+  [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+</div>
 
 ---
 
