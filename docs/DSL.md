@@ -1,599 +1,537 @@
-# Workflow DSL Specification
+# Workflow DSL 規格（Draft v1）
 
-This document defines the complete YAML DSL (Domain-Specific Language) for Flyto2.
+這份文件說明 flyto2 / flytohub 自動化引擎所使用的 YAML Workflow DSL。
+所有工作流、子流程、範例都應遵守本規格。
 
-**Version:** 1.0.0
-**Status:** Alpha
-**Last Updated:** 2025-01-29
-
----
-
-## Table of Contents
-
-- [Overview](#overview)
-- [Workflow Structure](#workflow-structure)
-- [Variable Resolution](#variable-resolution)
-- [Step Definition](#step-definition)
-- [Flow Control](#flow-control)
-- [Error Handling](#error-handling)
-- [Output Mapping](#output-mapping)
-- [Complete Examples](#complete-examples)
+**版本：** 1.0.0
+**狀態：** Alpha
+**最後更新：** 2025-11-29
 
 ---
 
-## Overview
+## 目錄
 
-Workflows are defined in YAML files with a standardized structure. The engine:
-
-1. **Parses** the YAML file
-2. **Validates** structure and required fields
-3. **Resolves** variables and expressions
-4. **Executes** steps sequentially (unless parallel execution specified)
-5. **Collects** outputs and returns results
-
-### Design Principles
-
-- **Declarative**: Describe what to do, not how
-- **Composable**: Build complex workflows from atomic modules
-- **Portable**: YAML files run anywhere without modification
-- **Version-controllable**: Git-friendly format
+- [設計目標](#設計目標)
+- [Workflow 檔案結構](#workflow-檔案結構)
+- [參數定義 (params)](#參數定義-params)
+- [Steps（步驟）](#steps步驟)
+- [全域錯誤處理](#全域錯誤處理-error-區塊)
+- [Workflow 輸出](#workflow-輸出-output)
+- [表達式語法](#表達式語法)
+- [特殊 engine / 子流程](#特殊-engine--子流程-subflow)
+- [命名約定](#命名約定-naming-conventions)
+- [範例](#範例)
+- [後續擴充方向](#後續擴充方向)
 
 ---
 
-## Workflow Structure
+## 設計目標（Design Goals）
 
-### Top-Level Fields
+- **人類可讀**：整個 workflow 用 YAML 表達，而不是藏在資料庫或 UI 裡
+- **Git 友善**：適合 git diff / PR review / rollback
+- **可組合**：每個 step 是 atomic module，流程可以任意組合
+- **可攜帶**：同一份 YAML 可以在本機、Docker、Kubernetes、CI/CD、Server 上執行
+- **對開發者友善**：變數、錯誤處理、條件、loop 都靠 DSL 清楚定義
+
+---
+
+## Workflow 檔案結構
+
+一個 workflow 是一個 `.yaml` 檔，基本結構如下：
 
 ```yaml
-# Metadata (optional but recommended)
-id: "unique-workflow-id"
-name: "Human Readable Name"
-version: "1.0.0"
-description: "What this workflow does"
-author: "Your Name"
-tags: ["tag1", "tag2"]
+id: google-search-top10
+name: "Google Search Top 10"
+version: "1.1.0"
 
-# Input parameters
+description:
+  en: "Extract top 10 Google search results for a keyword"
+  zh: "提取 Google 搜尋結果的前 10 筆"
+
+author: "Workflow Engine Team"
+tags: ["google", "search", "scraping"]
+
+engine: "browser-flow"
+
+config:
+  browser:
+    headless: false
+  timeout_ms: 60000
+
+params:
+  # ...
+steps:
+  # ...
+error:
+  # ...
+output:
+  # ...
+```
+
+### 頂層欄位（Top-level fields）
+
+| 欄位 | 類型 | 必填 | 說明 |
+|------|------|------|------|
+| `id` | string | ✅ | Workflow 全域唯一 ID（用來在 CLI / UI / API 中引用） |
+| `name` | string | ✅ | 顯示用名稱 |
+| `version` | string | ✅ | Semantic version（例如 1.0.0） |
+| `description` | string / map | ❌ | 可以是單純字串，或 `{en, zh, ...}` i18n 物件 |
+| `author` | string | ❌ | 作者／維護者資訊 |
+| `tags` | string[] | ❌ | 標籤，用於 UI 分類、搜尋 |
+| `engine` | string | ✅ | 執行引擎類型，例如：`browser-flow`, `http-flow`, `subflow` |
+| `config` | object | ❌ | workflow-local 設定，覆蓋全域 config |
+| `params` | Param[] | ❌ | 使用者可傳入的參數 |
+| `steps` | Step[] | ✅ | 工作流的步驟列表 |
+| `error` | ErrorConfig | ❌ | 全域錯誤處理策略 |
+| `output` | OutputSpec | ❌ | Workflow 的輸出定義 |
+
+---
+
+## 參數定義（params）
+
+`params` 是一個陣列，每一個 param 描述一個可輸入的參數（CLI、UI、API 皆可用）。
+
+```yaml
 params:
   - name: keyword
     type: string
-    label: "Search Keyword"
-    description: "The keyword to search for"
+    label:
+      en: "Search Keyword"
+      zh: "搜尋關鍵字"
+    description:
+      en: "The keyword to search on Google"
+    placeholder: "python tutorial"
     required: true
-    default: null
-    placeholder: "example text"
+    default: "python tutorial"
+    validation:
+      min_length: 1
+      max_length: 100
+
+  - name: max_results
+    type: number
+    label: "Maximum Results"
+    description: "Number of results (1–100)"
+    default: 10
     min: 1
     max: 100
+    required: false
+    advanced: true
 
-# Execution steps
-steps:
-  - id: step1
-    module: core.browser.launch
-    params:
-      headless: true
-    on_error: continue
-    timeout_ms: 30000
-
-  - id: step2
-    module: core.browser.goto
-    params:
-      browser: "${step1.browser}"
-      url: "https://example.com"
-
-# Output definition
-output:
-  status: "success"
-  data: "${step2.data}"
-  metadata:
-    timestamp: "${timestamp}"
-    workflow_id: "${workflow.id}"
-
-# Error handling (optional)
-on_error:
-  action: rollback
-  notify: "${env.ERROR_WEBHOOK_URL}"
-
-# Execution options (optional)
-options:
-  timeout_ms: 600000
-  retry_count: 3
-  parallel: false
+  - name: output_format
+    type: string
+    label: "Output Format"
+    default: "json"
+    enum: ["json", "csv", "markdown"]
 ```
+
+### Param 欄位
+
+| 欄位 | 類型 | 必填 | 說明 |
+|------|------|------|------|
+| `name` | string | ✅ | 參數名稱，在 DSL 中透過 `params.<name>` 存取 |
+| `type` | "string" \| "number" \| "boolean" \| "array" \| "object" | ✅ | 參數型別 |
+| `label` | string / map | ❌ | UI 顯示文字，可支援 i18n |
+| `description` | string / map | ❌ | UI / 文件描述 |
+| `placeholder` | string | ❌ | UI placeholder |
+| `required` | boolean | ❌ | 是否必填（預設 false） |
+| `default` | any | ❌ | 預設值（在未提供時使用） |
+| `enum` | any[] | ❌ | 限制可選值 |
+| `min` / `max` | number | ❌ | 用於 number 類型的範圍驗證 |
+| `validation` | object | ❌ | 自訂 validation（例如 min_length, max_length 等） |
+| `advanced` | boolean | ❌ | UI 隱藏在「進階設定」中 |
+| `show_if` | object | ❌ | 控制此參數是否顯示（依其他參數狀態） |
+
+### show_if 結構
+
+```yaml
+show_if:
+  field: "save_to_file"
+  equals: true
+```
+
+在 UI/工具裡，只有當 `params.save_to_file === true` 時才顯示此參數。
 
 ---
 
-## Variable Resolution
+## Steps（步驟）
 
-The engine supports multiple variable types with a consistent `${...}` syntax.
-
-### Variable Types
-
-#### 1. Step Outputs
-
-Access output from previous steps:
+`steps` 是一個「從上到下 sequential 執行」的步驟列表。每個 step 一次做一件事（Atomic Module）。
 
 ```yaml
 steps:
   - id: launch_browser
     module: core.browser.launch
-    # Output: { browser: <browser_instance>, status: "success" }
+    description: "Launch web browser"
+    params:
+      headless: "${config.browser.headless}"
+    output:
+      browser: "${result.browser}"
+      page: "${result.page}"
+    on_error:
+      retry: 1
+      backoff_ms: 1000
+      fatal: true
 
-  - id: navigate
+  - id: goto_google
     module: core.browser.goto
+    description: "Navigate to Google"
     params:
-      browser: "${launch_browser.browser}"  # Access step output
+      browser: "${launch_browser.browser}"
+      url: "https://www.google.com"
+      wait_until: "networkidle"
+
+  - id: wait_search_box
+    module: core.browser.wait
+    description: "Wait for search input"
+    params:
+      browser: "${launch_browser.browser}"
+      selector: 'input[name="q"], textarea[name="q"]'
+      timeout_ms: 10000
 ```
 
-**Pattern:** `${<step_id>.<field>}`
+### Step 通用欄位
 
-**Internal mapping:** `steps.<step_id>.output.<field>`
+| 欄位 | 類型 | 必填 | 說明 |
+|------|------|------|------|
+| `id` | string | ✅ | step 的唯一 ID，供後續引用（`<id>.<field>`） |
+| `module` | string | ✅ | 要呼叫的模組 ID，如 `core.browser.launch` |
+| `description` | string | ❌ | 文字描述，顯示於 UI 或 log |
+| `params` | object | ❌ | 傳給 module 的參數（可含表達式） |
+| `output` | object | ❌ | 定義哪些資料要暴露給後續 step 使用 |
+| `when` | string | ❌ | 條件表達式，結果為 false 時跳過此 step |
+| `always` | boolean | ❌ | 若為 true，無論前方是否失敗都會執行（類似 finally） |
+| `on_error` | object | ❌ | step 層級的錯誤處理設定 |
 
-#### 2. Workflow Parameters
+### params 中可以使用的變數（Context）
 
-Access user-provided parameters:
+在 `params`（以及 `when`、`output`）裡可以使用 `${ ... }` 表達式。
+可用的變數：
+
+| 名稱 | 說明 |
+|------|------|
+| `params` | 使用者輸入參數物件，例如 `params.keyword` |
+| `config` | workflow 的 config 物件 |
+| `env` | 環境變數，例如 `env.OPENAI_API_KEY` |
+| `steps` | 所有已執行步驟的 output，例如 `steps.launch_browser.output.browser` |
+| `<stepId>` | 便捷別名，相當於 `steps.<stepId>.output`，例如 `launch_browser.browser` |
+| `utils` | 系統提供的工具函式，例如 `utils.slug()`, `utils.clean_url()` 等 |
+| `timestamp` | 執行當下時間戳（例如 ISO 字串） |
+| `error` | 在錯誤處理中可用的錯誤物件 |
+| `result` | 當前 module 回傳的原始結果（只在 step 執行完做 output mapping 時可用） |
+
+### output 欄位
+
+`output` 用來把 module 執行結果的一部分取出，命名並暴露給後續 step 使用。
+
+```yaml
+- id: extract_results
+  module: core.browser.extract
+  params:
+    browser: "${launch_browser.browser}"
+    selector: "#search .g"
+    limit: "${params.max_results || 10}"
+    fields:
+      title: { selector: "h3", type: "text" }
+      url:   { selector: "a", type: "attribute", attribute: "href" }
+  output:
+    items: "${result.items}"
+    count: "${result.items.length}"
+```
+
+後續 step 中可以這樣使用：
 
 ```yaml
 params:
-  - name: search_query
-    type: string
-    required: true
-
-steps:
-  - id: search
-    module: core.api.google_search
-    params:
-      keyword: "${params.search_query}"
+  input: "${extract_results.items}"
+  limit: "${extract_results.count}"
 ```
 
-**Pattern:** `${params.<param_name>}`
-
-#### 3. Environment Variables
-
-Access environment variables:
-
-```yaml
-steps:
-  - id: api_call
-    module: ai.openai.chat
-    params:
-      api_key: "${env.OPENAI_API_KEY}"
-      prompt: "Analyze this data"
-```
-
-**Pattern:** `${env.VAR_NAME}`
-
-**Security:** Sensitive values should always use environment variables, never hardcoded.
-
-#### 4. Built-in Variables
-
-The engine provides several built-in variables:
-
-```yaml
-output:
-  timestamp: "${timestamp}"           # ISO 8601 timestamp
-  workflow_id: "${workflow.id}"       # Current workflow ID
-  workflow_name: "${workflow.name}"   # Current workflow name
-  execution_id: "${execution.id}"     # Unique execution ID
-  user: "${user.id}"                  # User ID (if authenticated)
-```
-
-#### 5. Complex Expressions
-
-Access nested fields and array elements:
-
-```yaml
-steps:
-  - id: extract_data
-    module: core.browser.extract
-    # Output: { data: [{ title: "Title 1", url: "..." }, { title: "Title 2", url: "..." }] }
-
-  - id: process_first
-    module: core.data.transform
-    params:
-      input: "${extract_data.data[0].title}"  # Array access
-
-  - id: process_all
-    module: core.flow.loop
-    params:
-      items: "${extract_data.data}"           # Full array
-      item_var: "item"
-      steps:
-        - module: core.data.log
-          params:
-            message: "${item.title}"          # Loop variable
-```
-
-### Variable Resolution Order
-
-1. **Built-in variables** (timestamp, workflow.id, etc.)
-2. **Environment variables** (env.*)
-3. **Workflow parameters** (params.*)
-4. **Step outputs** (step_id.field)
-5. **Loop variables** (item, index) - only within loop context
-
-### Escaping
-
-To use literal `${...}` text without variable resolution:
+等價於：
 
 ```yaml
 params:
-  message: "$${this is not a variable}"  # Outputs: ${this is not a variable}
+  input: "${steps.extract_results.output.items}"
 ```
+
+### when 條件執行
+
+若 `when` 存在，會先 evaluate；如果結果為 falsy（false / 0 / '' / null / undefined）則**跳過此 step**。
+
+```yaml
+- id: save_to_file_step
+  module: core.fs.write
+  description: "Save results to file if enabled"
+  when: "${params.save_to_file === true}"
+  params:
+    dir: "${params.output_dir || './results'}"
+    filename: "google_search_${utils.slug(params.keyword)}_${timestamp}.txt"
+    content: "${format_results.payload}"
+```
+
+### always（類似 finally）
+
+若 `always: true`，即使前面有 step 失敗、workflow 中途丟錯，此 step 仍會執行（通常用來清理資源，例如關閉瀏覽器）。
+
+```yaml
+- id: close_browser
+  module: core.browser.close
+  description: "Close browser"
+  params:
+    browser: "${launch_browser.browser}"
+  always: true
+```
+
+### Step 級錯誤處理 on_error
+
+`on_error` 是每個 step 都可以設定的 retry / backoff / fatal 行為。
+
+```yaml
+- id: launch_browser
+  module: core.browser.launch
+  params:
+    headless: "${config.browser.headless}"
+  output:
+    browser: "${result.browser}"
+  on_error:
+    retry: 1           # 失敗重試次數
+    backoff_ms: 1000   # 每次重試前等待時間
+    fatal: true        # 若重試後仍失敗 → 拋出錯誤，中止 workflow
+```
+
+欄位說明：
+
+| 欄位 | 類型 | 說明 |
+|------|------|------|
+| `retry` | number | 最大重試次數 |
+| `backoff_ms` | number | 每次重試之間等待毫秒數 |
+| `fatal` | boolean | 若 true，這個 step 無法完成時會終止 workflow（丟出錯誤） |
 
 ---
 
-## Step Definition
+## 全域錯誤處理（error 區塊）
 
-Each step executes a single module with specified parameters.
-
-### Step Fields
+除了 step-level 的 `on_error`，workflow 可以設定全域的錯誤處理策略。
 
 ```yaml
-steps:
-  - id: unique_step_id           # Required: unique identifier
-    module: core.browser.launch  # Required: module to execute
-
-    description: "Launch browser"  # Optional: human-readable description
-
-    params:                      # Optional: module-specific parameters
-      headless: true
-      viewport:
-        width: 1920
-        height: 1080
-
-    when: "${params.enabled}"    # Optional: conditional execution
-
-    timeout_ms: 30000            # Optional: step timeout (default: 120000)
-
-    retry:                       # Optional: retry configuration
-      count: 3
-      delay_ms: 1000
-      backoff: exponential
-
-    on_error: continue           # Optional: error handling (continue, fail, rollback)
-
-    always: false                # Optional: run even if previous steps failed
-```
-
-### Step Execution Order
-
-By default, steps execute **sequentially** in the order defined:
-
-```yaml
-steps:
-  - id: step1
-    module: module.a
-  - id: step2
-    module: module.b    # Waits for step1 to complete
-  - id: step3
-    module: module.c    # Waits for step2 to complete
-```
-
-### Parallel Execution
-
-Mark steps for parallel execution:
-
-```yaml
-steps:
-  - id: task1
-    module: core.api.fetch
-    params:
-      url: "https://api1.example.com"
-    parallel: true
-
-  - id: task2
-    module: core.api.fetch
-    params:
-      url: "https://api2.example.com"
-    parallel: true
-
-  - id: task3
-    module: core.api.fetch
-    params:
-      url: "https://api3.example.com"
-    parallel: true
-
-  - id: combine
-    module: core.data.merge
-    params:
-      data:
-        - "${task1.data}"
-        - "${task2.data}"
-        - "${task3.data}"
-    # This step waits for all parallel steps above to complete
-```
-
-**Rules:**
-- Steps marked `parallel: true` execute concurrently
-- The first non-parallel step waits for all preceding parallel steps
-- Parallel steps cannot reference each other's outputs
-
----
-
-## Flow Control
-
-### Conditional Execution
-
-Execute steps based on conditions:
-
-```yaml
-steps:
-  - id: check_login
-    module: core.browser.element_exists
-    params:
-      browser: "${launch_browser.browser}"
-      selector: "#login-button"
-
-  - id: perform_login
-    module: core.browser.click
-    params:
-      browser: "${launch_browser.browser}"
-      selector: "#login-button"
-    when: "${check_login.exists == true}"  # Only run if condition is true
-```
-
-**Supported operators:**
-- `==` Equal
-- `!=` Not equal
-- `>` Greater than
-- `<` Less than
-- `>=` Greater than or equal
-- `<=` Less than or equal
-- `contains` String/array contains
-- `!contains` String/array does not contain
-
-### Loops
-
-Iterate over arrays:
-
-```yaml
-steps:
-  - id: extract_links
-    module: core.browser.extract
-    params:
-      browser: "${launch_browser.browser}"
-      selector: "a.product"
-      # Returns: { data: [{ url: "..." }, { url: "..." }] }
-
-  - id: visit_each
-    module: core.flow.loop
-    params:
-      items: "${extract_links.data}"
-      item_var: "product"           # Variable name for current item
-      index_var: "idx"              # Variable name for current index
-      output_mode: collect          # collect, last, none
-
-      steps:
-        - id: visit_product
-          module: core.browser.goto
-          params:
-            browser: "${launch_browser.browser}"
-            url: "${product.url}"
-
-        - id: extract_price
-          module: core.browser.extract
-          params:
-            browser: "${launch_browser.browser}"
-            selector: ".price"
-```
-
-**Output modes:**
-- `collect`: Collect all step results into an array
-- `last`: Only return the last iteration's result
-- `none`: Don't collect results
-
-### Conditional Branches
-
-If/else logic:
-
-```yaml
-steps:
-  - id: check_status
-    module: core.api.http_get
-    params:
-      url: "https://api.example.com/status"
-
-  - id: handle_success
-    module: core.data.log
-    params:
-      message: "Service is up"
-    when: "${check_status.status_code == 200}"
-
-  - id: handle_failure
-    module: core.data.log
-    params:
-      message: "Service is down"
-    when: "${check_status.status_code != 200}"
-```
-
-### Early Exit
-
-Stop workflow execution based on condition:
-
-```yaml
-steps:
-  - id: check_required_element
-    module: core.browser.element_exists
-    params:
-      browser: "${launch_browser.browser}"
-      selector: "#critical-element"
-
-  - id: exit_if_missing
-    module: core.flow.exit
-    params:
-      status: "failed"
-      message: "Critical element not found"
-    when: "${check_required_element.exists == false}"
-
-  - id: continue_workflow
-    module: core.browser.click
-    params:
-      browser: "${launch_browser.browser}"
-      selector: "#critical-element"
-```
-
----
-
-## Error Handling
-
-### Step-Level Error Handling
-
-```yaml
-steps:
-  - id: risky_operation
-    module: core.api.http_get
-    params:
-      url: "https://unreliable-api.example.com"
-
-    on_error: continue        # continue, fail, rollback, retry
-
-    retry:
-      count: 3               # Retry up to 3 times
-      delay_ms: 1000         # Wait 1 second between retries
-      backoff: exponential   # exponential or linear
-      on_retry:
-        - module: core.data.log
-          params:
-            message: "Retrying after failure..."
-```
-
-**Error handling options:**
-- `continue`: Log error and continue to next step
-- `fail`: Stop workflow execution immediately
-- `rollback`: Execute rollback steps (if defined)
-- `retry`: Retry the step according to retry configuration
-
-### Workflow-Level Error Handling
-
-```yaml
-on_error:
-  action: rollback
-
-  rollback_steps:
-    - id: cleanup_browser
-      module: core.browser.close
+error:
+  on_error:
+    - module: core.log.error
+      params:
+        message: "Google Search Top 10 workflow failed"
+        error: "${error}"
+    - module: core.browser.safe_close
       params:
         browser: "${launch_browser.browser}"
 
-    - id: notify_failure
-      module: api.http.post
-      params:
-        url: "${env.ERROR_WEBHOOK_URL}"
-        body:
-          message: "Workflow failed"
-          error: "${error.message}"
-          step: "${error.step_id}"
-
-  notify:
-    webhook: "${env.ERROR_WEBHOOK_URL}"
-    email: "${env.ADMIN_EMAIL}"
+  strategy:
+    stop_on_error: true
 ```
 
-### Always Execute Steps
+### 結構說明
 
-Steps that run regardless of previous failures:
+| 欄位 | 類型 | 說明 |
+|------|------|------|
+| `on_error` | StepLike[] | 當 workflow 內任意 step 拋出「未處理錯誤」時，依序執行這些錯誤 handler |
+| `strategy` | object | 控制錯誤後是否繼續執行等 |
+
+`on_error` 內的每個項目跟一般 step 類似（但通常不需要 id / output），例如：
 
 ```yaml
-steps:
-  - id: launch_browser
-    module: core.browser.launch
-
-  - id: risky_step
-    module: core.browser.goto
-    params:
-      url: "https://might-fail.com"
-
-  - id: cleanup
-    module: core.browser.close
-    params:
-      browser: "${launch_browser.browser}"
-    always: true              # Runs even if risky_step fails
+error:
+  on_error:
+    - module: core.log.error
+      params:
+        message: "Workflow failed"
+        error: "${error}"
 ```
 
-### Error Context Variables
-
-Access error information in error handlers:
+`strategy` 可以包含：
 
 ```yaml
-on_error:
-  rollback_steps:
-    - id: log_error
-      module: core.data.log
-      params:
-        message: |
-          Error occurred:
-          Step: ${error.step_id}
-          Module: ${error.module_id}
-          Message: ${error.message}
-          Stack: ${error.stack}
-          Timestamp: ${error.timestamp}
+strategy:
+  stop_on_error: true   # 預設 true，遇錯誤就中止 workflow
+  # 未來可擴充: continue_on_non_fatal, max_error_steps, 等等
 ```
 
 ---
 
-## Output Mapping
+## Workflow 輸出（output）
 
-Define workflow output using variable references:
-
-### Simple Output
-
-```yaml
-steps:
-  - id: extract_data
-    module: core.browser.extract
-    # Returns: { data: [...], count: 10 }
-
-output:
-  results: "${extract_data.data}"
-  total: "${extract_data.count}"
-```
-
-### Computed Output
+`output` 定義整個 workflow 執行成功後要回傳的 payload 結構。
+執行 engine 時，會 evaluate 其中所有表達式，組成一個最後回傳的 JSON。
 
 ```yaml
 output:
-  status: "success"
-  timestamp: "${timestamp}"
-  results:
-    raw_data: "${extract_data.data}"
-    filtered_data: "${filtered.results}"
-    summary:
-      total_items: "${extract_data.count}"
-      processed_items: "${filtered.count}"
-      workflow_name: "${workflow.name}"
+  fields:
+    keyword:       "${params.keyword}"
+    results:       "${normalize_results.items}"
+    count:         "${normalize_results.count}"
+    format:        "${params.output_format || 'json'}"
+    saved_to_file: "${params.save_to_file === true}"
+    file_path:     "${save_to_file_step.file_path || null}"
+    timestamp:     "${timestamp}"
 ```
 
-### Conditional Output
+最終返回的 JSON 會是：
 
-```yaml
-output:
-  status: "${steps.final_check.success ? 'completed' : 'partial'}"
-  data:
-    when: "${steps.extract_data.count > 0}"
-    value: "${extract_data.data}"
-  message:
-    when: "${steps.extract_data.count == 0}"
-    value: "No data found"
+```json
+{
+  "keyword": "...",
+  "results": [ ... ],
+  "count": 10,
+  "format": "json",
+  "saved_to_file": true,
+  "file_path": "./results/xxx.txt",
+  "timestamp": "2025-11-29T..."
+}
 ```
+
+**約定：**
+- 在 `output` 中可以使用與 step params 相同的表達式語法與變數來源
+- 引擎可自由決定是否要包裝成 `{ ok: true, data: <output.fields> }` 之類的外層格式（但 DSL 層先定義 fields 就好）
 
 ---
 
-## Complete Examples
+## 表達式語法（`${ ... }`）
 
-### Example 1: Minimal Workflow
+### 基本規則
+
+任何 string，如果是 `${...}` 開頭 + 結尾，會被當作「表達式」，透過安全執行器 evaluate。
+
+其它類型（number / boolean / array / object）則原封不動。
 
 ```yaml
-name: "Simple Page Title Extractor"
-description: "Extract title from any webpage"
+params:
+  url: "https://google.com"                        # 純字串
+  query: "${params.keyword}"                       # 變數取值
+  limit: "${params.max_results || 10}"             # 有邏輯運算
+  filename: "google_${utils.slug(params.keyword)}_${timestamp}.json" # ❌ 這裡目前視為純字串（若要混合，需引擎支援 template）
+```
+
+**建議 DSL v1：** 只支援整個欄位是 `${...}` 的情況，
+混合字串 + 表達式的 template 先由 module 自己實作，或未來擴充。
+
+### 可用變數一覽
+
+| 變數名 | 說明 |
+|--------|------|
+| `params` | Workflow 參數物件 |
+| `config` | Workflow config |
+| `env` | 環境變數 |
+| `steps` | 所有已執行 step 的輸出，`steps.<id>.output.<field>` |
+| `<stepId>` | 便捷 alias：`<stepId>.<field>` = `steps.<stepId>.output.<field>` |
+| `result` | 當前 step module 回傳值（只在 output mapping 時存在） |
+| `utils` | 工具函式（slug, clean_url,...） |
+| `timestamp` | 當前執行時間戳 |
+| `error` | 在 error handler 中的錯誤物件 |
+
+### Expression Engine
+
+實作上可以是：
+
+```javascript
+new Function("scope", "with (scope) { return (EXPRESSION); }")
+scope = { params, config, env, steps, utils, timestamp, error, result, <stepId aliases> }
+```
+
+DSL 規格只規定「什麼可以用」，不詳述 engine 實作。
+
+---
+
+## 特殊 engine / 子流程（subflow）
+
+### Subflow 定義
+
+用於抽成可重用的子流程：
+
+```yaml
+id: common-normalize-search-results
+name: "Normalize Search Results"
+engine: "subflow"
+
+params:
+  - name: items
+    type: array
+    required: true
+
+steps:
+  - id: normalize
+    module: core.data.transform
+    params:
+      input: "${params.items}"
+      operations:
+        - type: "add_index"
+          field: "position"
+          start_from: 1
+    output:
+      items: "${result.items}"
+
+output:
+  fields:
+    items: "${normalize.items}"
+```
+
+### 在 workflow 中呼叫 subflow
+
+透過一個 module，例如 `core.flow.call`：
+
+```yaml
+- id: normalize_results
+  module: core.flow.call
+  params:
+    flow_id: "common-normalize-search-results"
+    inputs:
+      items: "${extract_results.items}"
+  output:
+    items: "${result.items}"
+```
+
+**規定：** subflow 的 `output.fields` 視為 `result` 回傳的頂層。
+
+---
+
+## 命名約定（Naming Conventions）
+
+### Workflow / Subflow ID
+
+- 使用 `kebab-case`：`google-search-top10`, `daily-admin-report`, `seo-rank-tracker`
+- 要全專案唯一
+
+### Module ID
+
+- 使用 namespace + 功能：`core.browser.launch`, `core.fs.write`, `ai.openai.chat`
+- 保持 atomic：一個 module 做一件事
+
+### Step ID
+
+- `snake_case` 或 `kebab-case` 都可以，但建議用 `snake_case`：
+  - `launch_browser`, `extract_results`, `normalize_results`, `save_to_file_step`
+
+---
+
+## 範例
+
+### 範例 1：最小化 Workflow
+
+```yaml
+id: extract-page-title
+name: "Extract Page Title"
+version: "1.0.0"
+
+description: "Extract the title from any webpage"
 
 params:
   - name: url
     type: string
     required: true
+    label: "Target URL"
+    placeholder: "https://example.com"
 
 steps:
   - id: launch_browser
     module: core.browser.launch
+    params:
+      headless: true
 
   - id: navigate
     module: core.browser.goto
@@ -606,17 +544,30 @@ steps:
     params:
       browser: "${launch_browser.browser}"
       selector: "title"
+    output:
+      title: "${result.data[0].text}"
+
+  - id: close_browser
+    module: core.browser.close
+    params:
+      browser: "${launch_browser.browser}"
+    always: true
 
 output:
-  url: "${params.url}"
-  title: "${extract_title.data[0].text}"
+  fields:
+    url: "${params.url}"
+    title: "${extract_title.title}"
+    timestamp: "${timestamp}"
 ```
 
-### Example 2: Error Handling & Retry
+### 範例 2：條件執行與錯誤處理
 
 ```yaml
+id: resilient-api-call
 name: "Resilient API Call"
-description: "Call API with retry and fallback"
+version: "1.0.0"
+
+description: "Call API with automatic retry and fallback"
 
 params:
   - name: api_url
@@ -628,11 +579,10 @@ steps:
     module: core.api.http_get
     params:
       url: "${params.api_url}"
-    retry:
-      count: 3
-      delay_ms: 2000
-      backoff: exponential
-    on_error: continue
+    on_error:
+      retry: 3
+      backoff_ms: 2000
+      fatal: false
 
   - id: fallback_api
     module: core.api.http_get
@@ -646,70 +596,17 @@ steps:
       input: "${primary_api.status == 'success' ? primary_api.data : fallback_api.data}"
 
 output:
-  source: "${primary_api.status == 'success' ? 'primary' : 'fallback'}"
-  data: "${process_data.result}"
+  fields:
+    source: "${primary_api.status == 'success' ? 'primary' : 'fallback'}"
+    data: "${process_data.result}"
 ```
 
-### Example 3: Conditional Flow
+### 範例 3：Loop 與 Parallel
 
 ```yaml
-name: "Conditional Login Flow"
-description: "Login only if not already logged in"
-
-steps:
-  - id: launch_browser
-    module: core.browser.launch
-
-  - id: goto_homepage
-    module: core.browser.goto
-    params:
-      browser: "${launch_browser.browser}"
-      url: "https://app.example.com"
-
-  - id: check_logged_in
-    module: core.browser.element_exists
-    params:
-      browser: "${launch_browser.browser}"
-      selector: ".user-profile"
-
-  - id: goto_login
-    module: core.browser.goto
-    params:
-      browser: "${launch_browser.browser}"
-      url: "https://app.example.com/login"
-    when: "${check_logged_in.exists == false}"
-
-  - id: perform_login
-    module: core.browser.type
-    params:
-      browser: "${launch_browser.browser}"
-      selector: "#email"
-      text: "${env.USER_EMAIL}"
-    when: "${check_logged_in.exists == false}"
-
-  - id: submit_login
-    module: core.browser.click
-    params:
-      browser: "${launch_browser.browser}"
-      selector: "#login-button"
-    when: "${check_logged_in.exists == false}"
-
-  - id: proceed_to_dashboard
-    module: core.browser.goto
-    params:
-      browser: "${launch_browser.browser}"
-      url: "https://app.example.com/dashboard"
-
-output:
-  logged_in: true
-  already_logged_in: "${check_logged_in.exists}"
-```
-
-### Example 4: Loop with Collection
-
-```yaml
+id: multi-page-scraper
 name: "Multi-Page Scraper"
-description: "Scrape data from multiple pages"
+version: "1.0.0"
 
 params:
   - name: page_urls
@@ -725,24 +622,19 @@ steps:
     params:
       items: "${params.page_urls}"
       item_var: "page_url"
-      index_var: "page_index"
       output_mode: collect
-
       steps:
-        - id: navigate_to_page
+        - id: navigate
           module: core.browser.goto
           params:
             browser: "${launch_browser.browser}"
             url: "${page_url}"
 
-        - id: extract_content
+        - id: extract
           module: core.browser.extract
           params:
             browser: "${launch_browser.browser}"
             selector: ".content"
-            fields:
-              title: { selector: "h1", type: "text" }
-              body: { selector: ".article-body", type: "text" }
 
   - id: cleanup
     module: core.browser.close
@@ -751,230 +643,49 @@ steps:
     always: true
 
 output:
-  pages_scraped: "${scrape_pages.count}"
-  data: "${scrape_pages.results}"
-```
-
-### Example 5: Parallel Execution
-
-```yaml
-name: "Parallel API Fetcher"
-description: "Fetch from multiple APIs simultaneously"
-
-steps:
-  - id: fetch_weather
-    module: core.api.http_get
-    params:
-      url: "https://api.weather.com/current"
-    parallel: true
-
-  - id: fetch_news
-    module: core.api.http_get
-    params:
-      url: "https://api.news.com/headlines"
-    parallel: true
-
-  - id: fetch_stocks
-    module: core.api.http_get
-    params:
-      url: "https://api.stocks.com/prices"
-    parallel: true
-
-  - id: combine_data
-    module: core.data.merge
-    params:
-      sources:
-        weather: "${fetch_weather.data}"
-        news: "${fetch_news.data}"
-        stocks: "${fetch_stocks.data}"
-
-  - id: ai_summarize
-    module: ai.openai.chat
-    params:
-      api_key: "${env.OPENAI_API_KEY}"
-      prompt: |
-        Summarize this data:
-        Weather: ${fetch_weather.data}
-        News: ${fetch_news.data}
-        Stocks: ${fetch_stocks.data}
-
-output:
-  raw_data: "${combine_data.result}"
-  summary: "${ai_summarize.message}"
-  fetch_time_ms: "${execution.duration_ms}"
+  fields:
+    pages_scraped: "${scrape_pages.count}"
+    data: "${scrape_pages.results}"
 ```
 
 ---
 
-## Type System
+## 後續擴充方向
 
-### Parameter Types
+這不是 v1 規格的一部分，但可以先列在文件最後：
 
-```yaml
-params:
-  - name: string_param
-    type: string
-    min: 1              # Min length
-    max: 100            # Max length
-    pattern: "^[a-z]+$" # Regex pattern
-
-  - name: number_param
-    type: number
-    min: 0              # Min value
-    max: 100            # Max value
-
-  - name: boolean_param
-    type: boolean
-    default: false
-
-  - name: array_param
-    type: array
-    items:
-      type: string
-    min: 1              # Min array length
-    max: 10             # Max array length
-
-  - name: object_param
-    type: object
-    properties:
-      field1:
-        type: string
-        required: true
-      field2:
-        type: number
-        required: false
-
-  - name: enum_param
-    type: string
-    enum: ["option1", "option2", "option3"]
-```
+- **flow.loop**：在 DSL 層支援 loop step（對 array 逐項處理）
+- **flow.switch**：多分支條件
+- **parallel**：平行執行 step 組
+- **triggers**：在 DSL 內定義 schedule / webhook / queue（目前你是放 JSON / README 裡）
+- **Template string**：支援 `"hello ${params.name}"` 這種混合型字串
 
 ---
 
-## Best Practices
+## TL;DR（簡短版）
 
-### 1. Always Use Descriptive IDs
-
-```yaml
-# Good
-- id: launch_browser
-- id: extract_product_prices
-- id: notify_slack
-
-# Bad
-- id: step1
-- id: step2
-- id: step3
-```
-
-### 2. Use Environment Variables for Secrets
-
-```yaml
-# Good
-params:
-  api_key: "${env.OPENAI_API_KEY}"
-
-# Bad
-params:
-  api_key: "sk-1234567890abcdef"  # Never hardcode secrets!
-```
-
-### 3. Add Descriptions for Complex Workflows
-
-```yaml
-steps:
-  - id: complex_transformation
-    description: "Transform raw data by filtering nulls, normalizing dates, and deduplicating"
-    module: core.data.transform
-    params:
-      # ...
-```
-
-### 4. Handle Errors Explicitly
-
-```yaml
-steps:
-  - id: api_call
-    module: core.api.http_get
-    params:
-      url: "https://api.example.com"
-    retry:
-      count: 3
-      delay_ms: 1000
-    on_error: continue  # Explicit error handling
-```
-
-### 5. Use Cleanup Steps with `always: true`
-
-```yaml
-steps:
-  - id: launch_browser
-    module: core.browser.launch
-
-  # ... other steps
-
-  - id: cleanup_browser
-    module: core.browser.close
-    params:
-      browser: "${launch_browser.browser}"
-    always: true  # Always close browser, even on error
-```
+1. **Workflow 是一個 YAML 檔**，包含 `id`, `engine`, `params`, `steps`, `error`, `output`
+2. **每個 step 指向一個 module**，用 `params` 傳入資料，`output` 取出結果
+3. **表達式用 `${ ... }`**，scope 包含：`params`, `config`, `env`, `steps`, `utils`, `timestamp`
+4. **`when` 控制條件執行**，`always` 做 cleanup，`on_error` 控制 step retry/fatal
+5. **`output.fields` 決定整個 workflow 的返回結果**
+6. **子流程用 `engine: subflow` 定義**，透過 `core.flow.call` 呼叫
 
 ---
 
-## Schema Validation
+## 貢獻
 
-The engine validates workflows against this schema before execution. Invalid workflows will fail with detailed error messages.
+這份 DSL 規格與引擎一起版本控制。若要提議修改：
 
-### Common Validation Errors
+1. 開 issue 描述使用情境
+2. 討論語法與語義
+3. 更新此文件
+4. 在引擎中實作
+5. 加入測試與範例
 
-**Missing required field:**
-```
-Error: Step "navigate" is missing required parameter "url"
-```
-
-**Invalid variable reference:**
-```
-Error: Variable "${nonexistent_step.data}" references undefined step "nonexistent_step"
-```
-
-**Type mismatch:**
-```
-Error: Parameter "headless" expects boolean, got string "true"
-```
-
-**Circular dependency:**
-```
-Error: Step "step2" creates circular dependency: step1 -> step2 -> step1
-```
+詳見 [CONTRIBUTING.md](../CONTRIBUTING.md)。
 
 ---
 
-## Future Additions (Planned)
-
-These features are planned for future versions:
-
-- **Subroutines**: Reusable step sequences
-- **Events & Triggers**: Webhook/scheduled triggers
-- **Secrets Management**: First-class secret handling with vault integration
-- **Dynamic Imports**: Import workflows from URLs
-- **Template Syntax**: Jinja2-style templates in YAML values
-
----
-
-## Contributing
-
-This DSL specification is versioned alongside the engine. To propose changes:
-
-1. Open an issue describing the use case
-2. Discuss syntax and semantics
-3. Update this document with proposed changes
-4. Implement in the engine
-5. Add tests and examples
-
-See [CONTRIBUTING.md](../CONTRIBUTING.md) for detailed contribution guidelines.
-
----
-
-**Last Updated:** 2025-01-29
-**Version:** 1.0.0-alpha
+**最後更新：** 2025-11-29
+**版本：** 1.0.0-alpha
