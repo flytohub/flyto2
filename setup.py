@@ -17,7 +17,7 @@ setup(
     description="A powerful automation engine for web scraping and workflow orchestration",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/yourusername/workflow-engine",
+    url="https://github.com/flytohub/flyto2",
     packages=find_packages(where="src"),
     package_dir={"": "src"},
     classifiers=[

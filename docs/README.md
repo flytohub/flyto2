@@ -325,13 +325,16 @@ All examples available in `workflows/` directory:
 
 1. **google_search.yaml** - Browser automation and web scraping
 2. **api_pipeline.yaml** - Pure API workflow
-3. **ai_content_summarizer.yaml** - Browser scraping + OpenAI
+3. **ai_content_summarizer.yaml** - Browser scraping + AI
 4. **github_to_slack.yaml** - GitHub API to Slack alerts
 5. **data_scraping_to_csv.yaml** - Web scraping to CSV export
 6. **daily_report_email.yaml** - API data to email report
 7. **multi_channel_alert.yaml** - Broadcast to Slack/Discord/Telegram/Email
-8. **openai_chat.yaml** - OpenAI GPT integration
+8. **openai_chat.yaml** - AI chat interaction (Anthropic Claude)
 9. **browser_screenshot.yaml** - Automated screenshot capture
+10. **authenticated_scraping.yaml** - Web scraping with authentication
+11. **pagination_scraper.yaml** - Multi-page scraping with pagination
+12. **test_simple.yaml** - Simple workflow for testing
 
 **Next:** Browse [workflows/](../workflows/) directory
 

@@ -76,7 +76,7 @@ python -m cli.main my_workflow.yaml
 
 ## Built-in Integrations
 
-Flyto2 comes with **30+ production-ready modules** organized by architecture:
+Flyto2 comes with **50+ production-ready modules** organized by architecture:
 
 ### Atomic Modules
 Core building blocks with no external dependencies:
@@ -174,7 +174,7 @@ steps:
 - [Multi-Channel Alerts](workflows/multi_channel_alert.yaml) - Slack + Discord + Telegram + Email
 - [Daily Report Email](workflows/daily_report_email.yaml) - API + Email automation
 
-[→ See all 9 example workflows](workflows/)
+[→ See all 10 example workflows](workflows/)
 
 ---
 
@@ -205,7 +205,7 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install -r requirements.txt && playwright install chromium chromium-deps
 COPY . .
-CMD ["python", "-m", "cli.main", "workflows/production.yaml"]
+CMD ["python", "-m", "cli.main", "workflows/daily_report_email.yaml"]
 ```
 
 ### Kubernetes CronJob
@@ -224,7 +224,7 @@ spec:
           containers:
           - name: flyto2
             image: flyto2:latest
-            args: ["python", "-m", "cli.main", "workflows/daily_report.yaml"]
+            args: ["python", "-m", "cli.main", "workflows/daily_report_email.yaml"]
             envFrom:
             - secretRef:
                 name: flyto2-secrets
@@ -246,7 +246,7 @@ jobs:
       - run: |
           pip install -r requirements.txt
           playwright install chromium
-      - run: python -m cli.main workflows/production.yaml
+      - run: python -m cli.main workflows/daily_report_email.yaml
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 ```
