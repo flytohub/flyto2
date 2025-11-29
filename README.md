@@ -76,22 +76,28 @@ python -m cli.main my_workflow.yaml
 
 ## Built-in Integrations
 
-Flyto2 comes with **50+ production-ready modules** organized by architecture:
+Flyto2 comes with **67 production-ready modules** organized by architecture:
 
-### Atomic Modules
+### Atomic Modules (40 modules)
 Core building blocks with no external dependencies:
-- **Browser** - Launch, navigate, click, type, extract, screenshot, close
-- **Data** - CSV read/write, JSON parse/stringify, text templates
-- **Utilities** - Delay, random numbers/strings, datetime, hash functions
+- **Browser** - Launch, navigate, click, type, extract, screenshot, press, find, wait (9)
+- **File** - Read, write, exists, delete, move, copy (6)
+- **String** - Split, replace, regex, trim, lowercase, uppercase, titlecase (7)
+- **Array** - Filter, sort, unique (3)
+- **Data** - CSV read/write, JSON parse/stringify, text templates (5)
+- **Math** - Calculate (1)
+- **Element** - Query, text, attribute (3)
+- **Utilities** - Delay, random numbers/strings, datetime, hash (5)
+- **Flow** - Loop control (1)
 
-### Third-party Integrations
+### Third-party Integrations (27 modules)
 Connect to external services and platforms:
-- **AI** - Anthropic Claude, Google Gemini
-- **Communication** - Slack, Discord, Telegram, Email SMTP
-- **Databases** - PostgreSQL, MySQL, MongoDB
-- **Cloud** - AWS S3 upload/download
-- **Productivity** - Notion pages/databases, Google Sheets
-- **Developer** - GitHub repos/issues, HTTP REST APIs
+- **AI** - OpenAI GPT, OpenAI DALL-E, Anthropic Claude, Google Gemini (4)
+- **Communication** - Slack, Discord, Telegram, Email SMTP (4)
+- **Databases** - PostgreSQL, MySQL, MongoDB find/insert, Redis get/set (6)
+- **Cloud** - AWS S3 upload/download (2)
+- **Productivity** - Notion pages/databases, Google Sheets read/write (4)
+- **Developer** - GitHub repos/issues/create, HTTP GET/POST, Google Search, SerpAPI (7)
 
 [View complete module list](docs/MODULES.md)
 
@@ -304,23 +310,27 @@ All core technology is MIT open source. The visual builder is kept private to en
 **Current (v1.0-alpha)** - Fully Implemented ✅
 - ✅ YAML workflow parser & execution engine
 - ✅ Browser automation (Playwright)
-- ✅ **56 production-ready modules** (atomic + third-party)
+- ✅ **67 production-ready modules** (atomic + third-party)
 - ✅ Phase 2: Execution control (timeout, retry, concurrency)
 - ✅ Phase 2: Security settings (credentials, permissions, sensitive data)
 - ✅ Flow control (if/when, retry, error handling, loops)
-- ✅ AI: Anthropic Claude, Google Gemini
+- ✅ AI: OpenAI GPT, OpenAI DALL-E, Anthropic Claude, Google Gemini
 - ✅ Communication: Slack, Discord, Telegram, Email
-- ✅ Databases: PostgreSQL, MySQL, MongoDB
+- ✅ Databases: PostgreSQL, MySQL, MongoDB, Redis
 - ✅ Cloud: AWS S3
 - ✅ Productivity: Notion, Google Sheets
 - ✅ Developer: GitHub, HTTP APIs
 - ✅ i18n support: English, Chinese, Japanese
+- ✅ File operations: Read, write, delete, move, copy
+- ✅ String operations: Trim, case conversion, regex
 
 **Coming Soon (v1.1)** - Help Wanted!
-- 🚧 OpenAI GPT integration
-- 🚧 Redis caching module
+- 🚧 Array operations: Map, reduce, join
+- 🚧 Math operations: Round, floor, ceil, abs
+- 🚧 Datetime operations: Format, add, subtract, parse
 - 🚧 GCS (Google Cloud Storage) module
 - 🚧 Azure Blob Storage module
+- 🚧 AI Agent modules (autonomous, chain, ReAct)
 - 🚧 Enhanced observability dashboard
 - 🚧 Parallel execution blocks in DSL
 - 🚧 More example workflows
@@ -349,11 +359,15 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 Looking to contribute? Great starting points for new contributors:
 
-- 🔰 Add module: `api.openai.chat` (OpenAI GPT integration)
+- 🔰 Add module: `array.map` (Array map operation)
+- 🔰 Add module: `array.reduce` (Array reduce operation)
+- 🔰 Add module: `math.round/floor/ceil` (Math operations)
+- 🔰 Add module: `datetime.format` (Date formatting)
 - 🔰 Add module: `api.http.delete` (HTTP DELETE requests)
-- 🔰 Add module: `db.redis.get/set` (Redis caching)
+- 🔰 Add module: `cloud.gcs.upload` (Google Cloud Storage)
+- 🔰 Add module: `agent.autonomous` (AI agent with memory)
 - 🔰 Add example: GitHub stars scraper workflow
-- 🔰 Add example: AI content generator with Claude/Gemini
+- 🔰 Add example: AI content generator with GPT-4/Claude/Gemini
 - 🔰 Improve docs: Add tutorial for building custom modules
 - 🔰 Add tests: Increase test coverage for existing modules
 
