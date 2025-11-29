@@ -1,536 +1,36 @@
-# Workflow DSL Specification
+# Flyto2 Workflow DSL Documentation
 
-This document defines the YAML-based Domain-Specific Language (DSL) for Flyto2 workflow automation engine.
+Flyto2 workflows are defined as **YAML files**.
+This document describes the **structure, field rules, and variable syntax** for Workflow YAML files, enabling you to:
 
-**Version:** 1.0.0
-**Status:** Alpha
-**Last Updated:** 2025-11-29
+- Write workflows by hand
+- Understand UI-generated workflows
+- Review workflow changes via Git diff/PR in CI/CD
 
----
-
-## Table of Contents
-
-- [Design Goals](#design-goals)
-- [Workflow File Structure](#workflow-file-structure)
-- [Parameter Definition (params)](#parameter-definition-params)
-- [Steps](#steps)
-- [Global Error Handling](#global-error-handling)
-- [Workflow Output](#workflow-output)
-- [Expression Syntax](#expression-syntax)
-- [Subflows](#subflows)
-- [Naming Conventions](#naming-conventions)
-- [Examples](#examples)
-- [Future Enhancements](#future-enhancements)
+> **Quick Summary:**
+> **One YAML = One Workflow**
+> `steps[*].module` = The atomic module to execute
+> `${...}` = Variable interpolation
 
 ---
 
-## Design Goals
-
-- **Human Readable**: Workflows expressed in YAML, not hidden in databases or UIs
-- **Git Friendly**: Suitable for git diff, PR reviews, and rollbacks
-- **Composable**: Each step is an atomic module; workflows can be arbitrarily combined
-- **Portable**: Same YAML file runs on local, Docker, Kubernetes, CI/CD, or servers
-- **Developer Friendly**: Variables, error handling, conditions, and loops clearly defined in DSL
-
----
-
-## Workflow File Structure
-
-A workflow is a `.yaml` file with the following basic structure:
+## 1. Minimal Example
 
 ```yaml
-id: google-search-top10
-name: "Google Search Top 10"
-version: "1.1.0"
-
-description:
-  en: "Extract top 10 Google search results for a keyword"
-  zh: "提取 Google 搜尋結果的前 10 筆"
-
-author: "Workflow Engine Team"
-tags: ["google", "search", "scraping"]
-
-engine: "browser-flow"
-
-config:
-  browser:
-    headless: false
-  timeout_ms: 60000
-
-params:
-  # User-provided parameters
-steps:
-  # Execution steps
-error:
-  # Error handling
-output:
-  # Workflow output
-```
-
-### Top-Level Fields
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `id` | string | ✅ | Globally unique workflow identifier (used in CLI/UI/API) |
-| `name` | string | ✅ | Display name |
-| `version` | string | ✅ | Semantic version (e.g., 1.0.0) |
-| `description` | string / map | ❌ | Can be a simple string or i18n object `{en, zh, ...}` |
-| `author` | string | ❌ | Author/maintainer information |
-| `tags` | string[] | ❌ | Tags for UI categorization and search |
-| `engine` | string | ✅ | Execution engine type: `browser-flow`, `http-flow`, `subflow` |
-| `config` | object | ❌ | Workflow-local config (overrides global config) |
-| `params` | Param[] | ❌ | User-provided parameters |
-| `steps` | Step[] | ✅ | Workflow steps list |
-| `error` | ErrorConfig | ❌ | Global error handling strategy |
-| `output` | OutputSpec | ❌ | Workflow output definition |
-
----
-
-## Parameter Definition (params)
-
-`params` is an array where each param describes an input parameter (usable via CLI, UI, or API).
-
-```yaml
-params:
-  - name: keyword
-    type: string
-    label:
-      en: "Search Keyword"
-      zh: "搜尋關鍵字"
-    description:
-      en: "The keyword to search on Google"
-    placeholder: "python tutorial"
-    required: true
-    default: "python tutorial"
-    validation:
-      min_length: 1
-      max_length: 100
-
-  - name: max_results
-    type: number
-    label: "Maximum Results"
-    description: "Number of results (1–100)"
-    default: 10
-    min: 1
-    max: 100
-    required: false
-    advanced: true
-
-  - name: output_format
-    type: string
-    label: "Output Format"
-    default: "json"
-    enum: ["json", "csv", "markdown"]
-```
-
-### Param Fields
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `name` | string | ✅ | Parameter name, accessed via `params.<name>` in DSL |
-| `type` | "string" \| "number" \| "boolean" \| "array" \| "object" | ✅ | Parameter type |
-| `label` | string / map | ❌ | UI display text, can support i18n |
-| `description` | string / map | ❌ | UI/documentation description |
-| `placeholder` | string | ❌ | UI placeholder |
-| `required` | boolean | ❌ | Whether required (default: false) |
-| `default` | any | ❌ | Default value (used when not provided) |
-| `enum` | any[] | ❌ | Restrict to specific values |
-| `min` / `max` | number | ❌ | Range validation for number types |
-| `validation` | object | ❌ | Custom validation (e.g., min_length, max_length) |
-| `advanced` | boolean | ❌ | Hide in UI "Advanced Settings" |
-| `show_if` | object | ❌ | Control parameter visibility based on other params |
-
-### show_if Structure
-
-```yaml
-show_if:
-  field: "save_to_file"
-  equals: true
-```
-
-In UI/tools, this parameter only shows when `params.save_to_file === true`.
-
----
-
-## Steps
-
-`steps` is a list executed **sequentially from top to bottom**. Each step performs one atomic action.
-
-```yaml
-steps:
-  - id: launch_browser
-    module: core.browser.launch
-    description: "Launch web browser"
-    params:
-      headless: "${config.browser.headless}"
-    output:
-      browser: "${result.browser}"
-      page: "${result.page}"
-    on_error:
-      retry: 1
-      backoff_ms: 1000
-      fatal: true
-
-  - id: goto_google
-    module: core.browser.goto
-    description: "Navigate to Google"
-    params:
-      browser: "${launch_browser.browser}"
-      url: "https://www.google.com"
-      wait_until: "networkidle"
-
-  - id: wait_search_box
-    module: core.browser.wait
-    description: "Wait for search input"
-    params:
-      browser: "${launch_browser.browser}"
-      selector: 'input[name="q"], textarea[name="q"]'
-      timeout_ms: 10000
-```
-
-### Step Common Fields
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `id` | string | ✅ | Unique step ID for referencing (`<id>.<field>`) |
-| `module` | string | ✅ | Module ID to invoke (e.g., `core.browser.launch`) |
-| `description` | string | ❌ | Text description for UI or logs |
-| `params` | object | ❌ | Parameters to pass to module (can contain expressions) |
-| `output` | object | ❌ | Define which data to expose for subsequent steps |
-| `when` | string | ❌ | Conditional expression; skips step if evaluates to false |
-| `always` | boolean | ❌ | If true, executes even if previous steps failed (like finally) |
-| `on_error` | object | ❌ | Step-level error handling config |
-
-### Context Variables in params
-
-In `params` (and `when`, `output`), you can use `${ ... }` expressions.
-Available variables:
-
-| Name | Description |
-|------|-------------|
-| `params` | User input parameters, e.g., `params.keyword` |
-| `config` | Workflow config object |
-| `env` | Environment variables, e.g., `env.OPENAI_API_KEY` |
-| `steps` | All executed step outputs, e.g., `steps.launch_browser.output.browser` |
-| `<stepId>` | Shorthand alias equivalent to `steps.<stepId>.output`, e.g., `launch_browser.browser` |
-| `utils` | System-provided utility functions, e.g., `utils.slug()`, `utils.clean_url()` |
-| `timestamp` | Current execution timestamp (ISO string) |
-| `error` | Error object available in error handlers |
-| `result` | Current module's raw result (only during output mapping) |
-
-### output Field
-
-`output` extracts parts of the module execution result, naming them for use in subsequent steps.
-
-```yaml
-- id: extract_results
-  module: core.browser.extract
-  params:
-    browser: "${launch_browser.browser}"
-    selector: "#search .g"
-    limit: "${params.max_results || 10}"
-    fields:
-      title: { selector: "h3", type: "text" }
-      url:   { selector: "a", type: "attribute", attribute: "href" }
-  output:
-    items: "${result.items}"
-    count: "${result.items.length}"
-```
-
-Subsequent steps can reference:
-
-```yaml
-params:
-  input: "${extract_results.items}"
-  limit: "${extract_results.count}"
-```
-
-Equivalent to:
-
-```yaml
-params:
-  input: "${steps.extract_results.output.items}"
-```
-
-### when - Conditional Execution
-
-If `when` exists, it's evaluated first; if result is falsy (false / 0 / '' / null / undefined), the step is **skipped**.
-
-```yaml
-- id: save_to_file_step
-  module: core.fs.write
-  description: "Save results to file if enabled"
-  when: "${params.save_to_file === true}"
-  params:
-    dir: "${params.output_dir || './results'}"
-    filename: "google_search_${utils.slug(params.keyword)}_${timestamp}.txt"
-    content: "${format_results.payload}"
-```
-
-### always (like finally)
-
-If `always: true`, this step executes even if previous steps failed or workflow threw an error (typically used for cleanup like closing browsers).
-
-```yaml
-- id: close_browser
-  module: core.browser.close
-  description: "Close browser"
-  params:
-    browser: "${launch_browser.browser}"
-  always: true
-```
-
-### Step-Level Error Handling (on_error)
-
-Each step can configure retry/backoff/fatal behavior.
-
-```yaml
-- id: launch_browser
-  module: core.browser.launch
-  params:
-    headless: "${config.browser.headless}"
-  output:
-    browser: "${result.browser}"
-  on_error:
-    retry: 1           # Number of retries on failure
-    backoff_ms: 1000   # Wait time before each retry
-    fatal: true        # If true, failure after retries terminates workflow
-```
-
-Field descriptions:
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `retry` | number | Maximum retry attempts |
-| `backoff_ms` | number | Milliseconds to wait between retries |
-| `fatal` | boolean | If true, step failure after retries terminates workflow |
-
----
-
-## Global Error Handling
-
-Besides step-level `on_error`, workflows can set global error handling strategies.
-
-```yaml
-error:
-  on_error:
-    - module: core.log.error
-      params:
-        message: "Google Search Top 10 workflow failed"
-        error: "${error}"
-    - module: core.browser.safe_close
-      params:
-        browser: "${launch_browser.browser}"
-
-  strategy:
-    stop_on_error: true
-```
-
-### Structure
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `on_error` | StepLike[] | When any step throws an unhandled error, execute these error handlers sequentially |
-| `strategy` | object | Control whether to continue after errors, etc. |
-
-`on_error` items are similar to regular steps (but typically don't need id/output):
-
-```yaml
-error:
-  on_error:
-    - module: core.log.error
-      params:
-        message: "Workflow failed"
-        error: "${error}"
-```
-
-`strategy` can include:
-
-```yaml
-strategy:
-  stop_on_error: true   # Default true; stops workflow on error
-  # Future extensions: continue_on_non_fatal, max_error_steps, etc.
-```
-
----
-
-## Workflow Output
-
-`output` defines the payload structure returned when workflow executes successfully.
-The engine evaluates all expressions to compose the final returned JSON.
-
-```yaml
-output:
-  fields:
-    keyword:       "${params.keyword}"
-    results:       "${normalize_results.items}"
-    count:         "${normalize_results.count}"
-    format:        "${params.output_format || 'json'}"
-    saved_to_file: "${params.save_to_file === true}"
-    file_path:     "${save_to_file_step.file_path || null}"
-    timestamp:     "${timestamp}"
-```
-
-Final returned JSON:
-
-```json
-{
-  "keyword": "...",
-  "results": [ ... ],
-  "count": 10,
-  "format": "json",
-  "saved_to_file": true,
-  "file_path": "./results/xxx.txt",
-  "timestamp": "2025-11-29T..."
-}
-```
-
-**Convention:**
-- `output` can use the same expression syntax and variable sources as step params
-- Engine may choose to wrap as `{ ok: true, data: <output.fields> }` (but DSL level defines fields only)
-
----
-
-## Expression Syntax (`${ ... }`)
-
-### Basic Rules
-
-Any string that is `${...}` (both prefix and suffix) is treated as an "expression" and evaluated via safe executor.
-
-Other types (number / boolean / array / object) remain unchanged.
-
-```yaml
-params:
-  url: "https://google.com"                        # Plain string
-  query: "${params.keyword}"                       # Variable access
-  limit: "${params.max_results || 10}"             # Logical operation
-  filename: "google_${utils.slug(params.keyword)}_${timestamp}.json" # ❌ Currently treated as plain string (template strings need engine support)
-```
-
-**DSL v1 Recommendation:** Only support entire field as `${...}`.
-Mixed string + expression templates should be handled by modules or future extensions.
-
-### Available Variables
-
-| Variable | Description |
-|----------|-------------|
-| `params` | Workflow parameters object |
-| `config` | Workflow config |
-| `env` | Environment variables |
-| `steps` | All executed step outputs, `steps.<id>.output.<field>` |
-| `<stepId>` | Shorthand: `<stepId>.<field>` = `steps.<stepId>.output.<field>` |
-| `result` | Current step module return value (only during output mapping) |
-| `utils` | Utility functions (slug, clean_url, ...) |
-| `timestamp` | Current execution timestamp |
-| `error` | Error object in error handlers |
-
-### Expression Engine
-
-Implementation can be:
-
-```javascript
-new Function("scope", "with (scope) { return (EXPRESSION); }")
-scope = { params, config, env, steps, utils, timestamp, error, result, <stepId aliases> }
-```
-
-DSL spec only defines "what's available", not implementation details.
-
----
-
-## Subflows
-
-### Subflow Definition
-
-For reusable sub-workflows:
-
-```yaml
-id: common-normalize-search-results
-name: "Normalize Search Results"
-engine: "subflow"
-
-params:
-  - name: items
-    type: array
-    required: true
-
-steps:
-  - id: normalize
-    module: core.data.transform
-    params:
-      input: "${params.items}"
-      operations:
-        - type: "add_index"
-          field: "position"
-          start_from: 1
-    output:
-      items: "${result.items}"
-
-output:
-  fields:
-    items: "${normalize.items}"
-```
-
-### Calling Subflows in Workflows
-
-Via a module like `core.flow.call`:
-
-```yaml
-- id: normalize_results
-  module: core.flow.call
-  params:
-    flow_id: "common-normalize-search-results"
-    inputs:
-      items: "${extract_results.items}"
-  output:
-    items: "${result.items}"
-```
-
-**Convention:** Subflow's `output.fields` are treated as top-level `result`.
-
----
-
-## Naming Conventions
-
-### Workflow / Subflow ID
-
-- Use `kebab-case`: `google-search-top10`, `daily-admin-report`, `seo-rank-tracker`
-- Must be globally unique
-
-### Module ID
-
-- Use namespace + function: `core.browser.launch`, `core.fs.write`, `ai.openai.chat`
-- Keep atomic: one module does one thing
-
-### Step ID
-
-- `snake_case` or `kebab-case` both acceptable, but recommend `snake_case`:
-  - `launch_browser`, `extract_results`, `normalize_results`, `save_to_file_step`
-
----
-
-## Examples
-
-### Example 1: Minimal Workflow
-
-```yaml
-id: extract-page-title
 name: "Extract Page Title"
-version: "1.0.0"
-
-description: "Extract the title from any webpage"
+description: "Get the title from any website"
 
 params:
   - name: url
     type: string
+    label: "Website URL"
     required: true
-    label: "Target URL"
-    placeholder: "https://example.com"
 
 steps:
   - id: launch_browser
     module: core.browser.launch
     params:
-      headless: true
+      headless: false
 
   - id: navigate
     module: core.browser.goto
@@ -543,146 +43,552 @@ steps:
     params:
       browser: "${launch_browser.browser}"
       selector: "title"
-    output:
-      title: "${result.data[0].text}"
-
-  - id: close_browser
-    module: core.browser.close
-    params:
-      browser: "${launch_browser.browser}"
-    always: true
+      fields:
+        title:
+          selector: "title"
+          type: "text"
 
 output:
-  fields:
-    url: "${params.url}"
-    title: "${extract_title.title}"
-    timestamp: "${timestamp}"
+  url: "${params.url}"
+  title: "${extract_title.data[0].title}"
 ```
 
-### Example 2: Conditional Execution & Error Handling
+---
+
+## 2. File Structure
+
+A Flyto2 workflow YAML has the following top-level structure:
 
 ```yaml
-id: resilient-api-call
-name: "Resilient API Call"
+name: "My Workflow"          # [Required] Workflow name
+description: "What it does"  # [Recommended] Human-readable description
+version: "1.0.0"             # [Optional] Workflow version
+
+tags:                         # [Optional] For categorization/search
+  - "browser"
+  - "ai"
+
+params:                       # [Optional] User-provided parameter definitions
+  - ...
+
+config:                       # [Optional] Workflow-level configuration
+  ...
+
+steps:                        # [Required] Workflow steps (executed sequentially)
+  - id: ...
+    module: ...
+    params: ...
+    ...
+
+output:                       # [Optional] Workflow output (any YAML structure + interpolation)
+  ...
+```
+
+### 2.1 name (Required)
+
+**Type:** `string`
+
+**Purpose:** Workflow name, used in CLI logs and UI display
+
+```yaml
+name: "Google Search Top 10"
+```
+
+### 2.2 description (Recommended)
+
+**Type:** `string` or `object` (for i18n)
+
+**Simple usage:**
+```yaml
+description: "Extract the title from any website"
+```
+
+**Multi-language:**
+```yaml
+description:
+  en: "Extract the title from any website"
+  zh: "取得任意網站的標題"
+  ja: "任意サイトのタイトルを取得"
+```
+
+### 2.3 version (Optional)
+
+**Type:** `string`
+
+Does not affect execution logic, just metadata (useful for workflow schema versioning and UI display).
+
+```yaml
 version: "1.0.0"
+```
 
-description: "Call API with automatic retry and fallback"
+### 2.4 tags (Optional)
 
+**Type:** `string[]`
+
+Used for UI/search/documentation, does not affect execution.
+
+```yaml
+tags: ["browser", "ai", "internal-tooling"]
+```
+
+### 2.5 config (Optional)
+
+Workflow-level configuration that overrides engine defaults:
+
+```yaml
+config:
+  browser:
+    headless: true
+    viewport:
+      width: 1280
+      height: 720
+
+  retries:
+    default_max_attempts: 2
+    default_delay_ms: 500
+
+  timeout_ms: 300000   # Workflow timeout: 300 seconds
+```
+
+**Implementation Note (Backend):**
+- Merge `config` into engine's `EngineConfig` when loading YAML
+- Use config defaults for steps that don't specify their own timeout/retry
+
+---
+
+## 3. params: External Parameter Definitions
+
+Each workflow can define a set of parameters used in:
+
+- CLI invocation (`--param.url=...`)
+- Future HTTP API calls (POST body → params)
+- UI auto-generated forms
+
+### 3.1 Structure
+
+```yaml
 params:
-  - name: api_url
+  - name: keyword
+    type: string            # string | number | boolean | object | array
+    label: "Search Keyword" # UI label
+    description: "Keyword to search on Google"
+    required: true
+    default: "python tutorial"
+    enum:                   # [Optional] Restrict to specific options
+      - "python tutorial"
+      - "golang tutorial"
+    min: 1                  # For type=number
+    max: 100
+    pattern: "^[a-zA-Z0-9 ]+$"  # For type=string (basic regex)
+```
+
+### 3.2 Accessing Values
+
+Use `${params.<name>}` in YAML:
+
+```yaml
+params:
+  - name: url
     type: string
     required: true
 
 steps:
-  - id: primary_api
-    module: core.api.http_get
+  - id: navigate
+    module: core.browser.goto
     params:
-      url: "${params.api_url}"
-    on_error:
-      retry: 3
-      backoff_ms: 2000
-      fatal: false
-
-  - id: fallback_api
-    module: core.api.http_get
-    params:
-      url: "${env.FALLBACK_API_URL}"
-    when: "${primary_api.status != 'success'}"
-
-  - id: process_data
-    module: core.data.transform
-    params:
-      input: "${primary_api.status == 'success' ? primary_api.data : fallback_api.data}"
-
-output:
-  fields:
-    source: "${primary_api.status == 'success' ? 'primary' : 'fallback'}"
-    data: "${process_data.result}"
+      url: "${params.url}"
 ```
 
-### Example 3: Loop & Parallel
+---
+
+## 4. steps: Step Definitions
+
+`steps` is an array executed **sequentially** (future: parallel/condition/loop control flow).
+
+### 4.1 Basic Fields
 
 ```yaml
-id: multi-page-scraper
-name: "Multi-Page Scraper"
+steps:
+  - id: launch_browser            # [Recommended] Unique ID for referencing output
+    module: core.browser.launch   # [Required] Module path
+    description: "Launch browser" # [Optional] Human-readable description
+
+    params:                       # [Optional] Parameters passed to module
+      headless: false
+
+    # Advanced: Control flow / Error handling (optional)
+    if: "${params.run_browser}"   # [Optional] Conditional execution (skip if false)
+    timeout_ms: 10000             # [Optional] Step timeout
+    retry:
+      max_attempts: 2
+      delay_ms: 500
+      backoff: "exponential"      # fixed | exponential | none
+      retry_on:                   # [Optional] Retry based on error type/code
+        - "TimeoutError"
+
+    on_error: "fail"              # fail | skip | continue | goto
+    on_error_goto: "cleanup"      # When on_error=goto, jump to this step id
+```
+
+**Minimal syntax:**
+
+```yaml
+steps:
+  - module: core.browser.launch
+  - module: core.browser.goto
+    params:
+      url: "https://example.com"
+```
+
+If `id` is omitted, engine can auto-generate (e.g., `_step_1`), but documentation recommends user-defined IDs for easier referencing.
+
+---
+
+## 5. Variable Interpolation / Expressions (`${ ... }`)
+
+### 5.1 Available Namespaces
+
+Currently defined in Flyto2:
+
+- **params**: Workflow parameters
+- **env**: Environment variables (`os.environ`)
+- **Step outputs**: Shorthand as `${<stepId>}` or `${<stepId>.<field>}`
+- **timestamp**: Current execution ISO timestamp (string)
+
+#### 5.1.1 Parameters
+
+```yaml
+url: "${params.url}"
+keyword: "${params.keyword}"
+```
+
+#### 5.1.2 Environment Variables
+
+```yaml
+openai_key: "${env.OPENAI_API_KEY}"
+slack_webhook: "${env.SLACK_WEBHOOK_URL}"
+```
+
+#### 5.1.3 Step Outputs
+
+If a step returns:
+
+```python
+step_output = {
+  "browser": <BrowserHandle>,
+  "data": [...],
+  "count": 10,
+}
+```
+
+In YAML:
+
+```yaml
+browser: "${launch_browser.browser}"
+results: "${extract_results.data}"
+count: "${extract_results.count}"
+```
+
+**Shorthand (from README):**
+- `${<id>}` → equals `steps.<id>.output`
+- `${<id>.<field>}` → equals `steps.<id>.output.<field>`
+
+Engine internally maps to `steps["launch_browser"].output["browser"]`.
+
+#### 5.1.4 System Variables
+
+- `${timestamp}`: ISO8601 timestamp (e.g., `2025-11-29T12:34:56Z`)
+
+---
+
+## 6. Output Structure
+
+`output` defines the data returned after workflow execution.
+Can be any YAML structure with free interpolation:
+
+```yaml
+output:
+  keyword: "${params.keyword}"
+  total_results: "${extract_results.count}"
+  first_result:
+    title: "${extract_results.data[0].title}"
+    url: "${extract_results.data[0].url}"
+  generated_at: "${timestamp}"
+```
+
+Engine converts this to a dict for return (CLI prints JSON, API returns JSON body).
+
+---
+
+## 7. Control Flow Design (Planned/In Progress)
+
+Some features are on the roadmap or being implemented. DSL documentation defines the syntax, modules/engine implement accordingly.
+
+### 7.1 Conditional Execution: `if`
+
+Every step can have an `if` clause:
+
+```yaml
+steps:
+  - id: maybe_notify
+    module: api.http.post
+    if: "${extract_results.count > 0}"
+    params:
+      url: "${env.SLACK_WEBHOOK_URL}"
+      body:
+        text: "We have ${extract_results.count} results"
+```
+
+**Implementation Note (Backend):**
+- Evaluate `if` expression before executing step
+- If falsy (false/0/empty string/empty array), skip execution with `status=SKIPPED` (for logging)
+- Expression engine can start simple:
+  - Support `${...}` + basic operations (`==`, `>`, `<`, `contains`)
+  - Or allow only "boolean string result" where upstream pre-calculates pass/fail
+
+### 7.2 Loop: DSL Design Suggestion
+
+While `core.flow.loop` module works, DSL can provide more readable syntax:
+
+**Current (module version):**
+```yaml
+steps:
+  - id: loop_results
+    module: core.flow.loop
+    params:
+      items: "${extract_results.data}"
+      as: item
+      steps:
+        - module: core.data.filter
+          params:
+            input: "${item}"
+            condition: "${item.url contains 'mysite.com'}"
+```
+
+**Future (DSL syntax sugar):**
+```yaml
+steps:
+  - id: process_each
+    loop:
+      items: "${extract_results.data}"
+      as: item
+      steps:
+        - module: core.data.filter
+          params:
+            input: "${item}"
+            condition: "${item.url contains 'mysite.com'}"
+```
+
+Use module version for now; mark DSL version as roadmap.
+
+### 7.3 Parallel Execution
+
+Similar concept, implementable via module:
+
+```yaml
+steps:
+  - id: fetch_in_parallel
+    module: core.flow.parallel
+    params:
+      branches:
+        - steps:
+            - module: api.http.get
+              params:
+                url: "https://api.service1.com"
+        - steps:
+            - module: api.http.get
+              params:
+                url: "https://api.service2.com"
+```
+
+---
+
+## 8. Error Handling / Retry
+
+Each step can have error handling configuration:
+
+```yaml
+steps:
+  - id: call_api
+    module: api.http.get
+    params:
+      url: "https://example.com"
+    timeout_ms: 5000
+    retry:
+      max_attempts: 3
+      delay_ms: 500
+      backoff: "exponential"  # fixed | exponential | none
+      retry_on:
+        - "TimeoutError"
+        - "ConnectionError"
+    on_error: "fail"           # fail | skip | continue | goto
+    on_error_goto: "cleanup"   # Used when on_error=goto
+```
+
+**Implementation Suggestion:**
+
+Wrap single-step execution with retry logic:
+1. Attempt to execute module
+2. Catch exception → check if in `retry_on` → sleep → retry
+3. After exceeding `max_attempts`, enter `on_error` branch:
+   - **fail**: Terminate entire workflow, mark as failed
+   - **skip**: Skip this step, mark as `SKIPPED`, continue to next step
+   - **continue**: Same as skip, but preserve error info in context (`steps.call_api.error`)
+   - **goto**: Jump to specified `on_error_goto` step id and continue
+
+---
+
+## 9. Module ID Naming Convention
+
+Modules (`module` field) should use namespace paths:
+
+- `core.browser.launch`
+- `core.browser.goto`
+- `core.browser.type`
+- `core.browser.extract`
+- `core.ai.openai.chat`
+- `api.http.get`
+- `api.http.post`
+
+Benefits:
+- Auto-generate module lists (NAMESPACES)
+- UI categorization
+- Documentation organization
+
+---
+
+## 10. Complete Example: Google Search Top 10
+
+```yaml
+name: "Google Search Top 10"
+description: "Extract top 10 Google search results for a keyword"
 version: "1.0.0"
+tags: ["google", "search", "scraping"]
 
 params:
-  - name: page_urls
-    type: array
+  - name: keyword
+    type: string
+    label: "Search Keyword"
+    description: "The keyword to search on Google"
     required: true
+    default: "python tutorial"
+
+  - name: max_results
+    type: number
+    label: "Maximum Results"
+    description: "Number of results to extract (1-100)"
+    required: false
+    default: 10
+    min: 1
+    max: 100
 
 steps:
   - id: launch_browser
     module: core.browser.launch
-
-  - id: scrape_pages
-    module: core.flow.loop
     params:
-      items: "${params.page_urls}"
-      item_var: "page_url"
-      output_mode: collect
-      steps:
-        - id: navigate
-          module: core.browser.goto
-          params:
-            browser: "${launch_browser.browser}"
-            url: "${page_url}"
+      headless: true
 
-        - id: extract
-          module: core.browser.extract
-          params:
-            browser: "${launch_browser.browser}"
-            selector: ".content"
-
-  - id: cleanup
-    module: core.browser.close
+  - id: goto_google
+    module: core.browser.goto
     params:
       browser: "${launch_browser.browser}"
-    always: true
+      url: "https://www.google.com"
+
+  - id: type_keyword
+    module: core.browser.type
+    params:
+      browser: "${launch_browser.browser}"
+      selector: 'input[name="q"]'
+      text: "${params.keyword}"
+
+  - id: submit_search
+    module: core.browser.press
+    params:
+      browser: "${launch_browser.browser}"
+      key: "Enter"
+
+  - id: wait_results
+    module: core.browser.wait
+    params:
+      browser: "${launch_browser.browser}"
+      selector: "#search"
+      timeout_ms: 10000
+
+  - id: extract_results
+    module: core.browser.extract
+    params:
+      browser: "${launch_browser.browser}"
+      selector: "#search .g"
+      limit: "${params.max_results}"
+      fields:
+        title:
+          selector: "h3"
+          type: "text"
+        url:
+          selector: "a"
+          type: "attribute"
+          attribute: "href"
+        description:
+          selector: ".VwiC3b"
+          type: "text"
 
 output:
-  fields:
-    pages_scraped: "${scrape_pages.count}"
-    data: "${scrape_pages.results}"
+  keyword: "${params.keyword}"
+  count: "${extract_results.count}"
+  results: "${extract_results.data}"
+  generated_at: "${timestamp}"
 ```
 
 ---
 
-## Future Enhancements
+## 11. Backward Compatibility & Reserved Fields
 
-These are not part of v1 spec but planned for future versions:
+To allow future expansion, the following keys are reserved and should not be used as parameter/step field names:
 
-- **flow.loop**: DSL-level loop step support (iterate over arrays)
-- **flow.switch**: Multi-branch conditionals
-- **parallel**: Parallel step group execution
-- **triggers**: Define schedule/webhook/queue triggers in DSL (currently in JSON/README)
-- **Template strings**: Support `"hello ${params.name}"` mixed-string templates
-
----
-
-## TL;DR (Quick Summary)
-
-1. **Workflow is a YAML file** containing `id`, `engine`, `params`, `steps`, `error`, `output`
-2. **Each step points to a module**, uses `params` to pass data, `output` to extract results
-3. **Expressions use `${ ... }`**, scope includes: `params`, `config`, `env`, `steps`, `utils`, `timestamp`
-4. **`when` controls conditional execution**, `always` for cleanup, `on_error` for retry/fatal control
-5. **`output.fields` determines workflow return result**
-6. **Subflows defined with `engine: subflow`**, called via `core.flow.call`
+- `name`
+- `description`
+- `version`
+- `tags`
+- `params`
+- `config`
+- `steps`
+- `output`
+- `env` (if future per-workflow env override)
+- `schedule` (if future built-in scheduling)
 
 ---
 
-## Contributing
+## 12. Contributor Guidelines (Module Authors)
 
-This DSL specification is versioned alongside the engine. To propose changes:
+If you're writing your own module, please follow:
 
-1. Open an issue describing the use case
-2. Discuss syntax and semantics
-3. Update this document with proposed changes
-4. Implement in the engine
-5. Add tests and examples
+1. **module_id** = `namespace.subnamespace.action` (e.g., `core.browser.click`)
 
-See [CONTRIBUTING.md](../CONTRIBUTING.md) for detailed contribution guidelines.
+2. **Register with metadata:**
+   ```python
+   @register_module(
+       module_id="core.browser.click",
+       label="Click Element",
+       description="Click an element on the page"
+   )
+   class BrowserClickModule(BaseModule):
+       async def execute(self) -> Dict[str, Any]:
+           # ...
+           return {"clicked": True}
+   ```
+
+3. **Return a dict** from `execute()`, which goes directly into `steps.<id>.output`
+
+---
+
+## 13. Documentation Split Suggestion
+
+If you want to split this DSL documentation:
+
+- **docs/WORKFLOW_BASICS.md**: Minimal examples + basic structure
+- **docs/DSL_REFERENCE.md**: Advanced features (if/loop/retry, etc.)
+
+This DSL spec aligns with current implementation and reserves space for future features without over-promising.
 
 ---
 
