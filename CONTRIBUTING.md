@@ -25,6 +25,7 @@ Thank you for your interest in contributing! This guide covers everything you ne
 
 📘 **[Complete Specification](docs/MODULE_SPECIFICATION.md)** - Comprehensive rules and guidelines
 📋 **[Quick Reference](docs/MODULE_QUICK_REFERENCE.md)** - Fast lookup guide
+🚀 **[Phase 2 Features](docs/MODULE_PHASE2_FEATURES.md)** - Execution control & security features
 
 ### Why This Matters
 
@@ -52,7 +53,9 @@ Before submitting a module PR:
 - [ ] Color is valid hex (#RRGGBB)
 - [ ] i18n keys follow pattern: `modules.category.subcategory.action.field`
 - [ ] At least 1 working example included
-- [ ] Ran `python scripts/lint_modules.py path/to/module.py` with no errors
+- [ ] **Phase 2**: Added `timeout`, `retryable`, `concurrent_safe` if applicable
+- [ ] **Phase 2**: Added security settings (`requires_credentials`, `handles_sensitive_data`)
+- [ ] Ran `python scripts/validate_all_modules.py` with no errors
 - [ ] Added i18n translations to `i18n/en.json`
 
 ### Tools Available

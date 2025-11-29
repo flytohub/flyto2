@@ -26,6 +26,17 @@ import os
     output_types=['json', 'array', 'api_response'],
     can_connect_to=['data.*', 'notification.*', 'file.*'],
 
+    # Phase 2: Execution settings
+    timeout=30,  # API calls should not take more than 30s
+    retryable=True,  # Network errors can be retried
+    max_retries=3,
+    concurrent_safe=True,  # Multiple searches can run in parallel
+
+    # Phase 2: Security settings
+    requires_credentials=True,  # Needs GOOGLE_API_KEY
+    handles_sensitive_data=False,  # Search results are public data
+    required_permissions=['network.access'],
+
     params_schema={
         'keyword': {
             'type': 'string',

@@ -23,7 +23,20 @@ from ...registry import register_module
 
     # Connection types
     input_types=['any'],
-    output_types=['any'],    params_schema={
+    output_types=['any'],
+
+    # Phase 2: Execution settings
+    timeout=10,  # Browser launch should complete within 10s
+    retryable=True,  # Can retry if browser fails to launch
+    max_retries=2,  # Don't retry too many times (resource intensive)
+    concurrent_safe=False,  # Browser instances should not launch in parallel
+
+    # Phase 2: Security settings
+    requires_credentials=False,
+    handles_sensitive_data=False,
+    required_permissions=['browser.launch', 'system.process'],
+
+    params_schema={
         'headless': {
             'type': 'boolean',
             'label': 'Headless Mode',

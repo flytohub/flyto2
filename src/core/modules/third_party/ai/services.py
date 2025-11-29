@@ -25,7 +25,20 @@ import os
     input_types=['text', 'json'],
     output_types=['text', 'json'],
     can_receive_from=['data.*', 'file.*', 'browser.*'],
-    can_connect_to=['data.*', 'notification.*', 'file.*'],    params_schema={
+    can_connect_to=['data.*', 'notification.*', 'file.*'],
+
+    # Phase 2: Execution settings
+    timeout=60,  # AI responses can take up to 60s
+    retryable=True,  # Network errors can be retried
+    max_retries=3,
+    concurrent_safe=True,  # Multiple AI calls can run in parallel
+
+    # Phase 2: Security settings
+    requires_credentials=True,  # Needs ANTHROPIC_API_KEY
+    handles_sensitive_data=True,  # User messages may contain sensitive info
+    required_permissions=['network.access', 'ai.api'],
+
+    params_schema={
         'api_key': {
             'type': 'string',
             'label': 'API Key',

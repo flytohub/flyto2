@@ -259,6 +259,17 @@ def register_module(
     params_schema: Optional[Dict[str, Any]] = None,
     output_schema: Optional[Dict[str, Any]] = None,
 
+    # Execution settings (Phase 2)
+    timeout: Optional[int] = None,  # Execution timeout in seconds
+    retryable: bool = False,  # Whether the module can be retried on failure
+    max_retries: int = 3,  # Maximum number of retry attempts
+    concurrent_safe: bool = True,  # Whether module can run concurrently
+
+    # Security settings (Phase 2)
+    requires_credentials: bool = False,  # Whether module needs API keys/credentials
+    handles_sensitive_data: bool = False,  # Whether module processes sensitive data
+    required_permissions: Optional[List[str]] = None,  # Required permissions
+
     # Advanced
     requires: Optional[List[str]] = None,
     permissions: Optional[List[str]] = None,
@@ -315,6 +326,13 @@ def register_module(
         can_connect_to: List of module patterns this can connect to
         params_schema: Parameter definitions
         output_schema: Output structure definition
+        timeout: Execution timeout in seconds (None = no timeout)
+        retryable: Whether module can be retried on failure (default: False)
+        max_retries: Maximum retry attempts if retryable (default: 3)
+        concurrent_safe: Whether module can run concurrently (default: True)
+        requires_credentials: Whether module needs API keys/credentials
+        handles_sensitive_data: Whether module processes sensitive data
+        required_permissions: List of required permissions
         requires: List of required module IDs
         permissions: Required permissions
         examples: Usage examples
@@ -344,6 +362,16 @@ def register_module(
             "can_connect_to": can_connect_to or [],
             "params_schema": params_schema or {},
             "output_schema": output_schema or {},
+            # Phase 2: Execution settings
+            "timeout": timeout,
+            "retryable": retryable,
+            "max_retries": max_retries,
+            "concurrent_safe": concurrent_safe,
+            # Phase 2: Security settings
+            "requires_credentials": requires_credentials,
+            "handles_sensitive_data": handles_sensitive_data,
+            "required_permissions": required_permissions or [],
+            # Advanced
             "requires": requires or [],
             "permissions": permissions or [],
             "examples": examples or [],

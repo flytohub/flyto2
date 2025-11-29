@@ -103,6 +103,9 @@ class ModuleValidator:
         self._validate_i18n(metadata)
         self._validate_examples(metadata)
         self._validate_metadata_fields(metadata)
+        # Phase 2 validations
+        self._validate_execution_settings(metadata)
+        self._validate_security_settings(metadata)
 
         # Check results
         if self.errors:
@@ -311,6 +314,88 @@ class ModuleValidator:
             self.warnings.append("Should have at least 2 tags")
         elif len(tags) > 5:
             self.warnings.append("Should have at most 5 tags")
+
+    def _validate_execution_settings(self, metadata: Dict[str, Any]):
+        """Validate Phase 2 execution settings"""
+        timeout = metadata.get('timeout')
+        retryable = metadata.get('retryable', False)
+        max_retries = metadata.get('max_retries', 3)
+        concurrent_safe = metadata.get('concurrent_safe', True)
+
+        # Timeout validation
+        if timeout is not None:
+            if not isinstance(timeout, int) or timeout <= 0:
+                self.errors.append(
+                    f"timeout must be a positive integer (got: {timeout})"
+                )
+            elif timeout > 3600:  # 1 hour max
+                self.warnings.append(
+                    f"timeout is very long ({timeout}s). Consider if this is intentional."
+                )
+
+        # Retry validation
+        if retryable:
+            if not isinstance(max_retries, int) or max_retries < 1:
+                self.errors.append(
+                    f"max_retries must be a positive integer when retryable=True (got: {max_retries})"
+                )
+            elif max_retries > 10:
+                self.warnings.append(
+                    f"max_retries is very high ({max_retries}). This might cause long delays."
+                )
+
+        # Concurrent safety check
+        if not isinstance(concurrent_safe, bool):
+            self.errors.append(
+                f"concurrent_safe must be boolean (got: {type(concurrent_safe).__name__})"
+            )
+
+        # Logic warnings
+        if not concurrent_safe and retryable:
+            self.warnings.append(
+                "Module is not concurrent_safe but is retryable. "
+                "Consider if retries might cause resource conflicts."
+            )
+
+    def _validate_security_settings(self, metadata: Dict[str, Any]):
+        """Validate Phase 2 security settings"""
+        requires_credentials = metadata.get('requires_credentials', False)
+        handles_sensitive_data = metadata.get('handles_sensitive_data', False)
+        required_permissions = metadata.get('required_permissions', [])
+
+        # Type checks
+        if not isinstance(requires_credentials, bool):
+            self.errors.append(
+                f"requires_credentials must be boolean (got: {type(requires_credentials).__name__})"
+            )
+
+        if not isinstance(handles_sensitive_data, bool):
+            self.errors.append(
+                f"handles_sensitive_data must be boolean (got: {type(handles_sensitive_data).__name__})"
+            )
+
+        if not isinstance(required_permissions, list):
+            self.errors.append(
+                f"required_permissions must be a list (got: {type(required_permissions).__name__})"
+            )
+        else:
+            # Validate permission format
+            for perm in required_permissions:
+                if not isinstance(perm, str):
+                    self.errors.append(
+                        f"Permission must be string (got: {type(perm).__name__})"
+                    )
+                elif not re.match(r'^[a-z]+(\.[a-z]+)*$', perm):
+                    self.warnings.append(
+                        f"Permission '{perm}' should follow format: 'resource.action' (e.g., 'file.write')"
+                    )
+
+        # Logic checks
+        if handles_sensitive_data and not requires_credentials:
+            self.warnings.append(
+                "Module handles sensitive data but doesn't require credentials. "
+                "Consider if authentication is needed."
+            )
 
     def _is_title_case(self, text: str) -> bool:
         """Check if text is in Title Case"""
