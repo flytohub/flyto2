@@ -1,0 +1,303 @@
+# Flyto2 Module Taxonomy
+# This file defines all available modules organized by namespace
+# Version: 1.0.0-alpha
+
+# ============================================
+# Core Modules - Built-in functionality
+# ============================================
+
+core:
+  # Browser automation modules (Playwright-based)
+  browser:
+    - id: launch
+      description: Launch a new browser instance
+      params: [headless, viewport, browser_type]
+
+    - id: goto
+      description: Navigate to a URL
+      params: [browser, url, wait_until, timeout_ms]
+
+    - id: click
+      description: Click an element
+      params: [browser, selector, button, click_count]
+
+    - id: type
+      description: Type text into an element
+      params: [browser, selector, text, delay]
+
+    - id: press
+      description: Press a keyboard key
+      params: [browser, key, selector]
+
+    - id: wait
+      description: Wait for an element or condition
+      params: [browser, selector, state, timeout_ms]
+
+    - id: extract
+      description: Extract data from the page
+      params: [browser, selector, fields, limit]
+
+    - id: screenshot
+      description: Take a screenshot
+      params: [browser, path, full_page, clip]
+
+    - id: close
+      description: Close the browser
+      params: [browser]
+
+    - id: evaluate
+      description: Execute JavaScript in browser context
+      params: [browser, script, args]
+
+  # Flow control modules
+  flow:
+    - id: loop
+      description: Iterate over items
+      params: [items, as, steps]
+
+    - id: condition
+      description: Conditional execution (if/else)
+      params: [condition, then_steps, else_steps]
+
+    - id: retry
+      description: Retry a set of steps on failure
+      params: [steps, max_attempts, delay_ms, backoff]
+
+    - id: parallel
+      description: Execute branches in parallel
+      params: [branches, wait_for]
+
+    - id: sleep
+      description: Pause execution for a duration
+      params: [duration_ms]
+
+  # Data manipulation modules
+  data:
+    - id: create
+      description: Create a data structure
+      params: [value, type]
+
+    - id: merge
+      description: Merge arrays or objects
+      params: [arrays, objects, strategy]
+
+    - id: filter
+      description: Filter data based on condition
+      params: [input, condition, field]
+
+    - id: transform
+      description: Transform data structure
+      params: [input, mapping, output_format]
+
+    - id: json_parse
+      description: Parse JSON string
+      params: [input]
+
+    - id: json_stringify
+      description: Convert to JSON string
+      params: [input, pretty]
+
+  # Element operations (low-level DOM)
+  element:
+    - id: find
+      description: Find element(s) by selector
+      params: [browser, selector, multiple, timeout_ms]
+
+    - id: get_text
+      description: Get element text content
+      params: [browser, selector]
+
+    - id: get_attribute
+      description: Get element attribute value
+      params: [browser, selector, attribute]
+
+    - id: set_attribute
+      description: Set element attribute
+      params: [browser, selector, attribute, value]
+
+  # Logging and debugging
+  log:
+    - id: info
+      description: Log info message
+      params: [message, data]
+
+    - id: warn
+      description: Log warning message
+      params: [message, data]
+
+    - id: error
+      description: Log error message
+      params: [message, data]
+
+    - id: debug
+      description: Log debug message
+      params: [message, data]
+
+# ============================================
+# API Modules - External integrations
+# ============================================
+
+api:
+  # HTTP/REST operations
+  http:
+    - id: get
+      description: HTTP GET request
+      params: [url, headers, query_params, timeout_ms]
+
+    - id: post
+      description: HTTP POST request
+      params: [url, headers, body, timeout_ms]
+
+    - id: put
+      description: HTTP PUT request
+      params: [url, headers, body, timeout_ms]
+
+    - id: delete
+      description: HTTP DELETE request
+      params: [url, headers, timeout_ms]
+
+    - id: patch
+      description: HTTP PATCH request
+      params: [url, headers, body, timeout_ms]
+
+  # Search engines
+  search:
+    - id: google
+      description: Google search (via browser automation)
+      params: [keyword, max_results, language]
+
+# ============================================
+# AI Modules - AI/ML integrations
+# ============================================
+
+ai:
+  # OpenAI integration
+  openai:
+    - id: chat
+      description: OpenAI Chat Completion API
+      params: [api_key, model, messages, temperature, max_tokens]
+
+    - id: completion
+      description: OpenAI Text Completion API
+      params: [api_key, model, prompt, temperature, max_tokens]
+
+    - id: analyze_text
+      description: Analyze text with OpenAI
+      params: [api_key, text, task, model]
+
+    - id: summarize
+      description: Summarize content with OpenAI
+      params: [api_key, content, length, model]
+
+  # Anthropic Claude (planned)
+  anthropic:
+    - id: chat
+      description: Claude Chat API
+      params: [api_key, model, messages, max_tokens]
+      status: planned
+
+  # Google Gemini (planned)
+  gemini:
+    - id: chat
+      description: Gemini Chat API
+      params: [api_key, model, messages]
+      status: planned
+
+# ============================================
+# Database Modules (planned)
+# ============================================
+
+db:
+  # PostgreSQL
+  postgresql:
+    - id: query
+      description: Execute PostgreSQL query
+      params: [connection_string, query, params]
+      status: planned
+
+    - id: insert
+      description: Insert data into PostgreSQL
+      params: [connection_string, table, data]
+      status: planned
+
+  # MongoDB
+  mongodb:
+    - id: find
+      description: Find documents in MongoDB
+      params: [connection_string, collection, query]
+      status: planned
+
+    - id: insert
+      description: Insert document into MongoDB
+      params: [connection_string, collection, document]
+      status: planned
+
+  # Redis
+  redis:
+    - id: get
+      description: Get value from Redis
+      params: [connection_string, key]
+      status: planned
+
+    - id: set
+      description: Set value in Redis
+      params: [connection_string, key, value, ttl]
+      status: planned
+
+# ============================================
+# Cloud Storage Modules (planned)
+# ============================================
+
+cloud:
+  # AWS S3
+  s3:
+    - id: upload
+      description: Upload file to S3
+      params: [bucket, key, file_path, access_key, secret_key]
+      status: planned
+
+    - id: download
+      description: Download file from S3
+      params: [bucket, key, file_path, access_key, secret_key]
+      status: planned
+
+  # Google Cloud Storage
+  gcs:
+    - id: upload
+      description: Upload file to GCS
+      params: [bucket, key, file_path, credentials]
+      status: planned
+
+# ============================================
+# Notification Modules (planned)
+# ============================================
+
+notification:
+  # Slack
+  slack:
+    - id: send_message
+      description: Send message to Slack
+      params: [webhook_url, channel, text, blocks]
+      status: planned
+
+  # Discord
+  discord:
+    - id: send_message
+      description: Send message to Discord
+      params: [webhook_url, content, embeds]
+      status: planned
+
+  # Email
+  email:
+    - id: send
+      description: Send email via SMTP
+      params: [smtp_server, from, to, subject, body]
+      status: planned
+
+# ============================================
+# Module Status Legend
+# ============================================
+# (no status) = Available and tested
+# planned = Roadmap, not yet implemented
+# experimental = Available but unstable
+# deprecated = Will be removed in future version

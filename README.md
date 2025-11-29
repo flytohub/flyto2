@@ -29,6 +29,39 @@ Your workflows are **portable YAML files** you can `git commit`, copy anywhere, 
 
 ---
 
+## Project Status
+
+**Current Version:** 1.0.0-alpha
+
+**What's Working:**
+- ✅ YAML workflow parser and execution engine
+- ✅ Browser automation modules (Playwright-based)
+- ✅ Flow control (loop, condition, retry)
+- ✅ API/HTTP modules
+- ✅ AI integrations (OpenAI)
+- ✅ Environment variable support for secrets
+- ✅ Basic error handling and logging
+
+**In Development:**
+- ⚠️ Advanced observability dashboard
+- ⚠️ More AI integrations (Claude, Gemini)
+- ⚠️ Database modules (PostgreSQL, MongoDB, Redis)
+- ⚠️ Cloud storage modules (S3, GCS)
+
+**Visual Builder (Separate Product):**
+- 🎨 The visual workflow builder is under active development
+- 🎨 Will be released as a separate (closed source, free-to-use) product
+- 🎨 This repo contains the **fully working open-source engine + CLI**
+- 🎨 All workflows created in the UI will be **standard YAML files** using this engine
+
+**Ready for:**
+- ✅ Internal automation tools
+- ✅ Workflow experimentation
+- ✅ Community contributions
+- ✅ Production use with proper testing
+
+---
+
 ## Why This Engine?
 
 This engine is built for developers who need:
@@ -529,9 +562,81 @@ All workflows are YAML files - copy, edit, and version control them!
 
 ---
 
+## CLI Usage
+
+### Running Workflows
+
+```bash
+# Run a workflow
+python -m cli.main workflows/google_search.yaml
+
+# With parameters
+python -m cli.main workflows/api_pipeline.yaml --param.user_id=1
+
+# With environment variables
+export OPENAI_API_KEY=your_key_here
+python -m cli.main workflows/ai_content_summarizer.yaml --param.article_url=https://example.com
+
+# Verbose logging
+python -m cli.main workflows/google_search.yaml --verbose
+
+# Dry run (validate without executing)
+python -m cli.main workflows/google_search.yaml --dry-run
+```
+
+### Testing
+
+```bash
+# Run all tests
+pytest
+
+# Run specific test file
+pytest tests/test_engine.py
+
+# Run with coverage report
+pytest --cov=src --cov-report=html
+
+# Run tests in watch mode
+pytest-watch
+
+# Run only unit tests
+pytest tests/unit/
+
+# Run integration tests
+pytest tests/integration/
+```
+
+### Development Setup
+
+```bash
+# Clone repository
+git clone https://github.com/flytohub/flyto2.git
+cd flyto2
+
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+pip install -r requirements-dev.txt  # Development dependencies
+
+# Install Playwright browsers
+playwright install chromium
+
+# Run tests to verify setup
+pytest
+
+# Start development
+code .  # Or your preferred editor
+```
+
+---
+
 ## Documentation
 
 - **DSL Specification**: [docs/DSL.md](docs/DSL.md) - Complete YAML workflow syntax reference
+- **Writing Modules**: [docs/WRITING_MODULES.md](docs/WRITING_MODULES.md) - Guide to creating custom modules
 - **UI Builder Integration**: [docs/UI_BUILDER_INTEGRATION.md](docs/UI_BUILDER_INTEGRATION.md) - Metadata API for dynamic form generation (like Swagger)
 - **Metadata API**: [docs/METADATA_API.md](docs/METADATA_API.md) - REST API endpoints for module metadata
 - **Architecture**: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) - Third-party integrations design
