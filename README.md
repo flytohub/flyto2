@@ -72,24 +72,24 @@ python -m cli.main my_workflow.yaml
 
 ## Built-in Integrations
 
-Flyto2 comes with **production-ready modules** out of the box:
+Flyto2 comes with **30+ production-ready modules** organized by architecture:
 
-### 🔔 Notifications
-**Slack** • **Discord** • **Telegram** • **Email/SMTP**
+### Atomic Modules
+Core building blocks with no external dependencies:
+- **Browser** - Launch, navigate, click, type, extract, screenshot, close
+- **Data** - CSV read/write, JSON parse/stringify, text templates
+- **Utilities** - Delay, random numbers/strings, datetime, hash functions
 
-### 🔗 APIs
-**GitHub** (repos, issues, PRs) • **HTTP/REST** • **OpenAI**
+### Third-party Integrations
+Connect to external services and platforms:
+- **AI** - OpenAI GPT, Anthropic Claude, Google Gemini
+- **Communication** - Slack, Discord, Telegram, Email SMTP
+- **Databases** - PostgreSQL, MySQL, MongoDB
+- **Cloud** - AWS S3 upload/download
+- **Productivity** - Notion pages/databases, Google Sheets
+- **Developer** - GitHub repos/issues, HTTP REST APIs
 
-### 🌐 Browser Automation
-**Launch** • **Navigate** • **Click** • **Type** • **Extract** • **Screenshot**
-
-### 📊 Data Processing
-**CSV** (read/write) • **JSON** (parse/stringify) • **Templates**
-
-### 🛠️ Utilities
-**Delay** • **Random** • **DateTime** • **Hash** • **UUIDs**
-
-[→ See complete module list](docs/MODULES.md)
+[View complete module list](docs/MODULES.md)
 
 ---
 

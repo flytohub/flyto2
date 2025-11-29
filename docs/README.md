@@ -202,43 +202,120 @@ python -m cli.main workflow.yaml --dry-run
 
 ---
 
-## Module Categories
+## Module Architecture
 
-### Browser Automation
-Launch browsers, navigate pages, extract data, take screenshots
-- See [MODULES.md - Browser Automation](MODULES.md#browser-automation)
+Flyto2 modules are organized into three architectural layers:
 
-### HTTP and APIs
-REST APIs, webhooks, GitHub, OpenAI integrations
-- See [MODULES.md - HTTP and APIs](MODULES.md#http-and-apis)
+### Atomic Modules
+Core building blocks with no external dependencies:
+- **Browser Operations** - Launch, navigate, click, type, extract, screenshot
+- **Data Transformation** - CSV read/write, JSON parse/stringify, templates
+- **Utilities** - Delay, random, datetime, hash
 
-### Notifications
-Send alerts via Slack, Discord, Telegram, Email
-- See [MODULES.md - Notifications](MODULES.md#notifications)
+**Characteristics:** Single responsibility, composable, no API keys required
 
-### AI Services
-Integrate with OpenAI GPT, Anthropic Claude, Google Gemini
-- See [MODULES.md - AI Services](MODULES.md#ai-services)
+See [MODULES.md - Atomic Modules](MODULES.md#atomic-modules)
 
-### Databases
-Query and insert data in PostgreSQL, MySQL, MongoDB
-- See [MODULES.md - Databases](MODULES.md#databases)
+### Third-party Integrations
+Connect to external services and platforms:
+- **AI Services** - OpenAI, Anthropic Claude, Google Gemini
+- **Communication** - Slack, Discord, Telegram, Email SMTP
+- **Databases** - PostgreSQL, MySQL, MongoDB
+- **Cloud Storage** - AWS S3
+- **Productivity Tools** - Notion, Google Sheets
+- **Developer Tools** - GitHub, HTTP REST
 
-### Cloud Storage
-Upload and download files from AWS S3
-- See [MODULES.md - Cloud Storage](MODULES.md#cloud-storage)
+**Characteristics:** Require API keys, network dependent, rate limits apply
 
-### Productivity Tools
-Create pages in Notion, read/write Google Sheets
-- See [MODULES.md - Productivity](MODULES.md#productivity)
+See [MODULES.md - Third-party Integrations](MODULES.md#third-party-integrations)
 
-### Data Processing
-Parse CSV/JSON, fill templates, transform data
-- See [MODULES.md - Data Processing](MODULES.md#data-processing)
+### Composite Modules
+High-level workflow templates combining multiple modules:
+- Web scraping to database pipeline
+- Multi-channel notification broadcast
+- API data transformation and export
+- Scheduled report generation
 
-### Utilities
-Delays, random values, timestamps, hashing
-- See [MODULES.md - Utilities](MODULES.md#utilities)
+**Status:** Coming in v1.1
+
+---
+
+## Quick Module Reference
+
+### Atomic: Browser Operations
+```yaml
+core.browser.launch        # Launch browser instance
+core.browser.goto          # Navigate to URL
+core.browser.click         # Click element
+core.browser.type          # Type text in input
+core.browser.extract       # Extract data from page
+core.browser.screenshot    # Take screenshot
+core.browser.close         # Close browser
+```
+
+### Atomic: Data Transformation
+```yaml
+data.csv.read             # Read CSV file
+data.csv.write            # Write CSV file
+data.json.parse           # Parse JSON string
+data.json.stringify       # Convert to JSON
+data.text.template        # Fill text template
+```
+
+### Atomic: Utilities
+```yaml
+utility.delay             # Pause execution
+utility.random.number     # Generate random number
+utility.random.string     # Generate random string
+utility.datetime.now      # Get current timestamp
+utility.hash.md5          # Calculate MD5 hash
+```
+
+### Integration: AI Services
+```yaml
+ai.openai.chat            # OpenAI GPT chat
+api.anthropic.chat        # Anthropic Claude chat
+api.google_gemini.chat    # Google Gemini chat
+```
+
+### Integration: Communication
+```yaml
+notification.slack.send_message      # Slack message
+notification.discord.send_message    # Discord message
+notification.telegram.send_message   # Telegram message
+notification.email.send              # Email via SMTP
+```
+
+### Integration: Databases
+```yaml
+db.postgresql.query       # PostgreSQL SQL query
+db.mysql.query            # MySQL SQL query
+db.mongodb.find           # MongoDB find documents
+db.mongodb.insert         # MongoDB insert documents
+```
+
+### Integration: Cloud Storage
+```yaml
+cloud.aws_s3.upload       # Upload to S3
+cloud.aws_s3.download     # Download from S3
+```
+
+### Integration: Productivity Tools
+```yaml
+api.notion.create_page    # Create Notion page
+api.notion.query_database # Query Notion database
+api.google_sheets.read    # Read Google Sheets
+api.google_sheets.write   # Write Google Sheets
+```
+
+### Integration: Developer Tools
+```yaml
+api.github.get_repo       # Get GitHub repo info
+api.github.list_issues    # List GitHub issues
+api.github.create_issue   # Create GitHub issue
+api.http.get              # HTTP GET request
+api.http.post             # HTTP POST request
+```
 
 ---
 

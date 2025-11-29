@@ -1,45 +1,112 @@
 # Flyto2 Module Registry
 
-Complete reference of all available modules, their parameters, and return values.
+Complete reference of all available modules organized by architecture pattern.
 
 **Last Updated:** 2025-11-29
 
 ---
 
-## Table of Contents
+## Module Architecture
 
-- [Browser Automation](#browser-automation)
-- [HTTP/API Operations](#httpapi-operations)
-- [Notifications](#notifications)
-- [AI Services](#ai-services)
-- [Databases](#databases)
-- [Cloud Storage](#cloud-storage)
-- [Productivity](#productivity)
-- [Data Processing](#data-processing)
-- [Utility](#utility)
+Flyto2 modules are organized into three architectural layers:
+
+### Atomic Modules
+Core building blocks that provide fundamental operations:
+- Browser control and automation
+- Data transformation and parsing
+- Utility functions
+
+**Characteristics:**
+- No external dependencies
+- Single responsibility
+- Composable
+- Synchronous or async
+
+### Third-party Integrations
+Modules that connect to external services and APIs:
+- AI platforms
+- Communication services
+- Databases
+- Cloud storage
+- Productivity tools
+- Developer platforms
+
+**Characteristics:**
+- Require API keys or credentials
+- Network dependent
+- Service-specific schemas
+- Rate limits apply
+
+### Composite Modules
+High-level workflows combining multiple atomic or third-party modules:
+- Multi-step automation patterns
+- Common workflow templates
+- Domain-specific solutions
+
+**Status:** Coming in v1.1
 
 ---
 
-## Browser Automation
+## Table of Contents
+
+### Atomic Modules
+- [Browser Operations](#atomic-browser-operations)
+- [Data Transformation](#atomic-data-transformation)
+- [Utilities](#atomic-utilities)
+
+### Third-party Integrations
+- [AI Services](#integration-ai-services)
+  - [OpenAI](#openai)
+  - [Anthropic Claude](#anthropic-claude)
+  - [Google Gemini](#google-gemini)
+- [Communication](#integration-communication)
+  - [Slack](#slack)
+  - [Discord](#discord)
+  - [Telegram](#telegram)
+  - [Email SMTP](#email-smtp)
+- [Databases](#integration-databases)
+  - [PostgreSQL](#postgresql)
+  - [MySQL](#mysql)
+  - [MongoDB](#mongodb)
+- [Cloud Storage](#integration-cloud-storage)
+  - [AWS S3](#aws-s3)
+- [Productivity Tools](#integration-productivity-tools)
+  - [Notion](#notion)
+  - [Google Sheets](#google-sheets)
+- [Developer Tools](#integration-developer-tools)
+  - [GitHub](#github)
+  - [HTTP REST](#http-rest)
+
+---
+
+# Atomic Modules
+
+Fundamental building blocks with no external service dependencies.
+
+---
+
+## Atomic: Browser Operations
 
 ### core.browser.launch
 
 **Description:** Launch a new browser instance with Playwright
 
+**Category:** Atomic
+
 **Parameters:**
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
-| `headless` | boolean | No | `false` | Run browser in headless mode (no UI) |
+| `headless` | boolean | No | `false` | Run browser in headless mode |
 | `viewport` | object | No | `{width: 1280, height: 720}` | Browser viewport size |
-| `browser_type` | select | No | `"chromium"` | Browser type: chromium, firefox, webkit |
+| `browser_type` | select | No | `"chromium"` | Browser engine: chromium, firefox, webkit |
 
 **Returns:**
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `browser` | object | Browser instance handle (for other modules) |
-| `status` | string | "success" or "error" |
+| `browser` | object | Browser instance handle |
+| `status` | string | Operation status |
 | `message` | string | Status message |
 
 **Example:**
@@ -49,6 +116,9 @@ Complete reference of all available modules, their parameters, and return values
   module: core.browser.launch
   params:
     headless: true
+    viewport:
+      width: 1920
+      height: 1080
 ```
 
 ---
@@ -57,21 +127,23 @@ Complete reference of all available modules, their parameters, and return values
 
 **Description:** Navigate browser to a URL
 
+**Category:** Atomic
+
 **Parameters:**
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
-| `browser` | object | Yes | - | Browser instance from launch step |
+| `browser` | object | Yes | - | Browser instance from launch |
 | `url` | string | Yes | - | Target URL |
 | `wait_until` | select | No | `"load"` | Wait condition: load, domcontentloaded, networkidle |
-| `timeout_ms` | number | No | `30000` | Navigation timeout |
+| `timeout_ms` | number | No | `30000` | Navigation timeout in milliseconds |
 
 **Returns:**
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `status` | string | "success" or "error" |
-| `url` | string | Final URL (after redirects) |
+| `status` | string | Navigation status |
+| `url` | string | Final URL after redirects |
 
 **Example:**
 
@@ -86,89 +158,73 @@ Complete reference of all available modules, their parameters, and return values
 
 ---
 
-### core.browser.wait
+### core.browser.click
 
-**Description:** Wait for element or condition
+**Description:** Click an element on the page
+
+**Category:** Atomic
 
 **Parameters:**
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
 | `browser` | object | Yes | - | Browser instance |
-| `selector` | string | Yes | - | CSS selector to wait for |
-| `state` | select | No | `"visible"` | Element state: visible, attached, hidden |
-| `timeout_ms` | number | No | `30000` | Wait timeout |
+| `selector` | string | Yes | - | CSS selector for element |
+| `wait_before_ms` | number | No | `0` | Wait before clicking |
+| `timeout_ms` | number | No | `30000` | Click timeout |
 
 **Returns:**
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `status` | string | "success" or "error" |
-| `found` | boolean | Whether element was found |
+| `status` | string | Click status |
+| `clicked` | boolean | Whether click succeeded |
 
 **Example:**
 
 ```yaml
-- id: wait_for_results
-  module: core.browser.wait
+- id: click_button
+  module: core.browser.click
   params:
     browser: "${launch.browser}"
-    selector: ".search-results"
-    timeout_ms: 10000
+    selector: "button#submit"
 ```
 
 ---
 
 ### core.browser.type
 
-**Description:** Type text into an input element
+**Description:** Type text into an input field
+
+**Category:** Atomic
 
 **Parameters:**
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
 | `browser` | object | Yes | - | Browser instance |
-| `selector` | string | Yes | - | CSS selector for input element |
+| `selector` | string | Yes | - | CSS selector for input |
 | `text` | string | Yes | - | Text to type |
-| `delay` | number | No | `0` | Delay between keystrokes (ms) |
+| `delay_ms` | number | No | `0` | Delay between keystrokes |
+| `clear_first` | boolean | No | `true` | Clear existing text first |
 
 **Returns:**
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `status` | string | "success" or "error" |
+| `status` | string | Type status |
+| `typed` | boolean | Whether typing succeeded |
 
 **Example:**
 
 ```yaml
-- id: enter_keyword
+- id: search
   module: core.browser.type
   params:
     browser: "${launch.browser}"
-    selector: 'input[name="q"]'
-    text: "${params.keyword}"
+    selector: "input[name='q']"
+    text: "Flyto2 workflow automation"
 ```
-
----
-
-### core.browser.click
-
-**Description:** Click an element
-
-**Parameters:**
-
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `browser` | object | Yes | - | Browser instance |
-| `selector` | string | Yes | - | CSS selector for element to click |
-| `button` | select | No | `"left"` | Mouse button: left, right, middle |
-| `click_count` | number | No | `1` | Number of clicks |
-
-**Returns:**
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `status` | string | "success" or "error" |
 
 ---
 
@@ -176,24 +232,16 @@ Complete reference of all available modules, their parameters, and return values
 
 **Description:** Extract data from page elements
 
+**Category:** Atomic
+
 **Parameters:**
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
 | `browser` | object | Yes | - | Browser instance |
 | `selector` | string | Yes | - | CSS selector for elements |
-| `limit` | number | No | `null` | Maximum number of elements |
+| `limit` | number | No | `null` | Maximum elements to extract |
 | `fields` | object | Yes | - | Field extraction definitions |
-
-**Field Definition:**
-
-```yaml
-fields:
-  field_name:
-    selector: "css selector"
-    type: "text"           # text, attribute, html
-    attribute: "href"      # Required if type=attribute
-```
 
 **Returns:**
 
@@ -201,53 +249,66 @@ fields:
 |-------|------|-------------|
 | `data` | array | Array of extracted objects |
 | `count` | number | Number of items extracted |
-| `status` | string | "success" or "error" |
 
 **Example:**
 
 ```yaml
-- id: extract_results
+- id: extract
   module: core.browser.extract
   params:
     browser: "${launch.browser}"
-    selector: ".result"
-    limit: 10
+    selector: ".product"
     fields:
-      title:
+      name:
         selector: "h2"
         type: "text"
-      url:
-        selector: "a"
-        type: "attribute"
-        attribute: "href"
+      price:
+        selector: ".price"
+        type: "text"
 ```
 
 ---
 
 ### core.browser.screenshot
 
-**Description:** Take a screenshot
+**Description:** Take a screenshot of the page
+
+**Category:** Atomic
 
 **Parameters:**
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
 | `browser` | object | Yes | - | Browser instance |
-| `path` | string | Yes | - | Output file path |
-| `full_page` | boolean | No | `false` | Capture full page |
+| `path` | string | Yes | - | File path to save screenshot |
+| `full_page` | boolean | No | `false` | Capture full scrollable page |
+| `selector` | string | No | - | CSS selector for specific element |
 
 **Returns:**
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `filepath` | string | Path to saved screenshot |
-| `status` | string | "success" or "error" |
+| `path` | string | Screenshot file path |
+| `status` | string | Screenshot status |
+
+**Example:**
+
+```yaml
+- id: screenshot
+  module: core.browser.screenshot
+  params:
+    browser: "${launch.browser}"
+    path: "screenshot.png"
+    full_page: true
+```
 
 ---
 
 ### core.browser.close
 
 **Description:** Close browser instance
+
+**Category:** Atomic
 
 **Parameters:**
 
@@ -259,285 +320,62 @@ fields:
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `status` | string | "success" or "error" |
-
----
-
-## HTTP/API Operations
-
-### api.http.get
-
-**Description:** Send HTTP GET request
-
-**Parameters:**
-
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `url` | string | Yes | - | Target URL |
-| `headers` | object | No | `{}` | HTTP headers |
-| `params` | object | No | `{}` | Query parameters |
-| `timeout` | number | No | `30` | Timeout in seconds |
-
-**Returns:**
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `status_code` | number | HTTP status code |
-| `headers` | object | Response headers |
-| `body` | string | Response body text |
-| `json` | object | Parsed JSON (if Content-Type is JSON) |
+| `status` | string | Close status |
 
 **Example:**
 
 ```yaml
-- id: fetch_api
-  module: api.http.get
+- id: cleanup
+  module: core.browser.close
   params:
-    url: "https://api.example.com/data"
-    headers:
-      Authorization: "Bearer ${env.API_TOKEN}"
+    browser: "${launch.browser}"
+  on_error: "continue"
 ```
 
 ---
 
-### api.http.post
-
-**Description:** Send HTTP POST request
-
-**Parameters:**
-
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `url` | string | Yes | - | Target URL |
-| `headers` | object | No | `{}` | HTTP headers |
-| `body` | string | No | - | Request body (text) |
-| `json` | object | No | - | Request body (JSON) |
-| `timeout` | number | No | `30` | Timeout in seconds |
-
-**Returns:**
-
-Same as `api.http.get`
-
-**Example:**
-
-```yaml
-- id: post_data
-  module: api.http.post
-  params:
-    url: "https://api.example.com/submit"
-    json:
-      name: "John"
-      email: "john@example.com"
-```
-
----
-
-### api.github.get_repo
-
-**Description:** Get GitHub repository information
-
-**Parameters:**
-
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `owner` | string | Yes | - | Repository owner (username or org) |
-| `repo` | string | Yes | - | Repository name |
-| `token` | string | No | `${env.GITHUB_TOKEN}` | GitHub access token |
-
-**Returns:**
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `name` | string | Repository name |
-| `full_name` | string | Full name (owner/repo) |
-| `description` | string | Repository description |
-| `stars` | number | Star count |
-| `forks` | number | Fork count |
-| `url` | string | Repository URL |
-
----
-
-### api.github.list_issues
-
-**Description:** List GitHub repository issues
-
-**Parameters:**
-
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `owner` | string | Yes | - | Repository owner |
-| `repo` | string | Yes | - | Repository name |
-| `state` | select | No | `"open"` | Filter: open, closed, all |
-| `labels` | string | No | - | Filter by labels (comma-separated) |
-| `limit` | number | No | `30` | Maximum issues to fetch |
-| `token` | string | No | `${env.GITHUB_TOKEN}` | GitHub access token |
-
-**Returns:**
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `issues` | array | Array of issue objects |
-| `count` | number | Number of issues returned |
-
----
-
-### api.github.create_issue
-
-**Description:** Create a new GitHub issue
-
-**Parameters:**
-
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `owner` | string | Yes | - | Repository owner |
-| `repo` | string | Yes | - | Repository name |
-| `title` | string | Yes | - | Issue title |
-| `body` | string | No | `""` | Issue description (Markdown) |
-| `labels` | array | No | `[]` | Issue labels |
-| `assignees` | array | No | `[]` | GitHub usernames to assign |
-| `token` | string | Yes | `${env.GITHUB_TOKEN}` | GitHub access token |
-
-**Returns:**
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `number` | number | Issue number |
-| `url` | string | Issue URL |
-
----
-
-## Notifications
-
-### notification.slack.send_message
-
-**Description:** Send message to Slack via webhook
-
-**Parameters:**
-
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `webhook_url` | string | No | `${env.SLACK_WEBHOOK_URL}` | Slack webhook URL |
-| `text` | string | Yes | - | Message text |
-| `channel` | string | No | - | Override default channel |
-| `username` | string | No | - | Override bot username |
-| `icon_emoji` | string | No | - | Bot icon emoji |
-
-**Returns:**
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `sent` | boolean | Whether message was sent |
-| `status` | string | "success" or "error" |
-| `message` | string | Status message |
-
-**Example:**
-
-```yaml
-- id: notify
-  module: notification.slack.send_message
-  params:
-    text: "Workflow completed successfully!"
-    channel: "#alerts"
-    icon_emoji: ":white_check_mark:"
-```
-
----
-
-### notification.discord.send_message
-
-**Description:** Send message to Discord via webhook
-
-**Parameters:**
-
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `webhook_url` | string | No | `${env.DISCORD_WEBHOOK_URL}` | Discord webhook URL |
-| `content` | string | Yes | - | Message content |
-| `username` | string | No | - | Override bot username |
-| `avatar_url` | string | No | - | Bot avatar URL |
-
-**Returns:**
-
-Same as Slack module
-
----
-
-### notification.telegram.send_message
-
-**Description:** Send message via Telegram Bot API
-
-**Parameters:**
-
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `bot_token` | string | No | `${env.TELEGRAM_BOT_TOKEN}` | Bot token from @BotFather |
-| `chat_id` | string | Yes | - | Chat ID or channel username |
-| `text` | string | Yes | - | Message text |
-| `parse_mode` | select | No | `"Markdown"` | Format: Markdown, HTML, None |
-
-**Returns:**
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `sent` | boolean | Whether message was sent |
-| `message_id` | number | Telegram message ID |
-
----
-
-### notification.email.send
-
-**Description:** Send email via SMTP
-
-**Parameters:**
-
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `smtp_server` | string | Yes | - | SMTP server hostname |
-| `smtp_port` | number | No | `587` | SMTP port |
-| `username` | string | Yes | - | SMTP username |
-| `password` | string | Yes | - | SMTP password |
-| `from_email` | string | Yes | - | Sender email |
-| `to_email` | string | Yes | - | Recipient email |
-| `subject` | string | Yes | - | Email subject |
-| `body` | string | Yes | - | Email body |
-| `html` | boolean | No | `false` | Send as HTML |
-
-**Returns:**
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `sent` | boolean | Whether email was sent |
-
----
-
-## Data Processing
+## Atomic: Data Transformation
 
 ### data.csv.read
 
 **Description:** Read and parse CSV file
+
+**Category:** Atomic
 
 **Parameters:**
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
 | `file_path` | string | Yes | - | Path to CSV file |
-| `delimiter` | string | No | `","` | CSV delimiter |
+| `has_header` | boolean | No | `true` | First row is header |
+| `delimiter` | string | No | `","` | Field delimiter |
 | `encoding` | string | No | `"utf-8"` | File encoding |
-| `skip_header` | boolean | No | `false` | Skip first row |
 
 **Returns:**
 
 | Field | Type | Description |
 |-------|------|-------------|
 | `data` | array | Array of row objects |
-| `rows` | number | Number of rows |
+| `row_count` | number | Number of rows |
 | `columns` | array | Column names |
+
+**Example:**
+
+```yaml
+- id: read_csv
+  module: data.csv.read
+  params:
+    file_path: "data.csv"
+    has_header: true
+```
 
 ---
 
 ### data.csv.write
 
-**Description:** Write array to CSV file
+**Description:** Write data to CSV file
+
+**Category:** Atomic
 
 **Parameters:**
 
@@ -545,21 +383,33 @@ Same as Slack module
 |-----------|------|----------|---------|-------------|
 | `file_path` | string | Yes | - | Output file path |
 | `data` | array | Yes | - | Array of objects to write |
-| `delimiter` | string | No | `","` | CSV delimiter |
-| `encoding` | string | No | `"utf-8"` | File encoding |
+| `headers` | array | No | - | Custom column headers |
+| `delimiter` | string | No | `","` | Field delimiter |
 
 **Returns:**
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `file_path` | string | Path to saved file |
-| `rows_written` | number | Number of rows written |
+| `file_path` | string | Written file path |
+| `row_count` | number | Rows written |
+
+**Example:**
+
+```yaml
+- id: export_csv
+  module: data.csv.write
+  params:
+    file_path: "output.csv"
+    data: "${extract.data}"
+```
 
 ---
 
 ### data.json.parse
 
 **Description:** Parse JSON string to object
+
+**Category:** Atomic
 
 **Parameters:**
 
@@ -571,7 +421,16 @@ Same as Slack module
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `data` | object/array | Parsed JSON data |
+| `data` | any | Parsed JSON object |
+
+**Example:**
+
+```yaml
+- id: parse
+  module: data.json.parse
+  params:
+    json_string: "${api_response.body}"
+```
 
 ---
 
@@ -579,19 +438,31 @@ Same as Slack module
 
 **Description:** Convert object to JSON string
 
+**Category:** Atomic
+
 **Parameters:**
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
-| `data` | object/array | Yes | - | Data to stringify |
-| `pretty` | boolean | No | `false` | Format with indentation |
-| `indent` | number | No | `2` | Indent size (if pretty=true) |
+| `data` | any | Yes | - | Data to stringify |
+| `pretty` | boolean | No | `false` | Pretty print with indentation |
+| `indent` | number | No | `2` | Indentation spaces |
 
 **Returns:**
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `json` | string | JSON string |
+| `json_string` | string | JSON string |
+
+**Example:**
+
+```yaml
+- id: stringify
+  module: data.json.stringify
+  params:
+    data: "${extract.data}"
+    pretty: true
+```
 
 ---
 
@@ -599,11 +470,13 @@ Same as Slack module
 
 **Description:** Fill text template with variables
 
+**Category:** Atomic
+
 **Parameters:**
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
-| `template` | string | Yes | - | Template with `{variable}` placeholders |
+| `template` | string | Yes | - | Template with placeholders |
 | `variables` | object | Yes | - | Variable values |
 
 **Returns:**
@@ -622,16 +495,17 @@ Same as Slack module
     variables:
       name: "Alice"
       count: 5
-  # Returns: { result: "Hello Alice, you have 5 messages" }
 ```
 
 ---
 
-## Utility
+## Atomic: Utilities
 
 ### utility.delay
 
 **Description:** Pause workflow execution
+
+**Category:** Atomic
 
 **Parameters:**
 
@@ -646,19 +520,30 @@ Same as Slack module
 |-------|------|-------------|
 | `waited_ms` | number | Actual wait time |
 
+**Example:**
+
+```yaml
+- id: wait
+  module: utility.delay
+  params:
+    duration_seconds: 2
+```
+
 ---
 
 ### utility.random.number
 
 **Description:** Generate random number
 
+**Category:** Atomic
+
 **Parameters:**
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
-| `min` | number | No | `0` | Minimum value (inclusive) |
-| `max` | number | No | `100` | Maximum value (inclusive) |
-| `decimals` | number | No | `0` | Decimal places (0=integer) |
+| `min` | number | No | `0` | Minimum value |
+| `max` | number | No | `100` | Maximum value |
+| `integer` | boolean | No | `true` | Return integer vs float |
 
 **Returns:**
 
@@ -666,18 +551,30 @@ Same as Slack module
 |-------|------|-------------|
 | `value` | number | Random number |
 
+**Example:**
+
+```yaml
+- id: random
+  module: utility.random.number
+  params:
+    min: 1
+    max: 10
+```
+
 ---
 
 ### utility.random.string
 
-**Description:** Generate random string or UUID
+**Description:** Generate random string
+
+**Category:** Atomic
 
 **Parameters:**
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
 | `length` | number | No | `16` | String length |
-| `charset` | select | No | `"alphanumeric"` | Character set: alphanumeric, letters, lowercase, uppercase, numbers, hex, uuid |
+| `charset` | string | No | `"alphanumeric"` | Character set: alphanumeric, alpha, numeric, hex, uuid |
 
 **Returns:**
 
@@ -685,26 +582,45 @@ Same as Slack module
 |-------|------|-------------|
 | `value` | string | Random string |
 
+**Example:**
+
+```yaml
+- id: generate_id
+  module: utility.random.string
+  params:
+    charset: "uuid"
+```
+
 ---
 
 ### utility.datetime.now
 
-**Description:** Get current date/time
+**Description:** Get current timestamp
+
+**Category:** Atomic
 
 **Parameters:**
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
-| `format` | select | No | `"iso"` | Format: iso, unix, unix_ms, date, time, custom |
-| `custom_format` | string | No | - | Python strftime format (if format=custom) |
+| `format` | string | No | `"iso"` | Format: iso, unix, timestamp |
+| `timezone` | string | No | `"UTC"` | Timezone name |
 
 **Returns:**
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `datetime` | string | Formatted date/time |
-| `timestamp` | number | Unix timestamp |
-| `iso` | string | ISO 8601 format |
+| `datetime` | string | Formatted timestamp |
+| `unix` | number | Unix timestamp |
+
+**Example:**
+
+```yaml
+- id: timestamp
+  module: utility.datetime.now
+  params:
+    format: "iso"
+```
 
 ---
 
@@ -712,28 +628,50 @@ Same as Slack module
 
 **Description:** Calculate MD5 hash
 
+**Category:** Atomic
+
 **Parameters:**
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
 | `text` | string | Yes | - | Text to hash |
-| `encoding` | string | No | `"utf-8"` | Text encoding |
 
 **Returns:**
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `hash` | string | MD5 hash (hexadecimal) |
+| `hash` | string | MD5 hash hexadecimal |
+
+**Example:**
+
+```yaml
+- id: hash
+  module: utility.hash.md5
+  params:
+    text: "${params.input}"
+```
 
 ---
 
-## AI Services
+# Third-party Integrations
 
-### ai.openai.chat
+Modules that connect to external services and platforms.
+
+---
+
+## Integration: AI Services
+
+### OpenAI
+
+#### ai.openai.chat
 
 **Description:** OpenAI Chat Completion API
 
+**Category:** Third-party Integration
+
 **Requires:** `pip install openai`
+
+**Authentication:** API Key
 
 **Parameters:**
 
@@ -742,43 +680,63 @@ Same as Slack module
 | `api_key` | string | No | `${env.OPENAI_API_KEY}` | OpenAI API key |
 | `model` | string | No | `"gpt-4"` | Model name |
 | `messages` | array | Yes | - | Chat messages |
-| `temperature` | number | No | `1.0` | Sampling temperature |
-| `max_tokens` | number | No | - | Maximum tokens |
+| `temperature` | number | No | `1.0` | Sampling temperature 0-2 |
+| `max_tokens` | number | No | - | Maximum tokens in response |
 
 **Returns:**
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `message` | string | AI response |
-| `usage` | object | Token usage stats |
+| `message` | string | AI response text |
+| `usage` | object | Token usage statistics |
+
+**Example:**
+
+```yaml
+- id: ask_gpt
+  module: ai.openai.chat
+  params:
+    messages:
+      - role: user
+        content: "Explain workflow automation"
+    max_tokens: 500
+```
+
+**Documentation:** https://platform.openai.com/docs/api-reference/chat
 
 ---
 
-### api.anthropic.chat
+### Anthropic Claude
 
-**Description:** Send a chat message to Anthropic Claude AI and get a response
+#### api.anthropic.chat
+
+**Description:** Anthropic Claude AI chat completion
+
+**Category:** Third-party Integration
 
 **Requires:** `pip install aiohttp`
+
+**Authentication:** API Key
 
 **Parameters:**
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
 | `api_key` | string | No | `${env.ANTHROPIC_API_KEY}` | Anthropic API key |
-| `model` | string | No | `"claude-3-5-sonnet-20241022"` | Model: claude-3-5-sonnet-20241022, claude-3-opus-20240229, claude-3-haiku-20240307 |
-| `messages` | array | Yes | - | Array of message objects with role and content |
-| `max_tokens` | number | No | `1024` | Maximum tokens in response (1-4096) |
+| `model` | string | No | `"claude-3-5-sonnet-20241022"` | Claude model |
+| `messages` | array | Yes | - | Message objects with role and content |
+| `max_tokens` | number | No | `1024` | Maximum response tokens 1-4096 |
 | `temperature` | number | No | `1.0` | Sampling temperature 0-1 |
-| `system` | string | No | - | System prompt to guide Claude behavior |
+| `system` | string | No | - | System prompt |
 
 **Returns:**
 
 | Field | Type | Description |
 |-------|------|-------------|
 | `content` | string | Claude response text |
-| `model` | string | Model used for response |
-| `stop_reason` | string | Why the model stopped (end_turn, max_tokens) |
-| `usage` | object | Token usage (input_tokens, output_tokens) |
+| `model` | string | Model used |
+| `stop_reason` | string | Why model stopped |
+| `usage` | object | Token usage |
 
 **Example:**
 
@@ -788,36 +746,44 @@ Same as Slack module
   params:
     messages:
       - role: user
-        content: "Summarize this article: ${article_text}"
+        content: "Summarize this: ${article}"
     max_tokens: 500
-    system: "You are a helpful assistant that summarizes text concisely."
+    system: "You are a concise summarizer"
 ```
+
+**Documentation:** https://docs.anthropic.com/claude/reference/messages_post
 
 ---
 
-### api.google_gemini.chat
+### Google Gemini
 
-**Description:** Send a chat message to Google Gemini AI and get a response
+#### api.google_gemini.chat
+
+**Description:** Google Gemini AI text generation
+
+**Category:** Third-party Integration
 
 **Requires:** `pip install aiohttp`
+
+**Authentication:** API Key
 
 **Parameters:**
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
 | `api_key` | string | No | `${env.GOOGLE_AI_API_KEY}` | Google AI API key |
-| `model` | string | No | `"gemini-1.5-pro"` | Model: gemini-1.5-pro, gemini-1.5-flash, gemini-pro |
-| `prompt` | string | Yes | - | The text prompt to send to Gemini |
-| `temperature` | number | No | `1.0` | Controls randomness 0-2 |
-| `max_output_tokens` | number | No | `2048` | Maximum number of tokens in response (1-8192) |
+| `model` | string | No | `"gemini-1.5-pro"` | Gemini model |
+| `prompt` | string | Yes | - | Text prompt |
+| `temperature` | number | No | `1.0` | Randomness control 0-2 |
+| `max_output_tokens` | number | No | `2048` | Max tokens 1-8192 |
 
 **Returns:**
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `text` | string | Generated text response from Gemini |
-| `model` | string | Model used for generation |
-| `candidates` | array | All candidate responses |
+| `text` | string | Generated response |
+| `model` | string | Model used |
+| `candidates` | array | All response candidates |
 
 **Example:**
 
@@ -825,36 +791,220 @@ Same as Slack module
 - id: ask_gemini
   module: api.google_gemini.chat
   params:
-    prompt: "Explain quantum computing in simple terms"
-    temperature: 0.7
+    prompt: "Explain quantum computing simply"
     max_output_tokens: 500
 ```
 
+**Documentation:** https://ai.google.dev/api/rest/v1/models/generateContent
+
 ---
 
-## Databases
+## Integration: Communication
 
-### db.postgresql.query
+### Slack
 
-**Description:** Execute a SQL query on PostgreSQL database and return results
+#### notification.slack.send_message
 
-**Requires:** `pip install asyncpg`
+**Description:** Send message to Slack channel via webhook
+
+**Category:** Third-party Integration
+
+**Requires:** `pip install aiohttp`
+
+**Authentication:** Webhook URL
 
 **Parameters:**
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
-| `connection_string` | string | No | `${env.POSTGRESQL_URL}` | PostgreSQL connection string (postgresql://user:password@host:port/database) |
-| `query` | string | Yes | - | SQL query to execute |
-| `params` | array | No | - | Parameters for parameterized queries (use $1, $2, etc) |
+| `webhook_url` | string | No | `${env.SLACK_WEBHOOK_URL}` | Slack webhook URL |
+| `text` | string | Yes | - | Message text |
+| `channel` | string | No | - | Override default channel |
+| `username` | string | No | - | Bot display name |
+| `icon_emoji` | string | No | - | Bot icon emoji |
 
 **Returns:**
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `rows` | array | Array of result rows as objects |
-| `row_count` | number | Number of rows returned |
-| `columns` | array | Column names in result set |
+| `status` | string | Send status |
+| `sent` | boolean | Whether message sent |
+| `message` | string | Status message |
+
+**Example:**
+
+```yaml
+- id: notify
+  module: notification.slack.send_message
+  params:
+    text: "Workflow completed successfully"
+    channel: "#alerts"
+```
+
+**Documentation:** https://api.slack.com/messaging/webhooks
+
+---
+
+### Discord
+
+#### notification.discord.send_message
+
+**Description:** Send message to Discord channel via webhook
+
+**Category:** Third-party Integration
+
+**Requires:** `pip install aiohttp`
+
+**Authentication:** Webhook URL
+
+**Parameters:**
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `webhook_url` | string | No | `${env.DISCORD_WEBHOOK_URL}` | Discord webhook URL |
+| `content` | string | Yes | - | Message content |
+| `username` | string | No | - | Bot username |
+| `avatar_url` | string | No | - | Bot avatar URL |
+
+**Returns:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `status` | string | Send status |
+| `sent` | boolean | Whether message sent |
+
+**Example:**
+
+```yaml
+- id: notify_discord
+  module: notification.discord.send_message
+  params:
+    content: "Alert: High CPU usage detected"
+```
+
+**Documentation:** https://discord.com/developers/docs/resources/webhook
+
+---
+
+### Telegram
+
+#### notification.telegram.send_message
+
+**Description:** Send message via Telegram bot
+
+**Category:** Third-party Integration
+
+**Requires:** `pip install aiohttp`
+
+**Authentication:** Bot Token
+
+**Parameters:**
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `bot_token` | string | No | `${env.TELEGRAM_BOT_TOKEN}` | Telegram bot token |
+| `chat_id` | string | No | `${env.TELEGRAM_CHAT_ID}` | Chat or channel ID |
+| `text` | string | Yes | - | Message text |
+| `parse_mode` | string | No | - | Formatting: Markdown, HTML |
+
+**Returns:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `status` | string | Send status |
+| `sent` | boolean | Whether message sent |
+| `message_id` | number | Telegram message ID |
+
+**Example:**
+
+```yaml
+- id: notify_telegram
+  module: notification.telegram.send_message
+  params:
+    text: "Daily report ready"
+    parse_mode: "Markdown"
+```
+
+**Documentation:** https://core.telegram.org/bots/api
+
+---
+
+### Email SMTP
+
+#### notification.email.send
+
+**Description:** Send email via SMTP server
+
+**Category:** Third-party Integration
+
+**Requires:** Built-in
+
+**Authentication:** SMTP Credentials
+
+**Parameters:**
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `smtp_server` | string | No | `${env.SMTP_SERVER}` | SMTP server hostname |
+| `smtp_port` | number | No | `587` | SMTP port |
+| `username` | string | No | `${env.SMTP_USERNAME}` | SMTP username |
+| `password` | string | No | `${env.SMTP_PASSWORD}` | SMTP password |
+| `from_email` | string | Yes | - | Sender email |
+| `to_email` | string | Yes | - | Recipient email |
+| `subject` | string | Yes | - | Email subject |
+| `body` | string | Yes | - | Email body |
+| `html` | boolean | No | `false` | Send as HTML |
+
+**Returns:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `status` | string | Send status |
+| `sent` | boolean | Whether email sent |
+
+**Example:**
+
+```yaml
+- id: send_email
+  module: notification.email.send
+  params:
+    from_email: "alerts@company.com"
+    to_email: "team@company.com"
+    subject: "Daily Report"
+    body: "${report_content}"
+```
+
+---
+
+## Integration: Databases
+
+### PostgreSQL
+
+#### db.postgresql.query
+
+**Description:** Execute SQL query on PostgreSQL database
+
+**Category:** Third-party Integration
+
+**Requires:** `pip install asyncpg`
+
+**Authentication:** Connection String
+
+**Parameters:**
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `connection_string` | string | No | `${env.POSTGRESQL_URL}` | PostgreSQL URL |
+| `query` | string | Yes | - | SQL query |
+| `params` | array | No | - | Query parameters use dollar1 dollar2 |
+
+**Returns:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `rows` | array | Result rows as objects |
+| `row_count` | number | Rows returned |
+| `columns` | array | Column names |
 
 **Example:**
 
@@ -862,42 +1012,44 @@ Same as Slack module
 - id: fetch_users
   module: db.postgresql.query
   params:
-    query: "SELECT id, email, created_at FROM users WHERE active = true LIMIT 10"
-
-- id: fetch_orders
-  module: db.postgresql.query
-  params:
-    query: "SELECT * FROM orders WHERE user_id = $1 AND status = $2"
-    params: ["${user_id}", "completed"]
+    query: "SELECT * FROM users WHERE active = true LIMIT 10"
 ```
+
+**Documentation:** https://www.postgresql.org/docs/
 
 ---
 
-### db.mysql.query
+### MySQL
 
-**Description:** Execute a SQL query on MySQL database and return results
+#### db.mysql.query
+
+**Description:** Execute SQL query on MySQL database
+
+**Category:** Third-party Integration
 
 **Requires:** `pip install aiomysql`
+
+**Authentication:** Host Credentials
 
 **Parameters:**
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
-| `host` | string | No | `${env.MYSQL_HOST}` or `"localhost"` | MySQL server host |
-| `port` | number | No | `3306` | MySQL server port |
-| `user` | string | No | `${env.MYSQL_USER}` | MySQL username |
+| `host` | string | No | `${env.MYSQL_HOST}` | MySQL host |
+| `port` | number | No | `3306` | MySQL port |
+| `user` | string | No | `${env.MYSQL_USER}` | MySQL user |
 | `password` | string | No | `${env.MYSQL_PASSWORD}` | MySQL password |
 | `database` | string | No | `${env.MYSQL_DATABASE}` | Database name |
-| `query` | string | Yes | - | SQL query to execute |
-| `params` | array | No | - | Parameters for parameterized queries (use %s) |
+| `query` | string | Yes | - | SQL query |
+| `params` | array | No | - | Query parameters |
 
 **Returns:**
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `rows` | array | Array of result rows as objects |
-| `row_count` | number | Number of rows returned |
-| `columns` | array | Column names in result set |
+| `rows` | array | Result rows |
+| `row_count` | number | Rows returned |
+| `columns` | array | Column names |
 
 **Example:**
 
@@ -905,221 +1057,230 @@ Same as Slack module
 - id: fetch_products
   module: db.mysql.query
   params:
-    query: "SELECT id, name, price FROM products WHERE stock > 0 ORDER BY price DESC LIMIT 20"
+    query: "SELECT id, name, price FROM products WHERE stock > 0"
 ```
+
+**Documentation:** https://dev.mysql.com/doc/
 
 ---
 
-### db.mongodb.find
+### MongoDB
+
+#### db.mongodb.find
 
 **Description:** Query documents from MongoDB collection
 
+**Category:** Third-party Integration
+
 **Requires:** `pip install motor`
+
+**Authentication:** Connection String
 
 **Parameters:**
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
-| `connection_string` | string | No | `${env.MONGODB_URL}` | MongoDB connection string (mongodb://... or mongodb+srv://...) |
+| `connection_string` | string | No | `${env.MONGODB_URL}` | MongoDB URL |
 | `database` | string | Yes | - | Database name |
 | `collection` | string | Yes | - | Collection name |
-| `filter` | object | No | `{}` | MongoDB query filter (empty object returns all) |
-| `projection` | object | No | - | Fields to include/exclude |
-| `limit` | number | No | `100` | Maximum number of documents (1-10000) |
-| `sort` | object | No | - | Sort order (1 for ascending, -1 for descending) |
+| `filter` | object | No | `{}` | Query filter |
+| `projection` | object | No | - | Fields to return |
+| `limit` | number | No | `100` | Max documents 1-10000 |
+| `sort` | object | No | - | Sort order |
 
 **Returns:**
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `documents` | array | Array of matching documents |
-| `count` | number | Number of documents returned |
+| `documents` | array | Matching documents |
+| `count` | number | Documents returned |
 
 **Example:**
 
 ```yaml
-- id: fetch_users
-  module: db.mongodb.find
-  params:
-    database: "myapp"
-    collection: "users"
-    filter: {status: "active"}
-    projection: {_id: 0, name: 1, email: 1}
-    limit: 50
-
 - id: fetch_orders
   module: db.mongodb.find
   params:
     database: "myapp"
     collection: "orders"
-    filter: {total: {$gt: 100}}
-    sort: {created_at: -1}
-    limit: 20
+    filter: {status: "completed"}
+    limit: 50
 ```
+
+**Documentation:** https://www.mongodb.com/docs/
 
 ---
 
-### db.mongodb.insert
+#### db.mongodb.insert
 
-**Description:** Insert one or more documents into MongoDB collection
+**Description:** Insert documents into MongoDB collection
+
+**Category:** Third-party Integration
 
 **Requires:** `pip install motor`
 
+**Authentication:** Connection String
+
 **Parameters:**
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
-| `connection_string` | string | No | `${env.MONGODB_URL}` | MongoDB connection string |
+| `connection_string` | string | No | `${env.MONGODB_URL}` | MongoDB URL |
 | `database` | string | Yes | - | Database name |
 | `collection` | string | Yes | - | Collection name |
-| `document` | object | No | - | Document to insert (for single insert) |
-| `documents` | array | No | - | Array of documents (for bulk insert) |
+| `document` | object | No | - | Single document |
+| `documents` | array | No | - | Multiple documents |
 
 **Returns:**
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `inserted_count` | number | Number of documents inserted |
-| `inserted_ids` | array | Array of inserted document IDs |
+| `inserted_count` | number | Documents inserted |
+| `inserted_ids` | array | Document IDs |
 
 **Example:**
 
 ```yaml
-- id: insert_user
+- id: insert_log
   module: db.mongodb.insert
   params:
-    database: "myapp"
-    collection: "users"
+    database: "logs"
+    collection: "events"
     document:
-      name: "John Doe"
-      email: "john@example.com"
-      created_at: "${timestamp}"
+      event: "workflow_completed"
+      timestamp: "${timestamp}"
 ```
+
+**Documentation:** https://www.mongodb.com/docs/
 
 ---
 
-## Cloud Storage
+## Integration: Cloud Storage
 
-### cloud.aws_s3.upload
+### AWS S3
 
-**Description:** Upload a file or data to AWS S3 bucket
+#### cloud.aws_s3.upload
+
+**Description:** Upload file to AWS S3 bucket
+
+**Category:** Third-party Integration
 
 **Requires:** `pip install aioboto3`
+
+**Authentication:** AWS Credentials
 
 **Parameters:**
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
-| `aws_access_key_id` | string | No | `${env.AWS_ACCESS_KEY_ID}` | AWS access key ID |
-| `aws_secret_access_key` | string | No | `${env.AWS_SECRET_ACCESS_KEY}` | AWS secret access key |
-| `region` | string | No | `${env.AWS_REGION}` or `"us-east-1"` | AWS region |
+| `aws_access_key_id` | string | No | `${env.AWS_ACCESS_KEY_ID}` | AWS access key |
+| `aws_secret_access_key` | string | No | `${env.AWS_SECRET_ACCESS_KEY}` | AWS secret key |
+| `region` | string | No | `${env.AWS_REGION}` | AWS region |
 | `bucket` | string | Yes | - | S3 bucket name |
-| `key` | string | Yes | - | S3 object key (file path in bucket) |
-| `file_path` | string | No | - | Local file path to upload |
-| `content` | string | No | - | File content to upload (as string or base64) |
-| `content_type` | string | No | - | MIME type of the file (auto-detected if not provided) |
-| `acl` | string | No | `"private"` | Access control: private, public-read, public-read-write |
+| `key` | string | Yes | - | Object key path |
+| `file_path` | string | No | - | Local file path |
+| `content` | string | No | - | File content |
+| `content_type` | string | No | - | MIME type |
+| `acl` | string | No | `"private"` | Access control |
 
 **Returns:**
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `url` | string | S3 URL of uploaded object |
+| `url` | string | S3 object URL |
 | `bucket` | string | Bucket name |
 | `key` | string | Object key |
-| `etag` | string | ETag of uploaded object |
+| `etag` | string | Object ETag |
 
 **Example:**
 
 ```yaml
-- id: upload_report
+- id: upload
   module: cloud.aws_s3.upload
   params:
-    bucket: "my-bucket"
-    key: "reports/daily-${timestamp}.txt"
-    content: "${report_text}"
-    content_type: "text/plain"
-
-- id: upload_file
-  module: cloud.aws_s3.upload
-  params:
-    bucket: "my-bucket"
-    key: "backups/database.sql"
-    file_path: "/tmp/backup.sql"
-    acl: "private"
+    bucket: "backups"
+    key: "daily-${timestamp}.csv"
+    content: "${csv_data}"
 ```
+
+**Documentation:** https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/s3.html
 
 ---
 
-### cloud.aws_s3.download
+#### cloud.aws_s3.download
 
-**Description:** Download a file from AWS S3 bucket
+**Description:** Download file from AWS S3 bucket
+
+**Category:** Third-party Integration
 
 **Requires:** `pip install aioboto3`
+
+**Authentication:** AWS Credentials
 
 **Parameters:**
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
-| `aws_access_key_id` | string | No | `${env.AWS_ACCESS_KEY_ID}` | AWS access key ID |
-| `aws_secret_access_key` | string | No | `${env.AWS_SECRET_ACCESS_KEY}` | AWS secret access key |
-| `region` | string | No | `${env.AWS_REGION}` or `"us-east-1"` | AWS region |
+| `aws_access_key_id` | string | No | `${env.AWS_ACCESS_KEY_ID}` | AWS access key |
+| `aws_secret_access_key` | string | No | `${env.AWS_SECRET_ACCESS_KEY}` | AWS secret key |
+| `region` | string | No | `${env.AWS_REGION}` | AWS region |
 | `bucket` | string | Yes | - | S3 bucket name |
-| `key` | string | Yes | - | S3 object key (file path in bucket) |
-| `file_path` | string | No | - | Local file path to save downloaded content |
+| `key` | string | Yes | - | Object key path |
+| `file_path` | string | No | - | Save to file path |
 
 **Returns:**
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `content` | string | File content (if file_path not provided) |
-| `file_path` | string | Path where file was saved (if file_path provided) |
-| `size` | number | File size in bytes |
-| `content_type` | string | MIME type of the file |
+| `content` | string | File content |
+| `file_path` | string | Saved file path |
+| `size` | number | File size bytes |
+| `content_type` | string | MIME type |
 
 **Example:**
 
 ```yaml
-- id: download_config
+- id: download
   module: cloud.aws_s3.download
   params:
-    bucket: "my-bucket"
-    key: "data/config.json"
-
-- id: download_backup
-  module: cloud.aws_s3.download
-  params:
-    bucket: "my-bucket"
-    key: "backups/database.sql"
-    file_path: "/tmp/downloaded.sql"
+    bucket: "configs"
+    key: "app-config.json"
 ```
+
+**Documentation:** https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/s3.html
 
 ---
 
-## Productivity
+## Integration: Productivity Tools
 
-### api.notion.create_page
+### Notion
 
-**Description:** Create a new page in Notion database
+#### api.notion.create_page
+
+**Description:** Create page in Notion database
+
+**Category:** Third-party Integration
 
 **Requires:** `pip install aiohttp`
 
+**Authentication:** Integration Token
+
 **Parameters:**
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
-| `api_key` | string | No | `${env.NOTION_API_KEY}` | Notion integration token (create at https://www.notion.so/my-integrations) |
-| `database_id` | string | Yes | - | Notion database ID (32-char hex string) |
-| `properties` | object | Yes | - | Page properties (must match your database schema) |
-| `content` | array | No | - | Page content as Notion blocks |
+| `api_key` | string | No | `${env.NOTION_API_KEY}` | Notion token |
+| `database_id` | string | Yes | - | Database ID |
+| `properties` | object | Yes | - | Page properties |
+| `content` | array | No | - | Page content blocks |
 
 **Returns:**
 
 | Field | Type | Description |
 |-------|------|-------------|
 | `page_id` | string | Created page ID |
-| `url` | string | URL to the created page |
-| `created_time` | string | Page creation timestamp |
+| `url` | string | Page URL |
+| `created_time` | string | Creation timestamp |
 
 **Example:**
 
@@ -1127,45 +1288,45 @@ Same as Slack module
 - id: create_task
   module: api.notion.create_page
   params:
-    database_id: "your_database_id"
+    database_id: "abc123"
     properties:
       Name:
         title:
           - text:
               content: "New Task"
-      Status:
-        select:
-          name: "In Progress"
-      Priority:
-        select:
-          name: "High"
 ```
+
+**Documentation:** https://developers.notion.com/reference/post-page
 
 ---
 
-### api.notion.query_database
+#### api.notion.query_database
 
-**Description:** Query pages from Notion database with filters and sorting
+**Description:** Query Notion database with filters
+
+**Category:** Third-party Integration
 
 **Requires:** `pip install aiohttp`
+
+**Authentication:** Integration Token
 
 **Parameters:**
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
-| `api_key` | string | No | `${env.NOTION_API_KEY}` | Notion integration token |
-| `database_id` | string | Yes | - | Notion database ID |
-| `filter` | object | No | - | Filter conditions for query |
-| `sorts` | array | No | - | Sort order for results |
-| `page_size` | number | No | `100` | Number of results to return (1-100) |
+| `api_key` | string | No | `${env.NOTION_API_KEY}` | Notion token |
+| `database_id` | string | Yes | - | Database ID |
+| `filter` | object | No | - | Query filter |
+| `sorts` | array | No | - | Sort order |
+| `page_size` | number | No | `100` | Results limit 1-100 |
 
 **Returns:**
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `results` | array | Array of page objects |
-| `count` | number | Number of results returned |
-| `has_more` | boolean | Whether there are more results |
+| `results` | array | Page objects |
+| `count` | number | Results returned |
+| `has_more` | boolean | More results available |
 
 **Example:**
 
@@ -1173,40 +1334,45 @@ Same as Slack module
 - id: query_tasks
   module: api.notion.query_database
   params:
-    database_id: "your_database_id"
+    database_id: "abc123"
     filter:
       property: "Status"
       select:
-        equals: "In Progress"
-    sorts:
-      - property: "Created"
-        direction: "descending"
+        equals: "Active"
 ```
+
+**Documentation:** https://developers.notion.com/reference/post-database-query
 
 ---
 
-### api.google_sheets.read
+### Google Sheets
 
-**Description:** Read data from Google Sheets spreadsheet
+#### api.google_sheets.read
+
+**Description:** Read data from Google Sheets
+
+**Category:** Third-party Integration
 
 **Requires:** `pip install google-api-python-client google-auth`
+
+**Authentication:** Service Account
 
 **Parameters:**
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
-| `credentials` | object | No | `${env.GOOGLE_CREDENTIALS_JSON}` | Google service account JSON credentials (create at console.cloud.google.com) |
-| `spreadsheet_id` | string | Yes | - | Google Sheets spreadsheet ID (from URL: /spreadsheets/d/{ID}/edit) |
-| `range` | string | Yes | - | A1 notation range to read (e.g. Sheet1!A1:E100) |
-| `include_header` | boolean | No | `true` | Parse first row as column headers |
+| `credentials` | object | No | `${env.GOOGLE_CREDENTIALS_JSON}` | Service account JSON |
+| `spreadsheet_id` | string | Yes | - | Spreadsheet ID from URL |
+| `range` | string | Yes | - | A1 notation range |
+| `include_header` | boolean | No | `true` | Parse first row as headers |
 
 **Returns:**
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `values` | array | Array of rows (each row is array of values) |
-| `data` | array | Array of row objects (if include_header=true) |
-| `row_count` | number | Number of rows read |
+| `values` | array | Raw row values |
+| `data` | array | Row objects with headers |
+| `row_count` | number | Rows read |
 
 **Example:**
 
@@ -1214,37 +1380,42 @@ Same as Slack module
 - id: read_sheet
   module: api.google_sheets.read
   params:
-    spreadsheet_id: "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms"
+    spreadsheet_id: "1BxiMVs0XRA5..."
     range: "Sheet1!A1:D100"
-    include_header: true
 ```
+
+**Documentation:** https://developers.google.com/sheets/api/reference/rest/v4/spreadsheets.values/get
 
 ---
 
-### api.google_sheets.write
+#### api.google_sheets.write
 
-**Description:** Write data to Google Sheets spreadsheet
+**Description:** Write data to Google Sheets
+
+**Category:** Third-party Integration
 
 **Requires:** `pip install google-api-python-client google-auth`
+
+**Authentication:** Service Account
 
 **Parameters:**
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
-| `credentials` | object | No | `${env.GOOGLE_CREDENTIALS_JSON}` | Google service account JSON credentials |
-| `spreadsheet_id` | string | Yes | - | Google Sheets spreadsheet ID |
-| `range` | string | Yes | - | A1 notation range to write (e.g. Sheet1!A1) |
-| `values` | array | Yes | - | Array of rows to write (each row is array of values) |
-| `value_input_option` | string | No | `"USER_ENTERED"` | How to interpret input: USER_ENTERED (parse formulas), RAW (no parsing) |
+| `credentials` | object | No | `${env.GOOGLE_CREDENTIALS_JSON}` | Service account JSON |
+| `spreadsheet_id` | string | Yes | - | Spreadsheet ID |
+| `range` | string | Yes | - | A1 notation range |
+| `values` | array | Yes | - | Array of rows |
+| `value_input_option` | string | No | `"USER_ENTERED"` | Input mode |
 
 **Returns:**
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `updated_range` | string | Range that was updated |
-| `updated_rows` | number | Number of rows updated |
-| `updated_columns` | number | Number of columns updated |
-| `updated_cells` | number | Number of cells updated |
+| `updated_range` | string | Range updated |
+| `updated_rows` | number | Rows updated |
+| `updated_columns` | number | Columns updated |
+| `updated_cells` | number | Cells updated |
 
 **Example:**
 
@@ -1252,13 +1423,248 @@ Same as Slack module
 - id: write_data
   module: api.google_sheets.write
   params:
-    spreadsheet_id: "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms"
+    spreadsheet_id: "1BxiMVs0XRA5..."
     range: "Sheet1!A1"
     values:
-      - ["Name", "Email", "Status"]
-      - ["John Doe", "john@example.com", "Active"]
-      - ["Jane Smith", "jane@example.com", "Active"]
+      - ["Name", "Email"]
+      - ["John", "john@example.com"]
 ```
+
+**Documentation:** https://developers.google.com/sheets/api/reference/rest/v4/spreadsheets.values/update
+
+---
+
+## Integration: Developer Tools
+
+### GitHub
+
+#### api.github.get_repo
+
+**Description:** Get GitHub repository information
+
+**Category:** Third-party Integration
+
+**Requires:** `pip install aiohttp`
+
+**Authentication:** Token
+
+**Parameters:**
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `owner` | string | Yes | - | Repository owner |
+| `repo` | string | Yes | - | Repository name |
+| `token` | string | No | `${env.GITHUB_TOKEN}` | GitHub token |
+
+**Returns:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | string | Repository name |
+| `description` | string | Repository description |
+| `stars` | number | Star count |
+| `forks` | number | Fork count |
+| `url` | string | Repository URL |
+
+**Example:**
+
+```yaml
+- id: get_repo
+  module: api.github.get_repo
+  params:
+    owner: "facebook"
+    repo: "react"
+```
+
+**Documentation:** https://docs.github.com/rest/repos/repos
+
+---
+
+#### api.github.list_issues
+
+**Description:** List GitHub repository issues
+
+**Category:** Third-party Integration
+
+**Requires:** `pip install aiohttp`
+
+**Authentication:** Token
+
+**Parameters:**
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `owner` | string | Yes | - | Repository owner |
+| `repo` | string | Yes | - | Repository name |
+| `token` | string | No | `${env.GITHUB_TOKEN}` | GitHub token |
+| `state` | string | No | `"open"` | Issue state: open, closed, all |
+| `labels` | string | No | - | Comma separated labels |
+| `per_page` | number | No | `30` | Results per page 1-100 |
+
+**Returns:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `issues` | array | Issue objects |
+| `count` | number | Issues returned |
+
+**Example:**
+
+```yaml
+- id: list_bugs
+  module: api.github.list_issues
+  params:
+    owner: "facebook"
+    repo: "react"
+    state: "open"
+    labels: "bug"
+```
+
+**Documentation:** https://docs.github.com/rest/issues/issues
+
+---
+
+#### api.github.create_issue
+
+**Description:** Create GitHub issue
+
+**Category:** Third-party Integration
+
+**Requires:** `pip install aiohttp`
+
+**Authentication:** Token
+
+**Parameters:**
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `owner` | string | Yes | - | Repository owner |
+| `repo` | string | Yes | - | Repository name |
+| `token` | string | No | `${env.GITHUB_TOKEN}` | GitHub token |
+| `title` | string | Yes | - | Issue title |
+| `body` | string | No | - | Issue body |
+| `labels` | array | No | - | Issue labels |
+
+**Returns:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `issue_number` | number | Created issue number |
+| `url` | string | Issue URL |
+| `created_at` | string | Creation timestamp |
+
+**Example:**
+
+```yaml
+- id: create_bug
+  module: api.github.create_issue
+  params:
+    owner: "myorg"
+    repo: "myrepo"
+    title: "Bug found in workflow"
+    body: "Details here"
+    labels: ["bug", "high-priority"]
+```
+
+**Documentation:** https://docs.github.com/rest/issues/issues
+
+---
+
+### HTTP REST
+
+#### api.http.get
+
+**Description:** Make HTTP GET request
+
+**Category:** Third-party Integration
+
+**Requires:** `pip install aiohttp`
+
+**Authentication:** Flexible
+
+**Parameters:**
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `url` | string | Yes | - | Request URL |
+| `headers` | object | No | - | HTTP headers |
+| `params` | object | No | - | Query parameters |
+| `timeout_ms` | number | No | `30000` | Request timeout |
+
+**Returns:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `status` | number | HTTP status code |
+| `body` | string | Response body |
+| `json` | object | Parsed JSON if applicable |
+| `headers` | object | Response headers |
+
+**Example:**
+
+```yaml
+- id: fetch_api
+  module: api.http.get
+  params:
+    url: "https://api.example.com/data"
+    headers:
+      Authorization: "Bearer ${env.API_TOKEN}"
+```
+
+---
+
+#### api.http.post
+
+**Description:** Make HTTP POST request
+
+**Category:** Third-party Integration
+
+**Requires:** `pip install aiohttp`
+
+**Authentication:** Flexible
+
+**Parameters:**
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `url` | string | Yes | - | Request URL |
+| `headers` | object | No | - | HTTP headers |
+| `body` | string/object | No | - | Request body |
+| `json` | object | No | - | JSON body auto serialized |
+| `timeout_ms` | number | No | `30000` | Request timeout |
+
+**Returns:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `status` | number | HTTP status code |
+| `body` | string | Response body |
+| `json` | object | Parsed JSON if applicable |
+| `headers` | object | Response headers |
+
+**Example:**
+
+```yaml
+- id: post_data
+  module: api.http.post
+  params:
+    url: "https://api.example.com/submit"
+    json:
+      name: "John"
+      email: "john@example.com"
+```
+
+---
+
+# Composite Modules
+
+Coming in v1.1
+
+High-level workflow templates combining multiple modules:
+- Web scraping to database pipeline
+- Multi-channel notification broadcast
+- API data transformation and export
+- Scheduled report generation
 
 ---
 
@@ -1268,7 +1674,7 @@ Want to create your own module? See [WRITING_MODULES.md](WRITING_MODULES.md) for
 
 ---
 
-## Questions?
+## Questions
 
 - [Open an issue](https://github.com/flytohub/flyto2/issues)
 - [View DSL specification](DSL.md)
