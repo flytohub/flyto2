@@ -10,6 +10,25 @@
 
 ---
 
+## TL;DR
+
+```bash
+# Install and run in 3 commands
+pip install -r requirements.txt
+playwright install chromium
+python -m cli.main workflows/google_search.yaml
+```
+
+**What is Flyto2?**
+- Workflows = **YAML files** (not database records)
+- Modules = **Python classes** (register once, use in any YAML)
+- Expression syntax = `${params.url}`, `${env.API_KEY}`, `${steps.fetch.output.data}`
+
+**Key difference from n8n/Zapier:**
+Your workflows are **portable YAML files** you can `git commit`, copy anywhere, and run without a database.
+
+---
+
 ## Why This Engine?
 
 This engine is built for developers who need:
@@ -483,6 +502,30 @@ Unlike n8n or Zapier, your workflows aren't trapped in a database:
 # ✅ Easy to migrate (just copy files)
 # ✅ Native Git support
 ```
+
+---
+
+## Example Workflows
+
+Ready-to-use workflow examples in [`workflows/`](workflows/):
+
+| Workflow | Description | Technologies | Use Case |
+|----------|-------------|--------------|----------|
+| [`google_search.yaml`](workflows/google_search.yaml) | Google search automation | Browser, Playwright | Web scraping, SEO tracking |
+| [`api_pipeline.yaml`](workflows/api_pipeline.yaml) | Pure API data pipeline | HTTP, REST APIs | Data aggregation, no browser needed |
+| [`ai_content_summarizer.yaml`](workflows/ai_content_summarizer.yaml) | Article scraping + AI summary | Browser, OpenAI | Content analysis, research automation |
+| [`authenticated_scraping.yaml`](workflows/authenticated_scraping.yaml) | Login + extract protected data | Browser, Forms | Internal dashboards, member portals |
+| [`pagination_scraper.yaml`](workflows/pagination_scraper.yaml) | Multi-page data extraction | Browser, Loops | E-commerce, job boards, listings |
+
+**Run any example:**
+```bash
+python -m cli.main workflows/google_search.yaml
+python -m cli.main workflows/api_pipeline.yaml --param.user_id=1
+python -m cli.main workflows/ai_content_summarizer.yaml --param.article_url=https://example.com/article
+```
+
+**Customize:**
+All workflows are YAML files - copy, edit, and version control them!
 
 ---
 

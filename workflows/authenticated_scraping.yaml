@@ -1,0 +1,164 @@
+# Authenticated Scraping Example
+# Demonstrates: Login flow + authenticated data extraction
+# Use case: Internal admin dashboards, member-only content
+
+id: authenticated-scraping
+name: "Authenticated Web Scraping"
+version: "1.0.0"
+description: "Login to website, navigate to protected pages, extract data"
+author: "Flyto2 Team"
+tags: ["authentication", "login", "form", "scraping", "example"]
+
+# User parameters (use environment variables for sensitive data)
+params:
+  - name: login_url
+    type: string
+    label: "Login Page URL"
+    description: "URL of the login page"
+    required: true
+    default: "https://example.com/login"
+
+  - name: dashboard_url
+    type: string
+    label: "Dashboard URL"
+    description: "URL to visit after login"
+    required: true
+    default: "https://example.com/dashboard"
+
+# Workflow configuration
+config:
+  browser:
+    headless: false  # Set to true in production
+
+# Workflow steps
+steps:
+  # === Browser Setup ===
+  - id: launch_browser
+    module: core.browser.launch
+    description: "Launch browser"
+    params:
+      headless: false
+
+  # === Navigate to Login Page ===
+  - id: goto_login
+    module: core.browser.goto
+    description: "Navigate to login page"
+    params:
+      browser: "${launch_browser.browser}"
+      url: "${params.login_url}"
+      wait_until: "networkidle"
+
+  # === Wait for Login Form ===
+  - id: wait_login_form
+    module: core.browser.wait
+    description: "Wait for login form to load"
+    params:
+      browser: "${launch_browser.browser}"
+      selector: "form, input[type='email'], input[type='text']"
+      timeout_ms: 10000
+
+  # === Fill Email/Username ===
+  - id: type_email
+    module: core.browser.type
+    description: "Enter email/username"
+    params:
+      browser: "${launch_browser.browser}"
+      selector: "input[type='email'], input[name='email'], input[name='username']"
+      text: "${env.LOGIN_EMAIL}"
+
+  # === Fill Password ===
+  - id: type_password
+    module: core.browser.type
+    description: "Enter password"
+    params:
+      browser: "${launch_browser.browser}"
+      selector: "input[type='password'], input[name='password']"
+      text: "${env.LOGIN_PASSWORD}"
+
+  # === Submit Login Form ===
+  - id: submit_login
+    module: core.browser.click
+    description: "Click login button"
+    params:
+      browser: "${launch_browser.browser}"
+      selector: "button[type='submit'], input[type='submit'], button:has-text('Login'), button:has-text('Sign in')"
+
+  # === Wait for Navigation After Login ===
+  - id: wait_after_login
+    module: core.browser.wait
+    description: "Wait for redirect after successful login"
+    params:
+      browser: "${launch_browser.browser}"
+      selector: "body"
+      timeout_ms: 10000
+
+  # === Navigate to Dashboard ===
+  - id: goto_dashboard
+    module: core.browser.goto
+    description: "Navigate to protected dashboard"
+    params:
+      browser: "${launch_browser.browser}"
+      url: "${params.dashboard_url}"
+      wait_until: "networkidle"
+
+  # === Wait for Dashboard Content ===
+  - id: wait_dashboard
+    module: core.browser.wait
+    description: "Wait for dashboard to load"
+    params:
+      browser: "${launch_browser.browser}"
+      selector: ".dashboard, .content, main"
+      timeout_ms: 15000
+
+  # === Extract Dashboard Data ===
+  - id: extract_data
+    module: core.browser.extract
+    description: "Extract data from dashboard"
+    params:
+      browser: "${launch_browser.browser}"
+      selector: ".data-row, .item, .card, tr"
+      limit: 100
+      fields:
+        metric_name:
+          selector: ".name, .label, td:nth-child(1)"
+          type: "text"
+        metric_value:
+          selector: ".value, .amount, td:nth-child(2)"
+          type: "text"
+        status:
+          selector: ".status, .badge, td:nth-child(3)"
+          type: "text"
+
+  # === Take Screenshot of Dashboard ===
+  - id: screenshot
+    module: core.browser.screenshot
+    description: "Take screenshot for verification"
+    params:
+      browser: "${launch_browser.browser}"
+      path: "dashboard_${timestamp}.png"
+      full_page: true
+
+  # === Logout (optional) ===
+  - id: logout
+    module: core.browser.click
+    description: "Click logout button"
+    params:
+      browser: "${launch_browser.browser}"
+      selector: "a:has-text('Logout'), button:has-text('Logout'), .logout"
+    on_error: "continue"  # Continue even if logout fails
+
+  # === Close Browser ===
+  - id: close_browser
+    module: core.browser.close
+    description: "Close browser"
+    params:
+      browser: "${launch_browser.browser}"
+
+# Output
+output:
+  login_url: "${params.login_url}"
+  dashboard_url: "${params.dashboard_url}"
+  data_extracted: "${extract_data.data}"
+  record_count: "${extract_data.count}"
+  screenshot: "${screenshot.filepath}"
+  extracted_at: "${timestamp}"
