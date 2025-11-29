@@ -1,0 +1,615 @@
+# Contributing to Flyto2
+
+Thank you for your interest in contributing! This guide covers everything you need to know about contributing modules, understanding our design philosophy, and following best practices.
+
+---
+
+## Table of Contents
+
+- [Getting Started](#getting-started)
+- [Atomic Design Philosophy](#atomic-design-philosophy)
+- [Internationalization (i18n)](#internationalization-i18n)
+- [Module Development](#module-development)
+- [Quality Standards](#quality-standards)
+- [Testing](#testing)
+- [Submission Process](#submission-process)
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+```bash
+# Required
+Python 3.8+
+pip
+git
+
+# Recommended
+pytest (for testing)
+black (for code formatting)
+pylint (for linting)
+```
+
+### Setup Development Environment
+
+```bash
+# Fork and clone
+git clone https://github.com/YOUR_USERNAME/flyto2.git
+cd flyto2
+
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+pip install -r requirements-dev.txt
+
+# Install Playwright browsers
+playwright install chromium
+
+# Run tests to verify setup
+pytest
+```
+
+---
+
+## Atomic Design Philosophy
+
+### Core Principle
+
+**Each module should do ONE thing and do it well.**
+
+Complex workflows are built by combining simple atomic modules, like LEGO blocks.
+
+### Module Categories
+
+#### 1. Browser Control (`core.browser.*`)
+- `core.browser.launch` - Launch browser
+- `core.browser.goto` - Navigate to URL
+- `core.browser.close` - Close browser
+- `core.browser.screenshot` - Take screenshot
+- `core.browser.wait` - Wait for condition
+
+#### 2. Element Operations (`core.element.*`)
+- `core.element.find` - Find element(s) by selector
+- `core.element.click` - Click element
+- `core.element.type` - Type text into element
+- `core.element.get_text` - Get element text
+- `core.element.get_attribute` - Get element attribute
+
+#### 3. Flow Control (`core.flow.*`)
+- `core.flow.loop` - Loop through items
+- `core.flow.condition` - If/else branching
+- `core.flow.retry` - Retry on failure
+- `core.flow.parallel` - Run steps in parallel
+
+#### 4. Data Operations (`core.data.*`)
+- `core.data.extract` - Extract data from structure
+- `core.data.transform` - Transform data
+- `core.data.filter` - Filter data
+
+### Example: Google Search (Atomic Way)
+
+Instead of a monolithic "google_search" module, compose atomic modules:
+
+```yaml
+steps:
+  # 1. Launch browser
+  - id: browser
+    module: core.browser.launch
+    params:
+      headless: false
+
+  # 2. Navigate
+  - id: nav
+    module: core.browser.goto
+    params:
+      url: "https://www.google.com"
+
+  # 3. Find search input
+  - id: search_input
+    module: core.element.find
+    params:
+      selector: 'input[name="q"]'
+
+  # 4. Type keyword
+  - id: type
+    module: core.element.type
+    params:
+      element_id: "${search_input.element_id}"
+      text: "${params.keyword}"
+
+  # 5. Press Enter
+  - id: submit
+    module: core.element.press_key
+    params:
+      element_id: "${search_input.element_id}"
+      key: "Enter"
+
+  # 6. Loop through results
+  - id: extract
+    module: core.flow.loop
+    params:
+      items: "${results.element_ids}"
+      steps:
+        - id: title
+          module: core.element.get_text
+          params:
+            element_id: "${item}"
+```
+
+### Benefits
+
+1. **Flexibility** - Combine modules in any way
+2. **Reusability** - Each module useful in many contexts
+3. **Testability** - Easy to test small modules
+4. **Community** - Easy for others to contribute
+5. **No limits** - Can build anything
+
+### Guidelines for Module Authors
+
+1. **Single Responsibility** - One module = one action
+2. **No Business Logic** - Keep modules generic
+3. **Clear Inputs/Outputs** - Well-defined interface
+4. **Composable** - Works with other modules
+5. **Documented** - Clear examples
+
+---
+
+## Internationalization (i18n)
+
+### Design Principle
+
+**Code is in English, translations are in i18n files.**
+
+Module code should never contain non-English text. Instead, use i18n keys that reference translation files.
+
+### Module Registration with i18n
+
+#### English Only (Simplest)
+
+For modules that don't need translation:
+
+```python
+@register_module(
+    module_id='core.browser.launch',
+    label='Launch Browser',
+    description='Launch a new browser instance',
+    # ... other params
+)
+class BrowserLaunchModule(BaseModule):
+    pass
+```
+
+#### With i18n Keys (Recommended for UI)
+
+For modules that need translation in UI:
+
+```python
+@register_module(
+    module_id='core.browser.launch',
+    label='Launch Browser',           # Default English
+    label_key='modules.browser.launch.label',  # i18n key
+    description='Launch a new browser instance',
+    description_key='modules.browser.launch.description',
+    params_schema={
+        'headless': {
+            'type': 'boolean',
+            'label': 'Headless Mode',
+            'label_key': 'modules.browser.launch.params.headless.label',
+            'description': 'Run browser without UI',
+            'description_key': 'modules.browser.launch.params.headless.description',
+            'default': False
+        }
+    }
+)
+class BrowserLaunchModule(BaseModule):
+    pass
+```
+
+### Translation Files
+
+Translation files live in `i18n/` directory:
+
+```
+i18n/
+├── en.json  (English - optional, uses code defaults)
+├── zh.json  (Chinese)
+├── ja.json  (Japanese)
+└── ...
+```
+
+#### Example: i18n/zh.json
+
+```json
+{
+  "modules": {
+    "browser": {
+      "launch": {
+        "label": "啟動瀏覽器",
+        "description": "啟動新的瀏覽器實例",
+        "params": {
+          "headless": {
+            "label": "無頭模式",
+            "description": "在無頭模式下運行瀏覽器（無界面）"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+### i18n Best Practices
+
+1. **Always provide English defaults** in code
+2. **Use i18n keys** for anything shown in UI
+3. **Never hardcode non-English** text in Python files
+4. **Namespace keys** logically: `modules.{category}.{action}.{field}`
+5. **Keep translations in sync** with code
+
+---
+
+## Module Development
+
+### Naming Convention
+
+#### Format
+```
+{namespace}.{vendor}.{action}
+```
+
+#### Good Examples
+- `core.browser.launch` - Core namespace, browser category, launch action
+- `ai.openai.chat` - AI namespace, OpenAI vendor, chat action
+- `cloud.aws.s3.upload` - Cloud namespace, AWS vendor, S3 service, upload action
+
+#### Bad Examples
+- `openai_chat` - No namespace
+- `ai.chat` - Missing vendor (for non-core modules)
+- `AI.OpenAI.Chat` - Should be lowercase
+- `ai-openai-chat` - Use dots, not dashes
+
+### Module Template
+
+```python
+"""
+{Module Description}
+
+This module provides {functionality description}.
+"""
+from typing import Any
+from .base import BaseModule
+from .registry import register_module
+
+
+@register_module(
+    module_id='core.{category}.{action}',
+    version='1.0.0',
+    category='{category}',
+    tags=['{tag1}', '{tag2}', '{tag3}'],
+
+    # English defaults with i18n keys
+    label='{English Label}',
+    label_key='modules.{category}.{action}.label',
+    description='{English description}',
+    description_key='modules.{category}.{action}.description',
+
+    # Visual
+    icon='{IconName}',
+    color='#{HexColor}',
+
+    # Parameters
+    params_schema={
+        'param_name': {
+            'type': 'string',
+            'label': 'Parameter Label',
+            'label_key': 'modules.{category}.{action}.params.param_name.label',
+            'description': 'What this parameter does',
+            'description_key': 'modules.{category}.{action}.params.param_name.description',
+            'placeholder': 'example value',
+            'required': True,
+            'default': None
+        }
+    },
+
+    # Output schema
+    output_schema={
+        'status': {'type': 'string'},
+        'data': {'type': 'object'}
+    },
+
+    # Examples
+    examples=[
+        {
+            'name': 'Basic usage',
+            'params': {
+                'param_name': 'example value'
+            }
+        }
+    ],
+
+    # Metadata
+    author='Your Name',
+    license='MIT'
+)
+class YourModule(BaseModule):
+    """Module implementation - English docstrings only"""
+
+    module_name = "{Module Name}"
+    module_description = "{Short description}"
+    required_permission = "{permission.name}"
+
+    def validate_params(self):
+        """Validate input parameters"""
+        if 'param_name' not in self.params:
+            raise ValueError("Missing required parameter: param_name")
+        self.param = self.params['param_name']
+
+    async def execute(self) -> Any:
+        """Execute the module logic"""
+        # Your implementation here
+        result = await some_operation(self.param)
+
+        return {
+            "status": "success",
+            "data": result
+        }
+```
+
+### Real-World Example
+
+```python
+"""
+Browser Launch Module
+
+Launch a new browser instance with Playwright.
+Supports: Chromium, Firefox, WebKit
+"""
+from typing import Any
+from .base import BaseModule
+from .registry import register_module
+
+
+@register_module(
+    module_id='core.browser.launch',
+    version='1.0.0',
+    category='browser',
+    tags=['browser', 'automation', 'setup'],
+
+    label='Launch Browser',
+    label_key='modules.browser.launch.label',
+    description='Launch a new browser instance with Playwright',
+    description_key='modules.browser.launch.description',
+
+    icon='Monitor',
+    color='#4A90E2',
+
+    params_schema={
+        'headless': {
+            'type': 'boolean',
+            'label': 'Headless Mode',
+            'label_key': 'modules.browser.launch.params.headless.label',
+            'description': 'Run browser in headless mode (no UI)',
+            'description_key': 'modules.browser.launch.params.headless.description',
+            'default': False,
+            'required': False
+        }
+    },
+
+    output_schema={
+        'status': {'type': 'string'},
+        'message': {'type': 'string'}
+    },
+
+    examples=[
+        {
+            'name': 'Launch headless browser',
+            'params': {'headless': True}
+        },
+        {
+            'name': 'Launch visible browser',
+            'params': {'headless': False}
+        }
+    ],
+
+    author='Workflow Engine Team',
+    license='MIT'
+)
+class BrowserLaunchModule(BaseModule):
+    """Launch Browser Module"""
+
+    module_name = "Launch Browser"
+    module_description = "Launch a new browser instance"
+    required_permission = "browser.launch"
+
+    def validate_params(self):
+        self.headless = self.params.get('headless', False)
+
+    async def execute(self) -> Any:
+        from src.core.browser.driver import BrowserDriver
+
+        driver = BrowserDriver(headless=self.headless)
+        await driver.launch()
+
+        self.context['browser'] = driver
+
+        return {"status": "success", "message": "Browser launched successfully"}
+```
+
+---
+
+## Quality Standards
+
+Before submitting your module:
+
+- [ ] Follows naming convention (`{namespace}.{category}.{action}`)
+- [ ] i18n support with keys (English defaults required)
+- [ ] Complete params_schema with i18n keys
+- [ ] At least 2 usage examples
+- [ ] Error handling for all edge cases
+- [ ] Input validation in `validate_params()`
+- [ ] Docstrings in English only
+- [ ] Unit tests (>80% coverage)
+- [ ] No Chinese in code (only in i18n translation files)
+- [ ] No hardcoded secrets (use environment variables)
+- [ ] Type hints for all methods
+- [ ] Async/await where applicable
+- [ ] Follows atomic design (single responsibility)
+
+---
+
+## Testing
+
+### Writing Tests
+
+Create a test file in `tests/modules/test_{your_module}.py`:
+
+```python
+import pytest
+from src.core.modules.registry import ModuleRegistry
+
+
+@pytest.mark.asyncio
+async def test_browser_launch_basic():
+    """Test basic browser launch"""
+    params = {
+        'headless': True
+    }
+    context = {}
+
+    result = await ModuleRegistry.execute(
+        'core.browser.launch',
+        params,
+        context
+    )
+
+    assert result['status'] == 'success'
+    assert 'browser' in context
+
+
+@pytest.mark.asyncio
+async def test_module_atomic_composition():
+    """Test composing atomic modules"""
+    # Test that modules can be chained together
+    context = {}
+
+    # Step 1: Launch browser
+    await ModuleRegistry.execute(
+        'core.browser.launch',
+        {'headless': True},
+        context
+    )
+
+    # Step 2: Navigate
+    result = await ModuleRegistry.execute(
+        'core.browser.goto',
+        {'url': 'https://example.com'},
+        context
+    )
+
+    assert result['status'] == 'success'
+```
+
+### Running Tests
+
+```bash
+# Run all tests
+pytest
+
+# Run specific test file
+pytest tests/modules/test_browser.py
+
+# With coverage
+pytest --cov=src --cov-report=html
+
+# Watch mode
+pytest-watch
+```
+
+---
+
+## Submission Process
+
+### 1. Fork and Branch
+
+```bash
+# Fork on GitHub, then:
+git clone https://github.com/YOUR_USERNAME/flyto2.git
+cd flyto2
+
+# Create feature branch
+git checkout -b module/{namespace}-{category}-{action}
+```
+
+### 2. Develop
+
+```bash
+# Make your changes
+# - Add module code (atomic design)
+# - Add i18n keys
+# - Write tests
+# - Update translation files
+
+# Format code
+black src/
+pylint src/
+
+# Run tests
+pytest
+```
+
+### 3. Commit
+
+```bash
+git add .
+git commit -m "Add module: {namespace}.{category}.{action}
+
+- Implement {action} for {category}
+- Follow atomic design principle
+- Add i18n support (en, zh, ja)
+- Add comprehensive tests
+- Include documentation and examples"
+```
+
+### 4. Push and PR
+
+```bash
+# Push to your fork
+git push origin module/{namespace}-{category}-{action}
+
+# Create Pull Request on GitHub
+```
+
+### PR Checklist
+
+- [ ] Follows atomic design (single responsibility)
+- [ ] Uses i18n keys (English defaults + translation keys)
+- [ ] No Chinese in Python code
+- [ ] Complete params_schema with i18n
+- [ ] At least 2 examples
+- [ ] Error handling
+- [ ] Unit tests (>80% coverage)
+- [ ] Updated i18n translation files
+- [ ] No hardcoded secrets
+
+---
+
+## Getting Help
+
+- **GitHub Issues**: [Report bugs or request features](https://github.com/flytohub/flyto2/issues)
+- **Discussions**: [Ask questions](https://github.com/flytohub/flyto2/discussions)
+
+---
+
+## License
+
+By contributing, you agree that your contributions will be licensed under the MIT License.
+
+---
+
+**Thank you for contributing!**
+

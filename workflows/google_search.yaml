@@ -1,0 +1,119 @@
+# Google Search - Built with Atomic Modules
+# This workflow demonstrates how to compose atomic modules
+# to build complex functionality
+
+id: google-search-atomic
+name: "Google Search (Atomic)"
+version: "2.0.0"
+description: "Search Google using composable atomic modules"
+author: "Flyto2 Team"
+tags: ["google", "search", "atomic", "example"]
+
+# User parameters
+params:
+  - name: keyword
+    type: string
+    label: "Search Keyword"
+    description: "What to search for"
+    required: true
+    placeholder: "python tutorial"
+
+  - name: max_results
+    type: number
+    label: "Max Results"
+    description: "Number of results to extract"
+    default: 10
+    min: 1
+    max: 100
+
+# Workflow steps - composed from atomic modules
+steps:
+  # === Browser Setup ===
+  - id: browser
+    module: core.browser.launch
+    description: "Launch browser"
+    params:
+      headless: false
+      viewport:
+        width: 1280
+        height: 720
+
+  # === Navigation ===
+  - id: navigate
+    module: core.browser.goto
+    description: "Go to Google"
+    params:
+      browser: "${browser.browser}"
+      url: "https://www.google.com"
+      wait_until: "networkidle"
+
+  # === Wait for Search Box ===
+  - id: wait_search_box
+    module: core.browser.wait
+    description: "Wait for search input"
+    params:
+      browser: "${browser.browser}"
+      selector: 'input[name="q"], textarea[name="q"]'
+      timeout_ms: 10000
+
+  # === Type Keyword ===
+  - id: type_keyword
+    module: core.browser.type
+    description: "Type search keyword"
+    params:
+      browser: "${browser.browser}"
+      selector: 'input[name="q"], textarea[name="q"]'
+      text: "${params.keyword}"
+
+  # === Submit Search ===
+  - id: submit
+    module: core.browser.press
+    description: "Press Enter to search"
+    params:
+      browser: "${browser.browser}"
+      key: "Enter"
+
+  # === Wait for Results ===
+  - id: wait_results
+    module: core.browser.wait
+    description: "Wait for search results"
+    params:
+      browser: "${browser.browser}"
+      selector: "#search"
+      timeout_ms: 15000
+
+  # === Extract Results ===
+  - id: extract_results
+    module: core.browser.extract
+    description: "Extract search results"
+    params:
+      browser: "${browser.browser}"
+      selector: "#search .g"
+      limit: "${params.max_results}"
+      fields:
+        title:
+          selector: "h3"
+          type: "text"
+        url:
+          selector: "a"
+          type: "attribute"
+          attribute: "href"
+        description:
+          selector: ".VwiC3b"
+          type: "text"
+
+  # === Take Screenshot (optional) ===
+  - id: screenshot
+    module: core.browser.screenshot
+    description: "Take screenshot of results"
+    params:
+      browser: "${browser.browser}"
+      path: "results_${timestamp}.png"
+
+# Output
+output:
+  keyword: "${params.keyword}"
+  results: "${extract_results.data}"
+  count: "${extract_results.count}"
+  screenshot: "${screenshot.filepath}"
+  timestamp: "${timestamp}"

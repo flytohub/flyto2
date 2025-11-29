@@ -1,0 +1,41 @@
+{
+  "cli": {
+    "welcome": "工作流程自動化引擎",
+    "version": "版本 1.0.0",
+    "description": "強大的網頁爬蟲和工作流程編排自動化引擎",
+    "select_language": "選擇語言 / Select language",
+    "available_workflows": "可用的工作流程",
+    "required_parameters": "必要參數",
+    "starting_workflow": "開始執行工作流程...",
+    "workflow_completed": "工作流程執行成功！",
+    "workflow_failed": "工作流程執行失敗",
+    "results_saved": "結果已儲存至",
+    "execution_time": "執行時間",
+    "enter_custom_path": "輸入自訂工作流程路徑",
+    "loading_workflow": "載入工作流程",
+    "step_progress": "步驟 {current}/{total}",
+    "no_workflows_found": "在 ./workflows/ 目錄中找不到工作流程",
+    "create_workflow_prompt": "是否要建立範例工作流程？",
+    "error_occurred": "發生錯誤",
+    "press_enter": "按 Enter 繼續",
+    "goodbye": "感謝使用工作流程引擎！"
+  },
+  "commands": {
+    "run": "執行工作流程",
+    "list": "列出可用工作流程",
+    "modules": "列出可用模組",
+    "help": "顯示幫助資訊",
+    "version": "顯示版本資訊"
+  },
+  "params": {
+    "default": "預設",
+    "required": "必填",
+    "optional": "選填"
+  },
+  "status": {
+    "success": "成功",
+    "failed": "失敗",
+    "running": "執行中",
+    "skipped": "已跳過"
+  }
+}

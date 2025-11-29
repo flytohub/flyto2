@@ -1,0 +1,41 @@
+{
+  "cli": {
+    "welcome": "ワークフロー自動化エンジン",
+    "version": "バージョン 1.0.0",
+    "description": "ウェブスクレイピングとワークフローオーケストレーションのための強力な自動化エンジン",
+    "select_language": "言語を選択 / Select language",
+    "available_workflows": "利用可能なワークフロー",
+    "required_parameters": "必須パラメータ",
+    "starting_workflow": "ワークフローの実行を開始します...",
+    "workflow_completed": "ワークフローが正常に完了しました！",
+    "workflow_failed": "ワークフローの実行に失敗しました",
+    "results_saved": "結果を保存しました",
+    "execution_time": "実行時間",
+    "enter_custom_path": "カスタムワークフローパスを入力",
+    "loading_workflow": "ワークフローを読み込んでいます",
+    "step_progress": "ステップ {current}/{total}",
+    "no_workflows_found": "./workflows/ ディレクトリにワークフローが見つかりません",
+    "create_workflow_prompt": "サンプルワークフローを作成しますか？",
+    "error_occurred": "エラーが発生しました",
+    "press_enter": "Enter キーを押して続行",
+    "goodbye": "ワークフローエンジンをご利用いただきありがとうございました！"
+  },
+  "commands": {
+    "run": "ワークフローを実行",
+    "list": "利用可能なワークフローを一覧表示",
+    "modules": "利用可能なモジュールを一覧表示",
+    "help": "ヘルプ情報を表示",
+    "version": "バージョン情報を表示"
+  },
+  "params": {
+    "default": "デフォルト",
+    "required": "必須",
+    "optional": "オプション"
+  },
+  "status": {
+    "success": "成功",
+    "failed": "失敗",
+    "running": "実行中",
+    "skipped": "スキップ"
+  }
+}
