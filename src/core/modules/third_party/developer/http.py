@@ -2,8 +2,8 @@
 API Related Modules - Use official API instead of scraping
 """
 from typing import Any, Dict
-from .base import BaseModule
-from .registry import register_module
+from ...base import BaseModule
+from ...registry import register_module
 import aiohttp
 import os
 

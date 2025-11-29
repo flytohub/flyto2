@@ -3,8 +3,8 @@ Utility Modules
 Helper modules for delays, random data, date/time operations, etc.
 """
 from typing import Any, Dict
-from .base import BaseModule
-from .registry import register_module
+from ...base import BaseModule
+from ...registry import register_module
 import asyncio
 import random
 import string

@@ -3,8 +3,8 @@ GitHub API Integration Modules
 Work with GitHub repositories, issues, pull requests, etc.
 """
 from typing import Any, Dict
-from .base import BaseModule
-from .registry import register_module
+from ...base import BaseModule
+from ...registry import register_module
 import aiohttp
 import os
 

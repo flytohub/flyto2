@@ -5,8 +5,8 @@ Provides browser automation capabilities using Playwright.
 All modules use i18n keys for multi-language support.
 """
 from typing import Any, Dict
-from .base import BaseModule
-from .registry import register_module
+from ...base import BaseModule
+from ...registry import register_module
 
 
 @register_module(

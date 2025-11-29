@@ -3,7 +3,7 @@ Productivity API Integration Modules
 Provides integrations with productivity tools like Notion and Google Sheets
 """
 
-from ..module_registry import register_module
+from ...registry import register_module
 import aiohttp
 import json
 import os
@@ -116,7 +116,7 @@ import os
     ],
     author='Flyto2 Team',
     license='MIT',
-    documentation_url='https://developers.notion.com/reference/post-page'
+    docs_url='https://developers.notion.com/reference/post-page'
 )
 async def notion_create_page(context):
     """Create page in Notion database"""
@@ -252,7 +252,7 @@ async def notion_create_page(context):
     ],
     author='Flyto2 Team',
     license='MIT',
-    documentation_url='https://developers.notion.com/reference/post-database-query'
+    docs_url='https://developers.notion.com/reference/post-database-query'
 )
 async def notion_query_database(context):
     """Query Notion database"""
@@ -383,7 +383,7 @@ async def notion_query_database(context):
     ],
     author='Flyto2 Team',
     license='MIT',
-    documentation_url='https://developers.google.com/sheets/api/reference/rest/v4/spreadsheets.values/get'
+    docs_url='https://developers.google.com/sheets/api/reference/rest/v4/spreadsheets.values/get'
 )
 async def google_sheets_read(context):
     """Read from Google Sheets"""
@@ -555,7 +555,7 @@ async def google_sheets_read(context):
     ],
     author='Flyto2 Team',
     license='MIT',
-    documentation_url='https://developers.google.com/sheets/api/reference/rest/v4/spreadsheets.values/update'
+    docs_url='https://developers.google.com/sheets/api/reference/rest/v4/spreadsheets.values/update'
 )
 async def google_sheets_write(context):
     """Write to Google Sheets"""

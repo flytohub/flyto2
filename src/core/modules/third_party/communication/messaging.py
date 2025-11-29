@@ -3,8 +3,8 @@ Notification and Messaging Modules
 Send notifications to Slack, Discord, Telegram, Email, etc.
 """
 from typing import Any, Dict
-from .base import BaseModule
-from .registry import register_module
+from ...base import BaseModule
+from ...registry import register_module
 import aiohttp
 import os
 import smtplib

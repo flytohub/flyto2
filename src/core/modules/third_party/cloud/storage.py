@@ -3,7 +3,7 @@ Cloud Storage Integration Modules
 Provides integrations with cloud storage services like AWS S3
 """
 
-from ..module_registry import register_module
+from ...registry import register_module
 import os
 import base64
 
@@ -154,7 +154,7 @@ import base64
     ],
     author='Flyto2 Team',
     license='MIT',
-    documentation_url='https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/s3.html'
+    docs_url='https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/s3.html'
 )
 async def aws_s3_upload(context):
     """Upload file to AWS S3"""
@@ -324,7 +324,7 @@ async def aws_s3_upload(context):
     ],
     author='Flyto2 Team',
     license='MIT',
-    documentation_url='https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/s3.html'
+    docs_url='https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/s3.html'
 )
 async def aws_s3_download(context):
     """Download file from AWS S3"""

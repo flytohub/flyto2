@@ -3,7 +3,7 @@ Database Integration Modules
 Provides integrations with databases like PostgreSQL, MySQL, MongoDB
 """
 
-from ..module_registry import register_module
+from ...registry import register_module
 import os
 
 
@@ -83,7 +83,7 @@ import os
     ],
     author='Flyto2 Team',
     license='MIT',
-    documentation_url='https://www.postgresql.org/docs/current/sql-select.html'
+    docs_url='https://www.postgresql.org/docs/current/sql-select.html'
 )
 async def postgresql_query(context):
     """Execute PostgreSQL query"""
@@ -128,7 +128,7 @@ async def postgresql_query(context):
     description='Execute a SQL query on MySQL database and return results',
     description_key='modules.db.mysql.query.description',
     icon='Database',
-    color=''#00758F',
+    color='#00758F',
     params_schema={
         'host': {
             'type': 'string',
@@ -230,7 +230,7 @@ async def postgresql_query(context):
     ],
     author='Flyto2 Team',
     license='MIT',
-    documentation_url='https://dev.mysql.com/doc/refman/8.0/en/select.html'
+    docs_url='https://dev.mysql.com/doc/refman/8.0/en/select.html'
 )
 async def mysql_query(context):
     """Execute MySQL query"""
@@ -386,7 +386,7 @@ async def mysql_query(context):
     ],
     author='Flyto2 Team',
     license='MIT',
-    documentation_url='https://www.mongodb.com/docs/drivers/python/'
+    docs_url='https://www.mongodb.com/docs/drivers/python/'
 )
 async def mongodb_find(context):
     """Query MongoDB documents"""
@@ -532,7 +532,7 @@ async def mongodb_find(context):
     ],
     author='Flyto2 Team',
     license='MIT',
-    documentation_url='https://www.mongodb.com/docs/drivers/python/'
+    docs_url='https://www.mongodb.com/docs/drivers/python/'
 )
 async def mongodb_insert(context):
     """Insert documents into MongoDB"""

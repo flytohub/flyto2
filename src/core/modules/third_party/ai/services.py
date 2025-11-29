@@ -3,7 +3,7 @@ AI Integration Modules
 Provides integrations with AI services like Anthropic Claude and Google Gemini
 """
 
-from ..module_registry import register_module
+from ...registry import register_module
 import aiohttp
 import json
 import os
@@ -139,7 +139,7 @@ import os
     ],
     author='Flyto2 Team',
     license='MIT',
-    documentation_url='https://docs.anthropic.com/claude/reference/messages_post'
+    docs_url='https://docs.anthropic.com/claude/reference/messages_post'
 )
 async def anthropic_chat(context):
     """Send chat message to Anthropic Claude API"""
@@ -294,7 +294,7 @@ async def anthropic_chat(context):
     ],
     author='Flyto2 Team',
     license='MIT',
-    documentation_url='https://ai.google.dev/api/rest/v1/models/generateContent'
+    docs_url='https://ai.google.dev/api/rest/v1/models/generateContent'
 )
 async def google_gemini_chat(context):
     """Send chat message to Google Gemini API"""

@@ -3,8 +3,8 @@ Data Processing Modules
 Handle CSV, JSON, text processing, data transformation, etc.
 """
 from typing import Any, Dict
-from .base import BaseModule
-from .registry import register_module
+from ...base import BaseModule
+from ...registry import register_module
 import json
 import csv
 import io

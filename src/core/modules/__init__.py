@@ -1,18 +1,48 @@
 """
 Module System - Core Registration and Execution
+
+Organized by architecture:
+- Atomic: Core building blocks, no external dependencies
+- Third-party: External service integrations
+- Composite: High-level workflow templates (v1.1)
 """
+
 from .registry import ModuleRegistry
 from .base import BaseModule
 
-# Import all core modules to trigger registration
-from . import browser_modules
-from . import api_modules
-from . import atomic  # Atomic Modules
+# Import atomic modules
+from .atomic import browser_ops
+from .atomic import data
+from .atomic import utility
 
-# Optional: Import third-party integrations if available
-try:
-    from src.integrations import openai_integration
-except ImportError:
-    pass  # OpenAI integration not installed
+# Import legacy atomic modules (to be migrated)
+from . import atomic
 
-__all__ = ['ModuleRegistry', 'BaseModule']
+# Import third-party integration modules
+from .third_party import ai
+from .third_party import communication
+from .third_party import database
+from .third_party import cloud
+from .third_party import productivity
+from .third_party import developer
+
+# Composite modules (coming in v1.1)
+from . import composite
+
+__all__ = [
+    'ModuleRegistry',
+    'BaseModule',
+    # Atomic
+    'browser_ops',
+    'data',
+    'utility',
+    # Third-party
+    'ai',
+    'communication',
+    'database',
+    'cloud',
+    'productivity',
+    'developer',
+    # Composite
+    'composite',
+]
