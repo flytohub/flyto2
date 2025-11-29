@@ -86,7 +86,7 @@ Core building blocks with no external dependencies:
 
 ### Third-party Integrations
 Connect to external services and platforms:
-- **AI** - OpenAI GPT, Anthropic Claude, Google Gemini
+- **AI** - Anthropic Claude, Google Gemini
 - **Communication** - Slack, Discord, Telegram, Email SMTP
 - **Databases** - PostgreSQL, MySQL, MongoDB
 - **Cloud** - AWS S3 upload/download
@@ -301,25 +301,36 @@ All core technology is MIT open source. The visual builder is kept private to en
 
 ## Roadmap
 
-**Current (v1.0-alpha)**
+**Current (v1.0-alpha)** - Fully Implemented ✅
 - ✅ YAML workflow parser & execution engine
 - ✅ Browser automation (Playwright)
-- ✅ 20+ production-ready modules
-- ✅ Flow control (if/when, retry, error handling)
-- ✅ Integrations: Slack, Discord, Telegram, Email, GitHub, OpenAI
+- ✅ **56 production-ready modules** (atomic + third-party)
+- ✅ Phase 2: Execution control (timeout, retry, concurrency)
+- ✅ Phase 2: Security settings (credentials, permissions, sensitive data)
+- ✅ Flow control (if/when, retry, error handling, loops)
+- ✅ AI: Anthropic Claude, Google Gemini
+- ✅ Communication: Slack, Discord, Telegram, Email
+- ✅ Databases: PostgreSQL, MySQL, MongoDB
+- ✅ Cloud: AWS S3
+- ✅ Productivity: Notion, Google Sheets
+- ✅ Developer: GitHub, HTTP APIs
+- ✅ i18n support: English, Chinese, Japanese
 
-**Coming Soon (v1.1)**
+**Coming Soon (v1.1)** - Help Wanted!
+- 🚧 OpenAI GPT integration
+- 🚧 Redis caching module
+- 🚧 GCS (Google Cloud Storage) module
+- 🚧 Azure Blob Storage module
 - 🚧 Enhanced observability dashboard
-- 🚧 More AI integrations (Claude, Gemini)
-- 🚧 Database modules (PostgreSQL, MongoDB, Redis)
-- 🚧 Cloud storage (S3, GCS, Azure)
-- 🚧 Loop & parallel execution control flow
+- 🚧 Parallel execution blocks in DSL
+- 🚧 More example workflows
 
-**Future (v2.0)**
-- 🔮 Module marketplace
-- 🔮 Workflow template library
-- 🔮 Distributed execution engine
-- 🔮 Kubernetes operator
+**Future (v2.0)** - Community Driven
+- 💡 Module marketplace
+- 💡 Workflow template library
+- 💡 Distributed execution engine
+- 💡 Kubernetes operator
+- 💡 Web-based workflow editor (UI)
 
 ---
 
@@ -336,11 +347,17 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ### Good First Issues
 
-Looking to contribute? Check out issues tagged [`good first issue`](https://github.com/flytohub/flyto2/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22):
+Looking to contribute? Great starting points for new contributors:
 
-- Add module: `api.http.delete`
-- Add example: GitHub stars scraper
-- Add module: `db.postgresql.query`
+- 🔰 Add module: `api.openai.chat` (OpenAI GPT integration)
+- 🔰 Add module: `api.http.delete` (HTTP DELETE requests)
+- 🔰 Add module: `db.redis.get/set` (Redis caching)
+- 🔰 Add example: GitHub stars scraper workflow
+- 🔰 Add example: AI content generator with Claude/Gemini
+- 🔰 Improve docs: Add tutorial for building custom modules
+- 🔰 Add tests: Increase test coverage for existing modules
+
+[View all issues →](https://github.com/flytohub/flyto2/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
 
 ---
 

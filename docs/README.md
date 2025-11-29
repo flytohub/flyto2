@@ -8,17 +8,26 @@ Complete documentation for the Flyto2 workflow automation engine.
 
 ### Getting Started
 - [Quick Start Guide](../README.md#quick-start) - 3-step installation and first workflow
+- [Contributor Quickstart](../QUICKSTART.md) - 5-minute guide for new contributors
 - [CLI Usage](CLI.md) - Command-line interface reference
 - [DSL Specification](DSL.md) - Complete YAML workflow syntax
 
 ### Core References
-- [Module Registry](MODULES.md) - All available modules with parameters
+- [Module Registry](MODULES.md) - All 56 available modules with parameters
 - [Architecture](ARCHITECTURE.md) - System design and engine internals
+- [Project Structure](PROJECT_STRUCTURE.md) - Directory organization
 - [Contributing Guide](../CONTRIBUTING.md) - How to contribute
 
-### Development
+### Module Development
+- [Module Specification](MODULE_SPECIFICATION.md) - Complete module specification
+- [Module Quick Reference](MODULE_QUICK_REFERENCE.md) - Fast lookup guide
 - [Writing Modules](WRITING_MODULES.md) - Create custom modules
+- [Phase 2 Features](MODULE_PHASE2_FEATURES.md) - Execution control & security
+
+### UI Integration
 - [UI Builder Integration](UI_BUILDER_INTEGRATION.md) - For UI developers
+- [UI Module Integration](UI_MODULE_INTEGRATION.md) - Module UI components
+- [Phase 2 UI Integration](PHASE2_UI_INTEGRATION.md) - Phase 2 features in UI
 
 ---
 
@@ -38,15 +47,15 @@ Complete reference for YAML workflow syntax including:
 
 ### 2. Module Registry (MODULES.md)
 
-Comprehensive list of all available modules organized by category:
-- Browser Automation (launch, goto, click, type, extract, screenshot, close)
-- HTTP and APIs (GET, POST, GitHub, Slack, Discord, Telegram, Email)
-- AI Services (OpenAI, Anthropic Claude, Google Gemini)
+Comprehensive list of all 56 available modules organized by category:
+- Browser Automation (launch, goto, click, type, extract, screenshot, press, find, wait)
+- HTTP and APIs (GET, POST, GitHub, Slack, Discord, Telegram, Email, Google Search)
+- AI Services (Anthropic Claude, Google Gemini)
 - Databases (PostgreSQL, MySQL, MongoDB)
 - Cloud Storage (AWS S3)
-- Productivity (Notion, Google Sheets)
-- Data Processing (CSV, JSON, templates)
-- Utilities (delay, random, datetime, hash)
+- Productivity (Notion pages/databases, Google Sheets)
+- Data Processing (CSV read/write, JSON parse/stringify, text templates)
+- Utilities (delay, random numbers/strings, datetime, hash, arrays, strings, math)
 
 Each module includes:
 - Parameter tables with types and descriptions
