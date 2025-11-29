@@ -1,803 +1,141 @@
 # Flyto2
 
-> **Browser Automation + AI + YAML Workflows**
-> The workflow engine designed for developers who need version control, portability, and browser-level automation.
+> **The Git-Native Workflow Automation Engine**
+>
+> Browser automation + AI + API integration in portable YAML workflows
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
-[![Status: Alpha](https://img.shields.io/badge/status-alpha-orange.svg)]()
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
 ---
 
-## TL;DR
+## Why Flyto2?
 
-```bash
-# Install and run in 3 commands
-pip install -r requirements.txt
-playwright install chromium
-python -m cli.main workflows/google_search.yaml
-```
+**Your workflows shouldn't be trapped in a database.**
 
-**What is Flyto2?**
-- Workflows = **YAML files** (not database records)
-- Modules = **Python classes** (register once, use in any YAML)
-- Expression syntax = `${params.url}`, `${env.API_KEY}`, `${steps.fetch.output.data}`
+Flyto2 treats workflows as **version-controlled YAML files** - not proprietary JSON locked in a database. Perfect for teams who need:
 
-**Key difference from n8n/Zapier:**
-Your workflows are **portable YAML files** you can `git commit`, copy anywhere, and run without a database.
+✅ **Git-Native Workflows** - Diff, PR review, version control
+✅ **Browser + AI + APIs** - Playwright, OpenAI, Slack, GitHub in one engine
+✅ **Deploy Anywhere** - Local, Docker, Kubernetes, Lambda
+✅ **No Vendor Lock-in** - YAML files run anywhere
 
----
-
-## Project Status
-
-**Current Version:** 1.0.0-alpha
-
-**What's Working:**
-- ✅ YAML workflow parser and execution engine
-- ✅ Browser automation modules (Playwright-based)
-- ✅ Flow control (loop, condition, retry)
-- ✅ API/HTTP modules
-- ✅ AI integrations (OpenAI)
-- ✅ Environment variable support for secrets
-- ✅ Basic error handling and logging
-
-**In Development:**
-- ⚠️ Advanced observability dashboard
-- ⚠️ More AI integrations (Claude, Gemini)
-- ⚠️ Database modules (PostgreSQL, MongoDB, Redis)
-- ⚠️ Cloud storage modules (S3, GCS)
-
-**Visual Builder (Separate Product):**
-- 🎨 The visual workflow builder is under active development
-- 🎨 Will be released as a separate (closed source, free-to-use) product
-- 🎨 This repo contains the **fully working open-source engine + CLI**
-- 🎨 All workflows created in the UI will be **standard YAML files** using this engine
-
-**Ready for:**
-- ✅ Internal automation tools
-- ✅ Workflow experimentation
-- ✅ Community contributions
-- ✅ Production use with proper testing
-
----
-
-## Why This Engine?
-
-This engine is built for developers who need:
-
-✅ **Workflows as plain YAML files** - Git diff, PR review, copy anywhere
-✅ **Browser-level automation** - Playwright + APIs + AI in one unified engine
-✅ **Composable atomic modules** - Build anything from small building blocks, not locked-in node types
-
-**Perfect for:** Internal automation, web scraping + AI processing, DevOps workflows, data pipeline tasks
-
-### Comparison with Existing Tools
-
-| Tool | Workflow Storage | Portability | Best For |
-|------|------------------|-------------|----------|
-| **n8n** | JSON in database | ❌ Locked to n8n | API integrations, webhooks |
-| **Zapier** | Proprietary cloud | ❌ No export | Non-technical users, SaaS apps |
-| **Airflow** | Python DAGs | ⚠️ Code only | Data engineering, batch jobs |
-| **This Engine** | **YAML files** | ✅ **Run anywhere** | **Browser automation + Git workflows** |
-
-### Our Solution: Atomic Design + YAML
-
-**One module = One action.** Combine them however you want. Workflows are **YAML files** you can version control.
-
-```yaml
-# Build complex workflows by combining atomic modules
-steps:
-  - module: core.browser.launch    # Launch browser
-  - module: core.browser.goto      # Navigate
-  - module: core.browser.type      # Type keyword
-  - module: core.browser.press     # Press Enter
-  - module: core.flow.loop         # Extract results
-```
-
-**Benefits:**
-- 🧩 Build ANY workflow by combining atomic modules
-- 🔓 Workflows are YAML files, not database records
-- 📝 Version control with Git
-- 🚀 Deploy anywhere (local, Docker, Kubernetes, Lambda)
-- 🎯 No vendor lock-in
-
-### Real-World Example
-
-Daily competitor monitoring (browser + AI + notifications):
-
-```yaml
-# Monitor competitor pricing every day
-steps:
-  - id: launch_browser
-    module: core.browser.launch
-
-  - id: navigate
-    module: core.browser.goto
-    params:
-      browser: "${launch_browser.browser}"
-      url: "https://competitor.com/pricing"
-
-  - id: extract_prices
-    module: core.browser.extract
-    params:
-      browser: "${launch_browser.browser}"
-      selector: ".price-table"
-      fields:
-        plan: { selector: "h3", type: "text" }
-        price: { selector: ".amount", type: "text" }
-
-  - id: ai_analysis
-    module: ai.openai.chat
-    params:
-      prompt: "Analyze these prices and suggest if we need to adjust: ${extract_prices.data}"
-
-  - id: notify_slack
-    module: api.http.post
-    params:
-      url: "https://slack.com/api/chat.postMessage"
-      body:
-        text: "${ai_analysis.message}"
-```
-
-**Deploy as cron job:** `0 9 * * * python -m cli.main monitor.yaml`
-
-**Version control:** `git diff monitor.yaml` to see strategy changes over time
-
----
-
-## Why Not Just Use n8n?
-
-n8n is excellent for API integrations and webhooks. This engine excels when you need:
-
-| Scenario | n8n | This Engine |
-|----------|-----|-------------|
-| **Complex browser automation** | Limited browser support | ✅ Full Playwright power |
-| **Git-based workflow management** | Manual JSON export | ✅ YAML files, native Git |
-| **Run the same flow in multiple environments** | Requires n8n instance | ✅ Just copy YAML files |
-| **Atomic module composition** | Large predefined nodes | ✅ Build from tiny modules |
-| **CI/CD integration** | Need API calls to n8n | ✅ Direct CLI execution |
-
-**Use n8n if:** You primarily connect APIs and need a database-backed UI
-
-**Use this engine if:** You need browser automation, YAML portability, or Git-native workflows
-
----
-
-## Architecture: Open Engine + Free UI
-
-This project separates the workflow engine from the visual builder:
-
-### 🔓 Workflow Engine (This Repository)
-**Open Source • MIT License • Community-Driven**
-
-The runtime that executes YAML workflows. Runs anywhere.
-
-```bash
-# Install and run anywhere
-pip install -r requirements.txt
-python -m cli.main my_workflow.yaml
-```
-
-**Why open source?**
-- ✅ Complete transparency - audit the code
-- ✅ Community contributions - anyone can add modules
-- ✅ No vendor lock-in - YAML runs anywhere
-- ✅ Self-hostable - own your infrastructure
-- ✅ Extend with custom Python modules
-
-### 🎨 Visual Workflow Builder
-**Free to Use • Closed Source • Completely Optional**
-
-A drag-and-drop editor for building workflows visually (separate product).
-
-- Visual workflow designer with live preview
-- Workflow debugging and testing tools
-- Template library and sharing
-- Team collaboration features
-
-**Important:** The workflow engine is **fully usable without the visual UI**. You can run all workflows using only the open source CLI + YAML files. The UI is an optional tool for those who prefer visual editing.
-
-**The critical design:** All workflows created in the UI are **standard YAML files** that use this open source engine.
-
-You can:
-- Build in UI → Export YAML → Run with open source engine
-- Write YAML by hand → Import to UI for visualization
-- Mix both approaches freely
-- **Never touch the UI** and still have full functionality
-
-```yaml
-# Create workflow in UI → Export as YAML → Run anywhere
-
-# On your laptop
-python -m cli.main workflow.yaml
-
-# In Docker
-docker run -v $(pwd):/workflows workflow-engine workflow.yaml
-
-# On Kubernetes
-kubectl create configmap workflow --from-file=workflow.yaml
-```
-
-### 🔑 Why This Matters
-
-**Your workflows are portable YAML files, not locked in a database!**
-
-| Feature | This Engine | n8n | Zapier | Airflow |
-|---------|-------------|-----|--------|---------|
-| **Workflow Format** | YAML files | JSON in DB | Proprietary | Python code |
-| **Portability** | ✅ Run anywhere | ❌ Locked to n8n | ❌ Cloud only | ⚠️ Requires Airflow |
-| **Version Control** | ✅ Git native | ⚠️ Manual export | ❌ No | ✅ Git native |
-| **UI** | ✅ Free | ✅ Free | ❌ Limited free | ❌ No official UI |
-| **Engine** | ✅ Open source | ✅ Open source | ❌ Closed | ✅ Open source |
-| **Atomic Modules** | ✅ Yes | ❌ Monolithic | ❌ Predefined | ⚠️ Task-based |
-
----
-
-## Features
-
-### Core Capabilities
-- 🧩 **Atomic Modules** - Compose workflows like LEGO blocks
-- 📦 **YAML Workflows** - Portable, version-controllable, runs anywhere
-- 🌐 **Browser Automation** - Full Playwright power (Chrome, Firefox, WebKit)
-- 🔌 **Third-party Integrations** - OpenAI, Anthropic, Gemini (install what you need)
-- 🔧 **Extensible** - Write custom modules in Python
-
-### Production Ready
-- 🔐 **Secret Management** - Environment variables and `.env` file support (Vault integration planned)
-- 🔁 **Error Handling** - Built-in retry, timeout, and error recovery modules
-- 📊 **Observability** - Structured logs and execution metadata (dashboard in roadmap)
-- ⚡ **Flow Control** - Loop, condition, parallel execution, error branching
-- 📘 **Type Safety** - Full Python type hints for reliability
-
-### Developer Experience
-- 🎨 **Free Visual Builder** - Optional drag-and-drop UI (closed source, free to use)
-- 🔌 **Metadata API** - REST API for UI builders to auto-generate forms (like Swagger)
-- ☁️ **Deploy Anywhere** - Local, Docker, Kubernetes, Lambda, CI/CD
-- 🌍 **i18n Support** - Multi-language module labels and descriptions
-- 📝 **Git Native** - Diff workflows, PR reviews, version control
+**Best for:** DevOps automation, web scraping + AI, internal tools, data pipelines
 
 ---
 
 ## Quick Start
 
-### 5-Minute Setup
-
 ```bash
-# 1. Clone and install
+# 1. Install
 git clone https://github.com/flytohub/flyto2.git
 cd flyto2
 pip install -r requirements.txt
 playwright install chromium
 
-# 2. Run example workflow
+# 2. Run example
 python -m cli.main workflows/google_search.yaml
 
-# 3. Edit the YAML and run again!
-```
-
-**That's it!** You just automated a Google search with YAML.
-
-### Your First Custom Workflow
-
-Create `my_workflow.yaml`:
-
-```yaml
-name: "Extract Page Title"
-description: "Get the title from any website"
-
-params:
-  - name: url
-    type: string
-    label: "Website URL"
-    required: true
-
+# 3. Create your own
+cat > my_workflow.yaml <<EOF
+name: "Hello Automation"
 steps:
-  - id: launch_browser
-    module: core.browser.launch
+  - id: greet
+    module: notification.slack.send_message
     params:
-      headless: false
+      text: "Workflow engine is running!"
+EOF
 
-  - id: navigate
-    module: core.browser.goto
-    params:
-      browser: "${launch_browser.browser}"
-      url: "${params.url}"
-
-  - id: extract_title
-    module: core.browser.extract
-    params:
-      browser: "${launch_browser.browser}"
-      selector: "title"
-      fields:
-        title:
-          selector: "title"
-          type: "text"
-
-output:
-  url: "${params.url}"
-  title: "${extract_title.data[0].title}"
+export SLACK_WEBHOOK_URL=https://hooks.slack.com/...
+python -m cli.main my_workflow.yaml
 ```
 
-Run it: `python -m cli.main my_workflow.yaml`
-
-**Version control it:** `git add my_workflow.yaml && git commit`
-
-**Deploy it anywhere:** The same YAML runs on any platform!
+**That's it!** You're automating with YAML workflows.
 
 ---
 
-## Variable Access Convention
+## What Makes This Different
 
-All examples in this README follow a consistent variable access pattern:
+| Feature | Flyto2 | n8n | Zapier | Airflow |
+|---------|--------|-----|--------|---------|
+| **Workflow Format** | ✅ YAML files | JSON in database | Proprietary | Python code |
+| **Git Version Control** | ✅ Native | Manual export | ❌ No | ✅ Native |
+| **Browser Automation** | ✅ Playwright | Limited | ❌ No | ❌ No |
+| **Portable** | ✅ Run anywhere | Needs n8n instance | ❌ Cloud only | Needs Airflow |
+| **Open Source Engine** | ✅ MIT | Fair-code license | ❌ Closed | ✅ Apache |
 
-- **Step outputs:** Each step with an `id` is accessible as `${<id>}`
-- **Output fields:** Access step output fields as `${<id>.<field>}`
-  - Example: `${extract_prices.data}`, `${ai_analysis.message}`
-- **Environment variables:** Access via `${env.VAR_NAME}`
-  - Example: `${env.OPENAI_API_KEY}`, `${env.SLACK_WEBHOOK_URL}`
-- **Workflow parameters:** Access via `${params.param_name}`
-  - Example: `${params.keyword}`, `${params.url}`
-
-**Internally**, the engine maps these to `steps.<id>.output.<field>`, but YAML uses the simplified syntax for readability.
-
----
-
-## Built-in Integrations & Modules
-
-Flyto2 comes with **production-ready integrations** out of the box - no additional packages needed for most common use cases!
-
-### 🔔 Notification & Messaging
-
-| Service | Module ID | Features | Setup |
-|---------|-----------|----------|-------|
-| **Slack** | `notification.slack.send_message` | Webhooks, custom channels, formatting | Get webhook URL from Slack |
-| **Discord** | `notification.discord.send_message` | Webhooks, embeds, custom avatars | Get webhook from Discord server |
-| **Telegram** | `notification.telegram.send_message` | Bot API, Markdown/HTML support | Get bot token from @BotFather |
-| **Email** | `notification.email.send` | SMTP, HTML emails, attachments | Any SMTP server (Gmail, etc.) |
-
-### 🔗 Third-party APIs
-
-| Service | Module ID | Features | Status |
-|---------|-----------|----------|--------|
-| **GitHub** | `api.github.get_repo`<br/>`api.github.list_issues`<br/>`api.github.create_issue` | Repository info, issues, PRs | ✅ Available |
-| **HTTP/REST** | `api.http.get`<br/>`api.http.post` | Any REST API, custom headers | ✅ Available |
-| **OpenAI** | `ai.openai.chat`<br/>`ai.openai.completion` | GPT-4, embeddings, analysis | ✅ Available (`pip install openai`) |
-
-### 📊 Data Processing
-
-| Category | Module ID | Features |
-|----------|-----------|----------|
-| **CSV** | `data.csv.read`<br/>`data.csv.write` | Parse CSV, export data |
-| **JSON** | `data.json.parse`<br/>`data.json.stringify` | Parse/serialize JSON |
-| **Templates** | `data.text.template` | Variable substitution |
-
-### 🛠️ Utilities
-
-| Category | Module ID | Use Cases |
-|----------|-----------|-----------|
-| **Timing** | `utility.delay` | Rate limiting, delays between requests |
-| **Random** | `utility.random.number`<br/>`utility.random.string` | Generate test data, UUIDs, tokens |
-| **DateTime** | `utility.datetime.now` | Timestamps, date formatting |
-| **Crypto** | `utility.hash.md5` | Checksums, hashing |
-
-### 🚧 Coming Soon
-
-| Integration | Install Command | Status |
-|-------------|----------------|--------|
-| **Anthropic Claude** | `pip install anthropic` | Planned |
-| **Google Gemini** | `pip install google-generativeai` | Planned |
-| **Database** | PostgreSQL, MongoDB, Redis | Planned |
-
-### How to Use Integrations
-
-1. **Install the integration you need:**
-   ```bash
-   # Install OpenAI integration
-   pip install openai
-
-   # Or install from requirements-integrations.txt
-   pip install -r requirements-integrations.txt
-   ```
-
-2. **Use in your workflow:**
-   ```yaml
-   steps:
-     - id: ai_analysis
-       module: core.ai.openai.chat
-       params:
-         messages:
-           - role: user
-             content: "Analyze this data: ${extract_data.results}"
-         model: gpt-4
-   ```
-
-3. **Environment variables:**
-   ```bash
-   export OPENAI_API_KEY=your_api_key_here
-   ```
-
-**Why this approach?**
-- ✅ Core engine stays lightweight (no forced AI dependencies)
-- ✅ Install only what you need
-- ✅ Community can contribute new integrations independently
-- ✅ Similar to n8n's node architecture
+**Use n8n if:** You want a database-backed UI for API integrations
+**Use Flyto2 if:** You need Git workflows, browser automation, or YAML portability
 
 ---
 
-## Atomic Module Philosophy
+## Built-in Integrations
 
-### Core Principle
+Flyto2 comes with **production-ready modules** out of the box:
 
-**Each module does ONE thing and does it well.**
+### 🔔 Notifications
+**Slack** • **Discord** • **Telegram** • **Email/SMTP**
 
-Complex workflows = Simple modules combined.
-
-### Three Levels of Abstraction
-
-Developers choose their level:
-
-```python
-Level 1: Atomic (Maximum Flexibility)
-├─ core.browser.launch
-├─ core.browser.goto
-└─ core.element.click
-
-Level 2: Composite (Balanced)
-└─ workflows.google_search
-    └─ Combines multiple atomic modules
-
-Level 3: Specific (Domain-Focused)
-└─ ecommerce.shopify.sync_inventory
-    └─ Built for specific use cases
-```
-
-**You choose what to build:**
-- Want full control? → Use atomic modules
-- Want productivity? → Use composite workflows
-- Have specific needs? → Create domain modules
-
-### Available Modules
-
-| Category | Modules | Purpose |
-|----------|---------|---------|
-| **Browser** | `launch`, `goto`, `click`, `type`, `wait`, `screenshot` | Browser automation |
-| **Element** | `find`, `query`, `text`, `attribute` | DOM manipulation |
-| **Flow** | `loop`, `condition`, `retry`, `parallel` | Control flow |
-| **API** | `http.get`, `http.post`, `google_search` | External APIs |
-
-See [NAMESPACES.yaml](NAMESPACES.yaml) for complete list.
-
-### Example: Build Google Search
-
-```yaml
-steps:
-  - id: launch_browser
-    module: core.browser.launch
-
-  - id: navigate
-    module: core.browser.goto
-    params:
-      browser: "${launch_browser.browser}"
-      url: "https://google.com"
-
-  - id: type_query
-    module: core.browser.type
-    params:
-      browser: "${launch_browser.browser}"
-      selector: 'input[name="q"]'
-      text: "workflow automation"
-
-  - id: submit_search
-    module: core.browser.press
-    params:
-      browser: "${launch_browser.browser}"
-      key: "Enter"
-
-  - id: extract_results
-    module: core.browser.extract
-    params:
-      browser: "${launch_browser.browser}"
-      selector: "#search .g"
-      limit: 10
-```
-
-**Each step is atomic, reusable, and composable!**
-
----
-
-## YAML Portability
-
-### Write Once, Run Anywhere
-
-Your workflows are YAML files - they run on any platform:
-
-```bash
-# Local development
-python -m cli.main workflow.yaml
-
-# Docker container
-docker run -v $(pwd):/app workflow-engine python -m cli.main /app/workflow.yaml
-
-# Kubernetes CronJob
-apiVersion: batch/v1
-kind: CronJob
-spec:
-  schedule: "0 * * * *"
-  jobTemplate:
-    spec:
-      containers:
-      - name: workflow
-        image: workflow-engine
-        args: ["python", "-m", "cli.main", "/workflows/workflow.yaml"]
-
-# AWS Lambda
-# Serverless function
-# CI/CD pipeline
-# Anywhere!
-```
-
-### Version Control Friendly
-
-```bash
-# Your workflows are just files
-git add workflows/
-git commit -m "Add customer onboarding workflow"
-git push
-
-# Review changes
-git diff workflows/google_search.yaml
-
-# Rollback if needed
-git revert HEAD
-```
-
-### No Database Lock-in
-
-Unlike n8n or Zapier, your workflows aren't trapped in a database:
-
-```yaml
-# n8n: Workflows stored in PostgreSQL/SQLite
-# ❌ Hard to backup
-# ❌ Hard to migrate
-# ❌ Hard to version control
-
-# This Engine: Workflows are YAML files
-# ✅ Easy to backup (cp *.yaml backup/)
-# ✅ Easy to migrate (just copy files)
-# ✅ Native Git support
-```
-
----
-
-## Example Workflows
-
-Ready-to-use workflow examples in [`workflows/`](workflows/):
+### 🔗 APIs
+**GitHub** (repos, issues, PRs) • **HTTP/REST** • **OpenAI**
 
 ### 🌐 Browser Automation
-
-| Workflow | Description | Technologies |
-|----------|-------------|--------------|
-| [`google_search.yaml`](workflows/google_search.yaml) | Google search automation | Browser, Playwright |
-| [`authenticated_scraping.yaml`](workflows/authenticated_scraping.yaml) | Login + extract protected data | Browser, Forms |
-| [`pagination_scraper.yaml`](workflows/pagination_scraper.yaml) | Multi-page data extraction | Browser, Loops |
-| [`ai_content_summarizer.yaml`](workflows/ai_content_summarizer.yaml) | Article scraping + AI summary | Browser, OpenAI |
-
-### 🔗 API Integration & Automation
-
-| Workflow | Description | Technologies |
-|----------|-------------|--------------|
-| [`api_pipeline.yaml`](workflows/api_pipeline.yaml) | Pure API data pipeline | HTTP, REST APIs |
-| [`github_to_slack.yaml`](workflows/github_to_slack.yaml) | Monitor GitHub issues → Slack alerts | GitHub API, Slack webhook |
-| [`daily_report_email.yaml`](workflows/daily_report_email.yaml) | Fetch metrics + email report | API, Email, Templates |
+**Launch** • **Navigate** • **Click** • **Type** • **Extract** • **Screenshot**
 
 ### 📊 Data Processing
+**CSV** (read/write) • **JSON** (parse/stringify) • **Templates**
 
-| Workflow | Description | Technologies |
-|----------|-------------|--------------|
-| [`data_scraping_to_csv.yaml`](workflows/data_scraping_to_csv.yaml) | Scrape web data → export CSV | Browser, CSV, Notifications |
+### 🛠️ Utilities
+**Delay** • **Random** • **DateTime** • **Hash** • **UUIDs**
 
-### 🔔 Multi-Channel Notifications
-
-| Workflow | Description | Technologies |
-|----------|-------------|--------------|
-| [`multi_channel_alert.yaml`](workflows/multi_channel_alert.yaml) | Send alerts to Slack/Discord/Telegram/Email | All notification services |
-
-**Run any example:**
-```bash
-python -m cli.main workflows/google_search.yaml
-python -m cli.main workflows/api_pipeline.yaml --param.user_id=1
-python -m cli.main workflows/ai_content_summarizer.yaml --param.article_url=https://example.com/article
-```
-
-**Customize:**
-All workflows are YAML files - copy, edit, and version control them!
+[→ See complete module list](docs/MODULES.md)
 
 ---
 
-## CLI Usage
+## Real-World Examples
 
-### Running Workflows
-
-```bash
-# Run a workflow
-python -m cli.main workflows/google_search.yaml
-
-# With parameters
-python -m cli.main workflows/api_pipeline.yaml --param.user_id=1
-
-# With environment variables
-export OPENAI_API_KEY=your_key_here
-python -m cli.main workflows/ai_content_summarizer.yaml --param.article_url=https://example.com
-
-# Verbose logging
-python -m cli.main workflows/google_search.yaml --verbose
-
-# Dry run (validate without executing)
-python -m cli.main workflows/google_search.yaml --dry-run
-```
-
-### Testing
-
-```bash
-# Run all tests
-pytest
-
-# Run specific test file
-pytest tests/test_engine.py
-
-# Run with coverage report
-pytest --cov=src --cov-report=html
-
-# Run tests in watch mode
-pytest-watch
-
-# Run only unit tests
-pytest tests/unit/
-
-# Run integration tests
-pytest tests/integration/
-```
-
-### Development Setup
-
-```bash
-# Clone repository
-git clone https://github.com/flytohub/flyto2.git
-cd flyto2
-
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-pip install -r requirements-dev.txt  # Development dependencies
-
-# Install Playwright browsers
-playwright install chromium
-
-# Run tests to verify setup
-pytest
-
-# Start development
-code .  # Or your preferred editor
-```
-
----
-
-## Documentation
-
-- **DSL Specification**: [docs/DSL.md](docs/DSL.md) - Complete YAML workflow syntax reference
-- **Writing Modules**: [docs/WRITING_MODULES.md](docs/WRITING_MODULES.md) - Guide to creating custom modules
-- **UI Builder Integration**: [docs/UI_BUILDER_INTEGRATION.md](docs/UI_BUILDER_INTEGRATION.md) - Metadata API for dynamic form generation (like Swagger)
-- **Metadata API**: [docs/METADATA_API.md](docs/METADATA_API.md) - REST API endpoints for module metadata
-- **Architecture**: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) - Third-party integrations design
-- **Contributing Guide**: [CONTRIBUTING.md](CONTRIBUTING.md) - How to add modules
-- **Module Taxonomy**: [NAMESPACES.yaml](NAMESPACES.yaml) - All available modules
-- **Example Workflows**: [workflows/](workflows/) - Ready-to-use examples
-
----
-
-## Roadmap
-
-### Current (v1.0)
-- ✅ Core browser automation modules (Playwright)
-- ✅ Flow control (loop, condition, retry)
-- ✅ Atomic module architecture
-- ✅ YAML workflow engine
-- ✅ Environment variable support for secrets
-- ✅ Basic error handling and logging
-- ✅ Free visual UI (closed source, launching simultaneously)
-
-### Coming Soon (v1.1)
-- [ ] Enhanced observability (workflow execution dashboard)
-- [ ] Vault integration for secret management
-- [ ] More AI integrations (Claude, Gemini)
-- [ ] Database modules (PostgreSQL, MongoDB, Redis)
-- [ ] Cloud storage (S3, GCS, Azure Blob)
-- [ ] Notification modules (Slack, Discord, Email)
-- [ ] Advanced error recovery strategies
-
-### Future (v2.0)
-- [ ] Module marketplace and community modules
-- [ ] Workflow template library
-- [ ] Distributed execution engine
-- [ ] Kubernetes operator for workflow scheduling
-- [ ] Real-time collaboration in visual UI
-
-**Want to help?** Check [CONTRIBUTING.md](CONTRIBUTING.md)!
-
----
-
-## Contributing
-
-We welcome contributions! This project thrives on community modules.
-
-**Ways to contribute:**
-- ⚡ Add new atomic modules (AI, cloud, databases)
-- 📝 Improve documentation
-- 🐛 Report bugs
-- ✅ Write tests
-- 💡 Share workflow examples
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guide.
-
-### Module Development
-
-Creating a module is simple:
-
-```python
-@register_module(
-    module_id='core.browser.click',
-    label='Click Element',
-    label_key='modules.browser.click.label',
-    description='Click an element on the page'
-)
-class BrowserClickModule(BaseModule):
-    async def execute(self):
-        # Your implementation here
-        pass
-```
-
-Check existing modules in `src/core/modules/` for examples.
-
----
-
-## Project Structure
-
-```
-flyto2/
-├── cli/                  # CLI application
-├── src/
-│   └── core/
-│       └── modules/      # All modules here
-│           ├── browser_modules.py
-│           ├── api_modules.py
-│           └── atomic/
-├── workflows/            # Example YAML workflows
-├── i18n/                 # Translations
-├── docs/                 # Documentation
-│   └── DSL.md           # YAML syntax specification
-├── NAMESPACES.yaml       # Module taxonomy
-├── CONTRIBUTING.md       # How to contribute
-└── README.md            # You are here
-```
-
----
-
-## Production Examples
-
-### Example 1: Automated Competitor Monitoring
-
-Monitor competitor prices and get AI-powered insights delivered to Slack daily:
+### Example 1: GitHub Issues → Slack Alerts
 
 ```yaml
-name: "Competitor Price Monitor"
-description: "Daily competitor analysis with AI insights"
+name: "Monitor GitHub Issues"
 
 steps:
-  - id: launch_browser
+  - id: fetch_issues
+    module: api.github.list_issues
+    params:
+      owner: "facebook"
+      repo: "react"
+      state: "open"
+      labels: "bug"
+      token: "${env.GITHUB_TOKEN}"
+
+  - id: notify
+    module: notification.slack.send_message
+    if: "${fetch_issues.count > 10}"
+    params:
+      text: "⚠️ ${fetch_issues.count} open bugs!"
+```
+
+**Deploy:**
+```bash
+export GITHUB_TOKEN=ghp_xxxxx
+export SLACK_WEBHOOK_URL=https://hooks.slack.com/...
+python -m cli.main github_monitor.yaml
+```
+
+**Schedule (cron):**
+```bash
+*/15 * * * * cd /app && python -m cli.main github_monitor.yaml
+```
+
+### Example 2: Web Scraping → CSV Export
+
+```yaml
+name: "Scrape Product Prices"
+
+steps:
+  - id: browser
     module: core.browser.launch
     params:
       headless: true
@@ -805,167 +143,185 @@ steps:
   - id: navigate
     module: core.browser.goto
     params:
-      browser: "${launch_browser.browser}"
-      url: "${env.COMPETITOR_URL}"
+      browser: "${browser.browser}"
+      url: "${params.shop_url}"
 
-  - id: extract_prices
+  - id: extract
     module: core.browser.extract
     params:
-      browser: "${launch_browser.browser}"
-      selector: ".pricing-table"
+      browser: "${browser.browser}"
+      selector: ".product"
       fields:
-        plan: { selector: ".plan-name", type: "text" }
-        price: { selector: ".price-amount", type: "text" }
+        name: { selector: "h2", type: "text" }
+        price: { selector: ".price", type: "text" }
 
-  - id: ai_analysis
-    module: ai.openai.chat
+  - id: export
+    module: data.csv.write
     params:
-      api_key: "${env.OPENAI_API_KEY}"
-      prompt: |
-        Analyze competitor pricing and suggest actions:
-        ${extract_prices.data}
-
-  - id: notify_team
-    module: api.http.post
-    params:
-      url: "${env.SLACK_WEBHOOK_URL}"
-      body:
-        text: "Daily Competitor Analysis"
-        blocks:
-          - type: "section"
-            text: "${ai_analysis.message}"
+      file_path: "prices_${timestamp}.csv"
+      data: "${extract.data}"
 ```
 
-**Deploy:** `0 9 * * * python -m cli.main competitor_monitor.yaml`
+### More Examples
 
-### Example 2: Internal Admin Dashboard Automation
+- [Google Search Automation](workflows/google_search.yaml) - Browser scraping
+- [API Pipeline](workflows/api_pipeline.yaml) - Pure API workflows
+- [AI Content Summarizer](workflows/ai_content_summarizer.yaml) - Browser + OpenAI
+- [Multi-Channel Alerts](workflows/multi_channel_alert.yaml) - Slack + Discord + Telegram + Email
+- [Daily Report Email](workflows/daily_report_email.yaml) - API + Email automation
 
-Log in to your internal admin panel, pull reports, and process with AI:
-
-```yaml
-name: "Daily Admin Report"
-description: "Auto-login, extract data, summarize with AI"
-
-steps:
-  - id: launch_browser
-    module: core.browser.launch
-
-  - id: goto_login
-    module: core.browser.goto
-    params:
-      browser: "${launch_browser.browser}"
-      url: "https://admin.yourcompany.com/login"
-
-  - id: type_email
-    module: core.browser.type
-    params:
-      browser: "${launch_browser.browser}"
-      selector: "#email"
-      text: "${env.ADMIN_EMAIL}"
-
-  - id: type_password
-    module: core.browser.type
-    params:
-      browser: "${launch_browser.browser}"
-      selector: "#password"
-      text: "${env.ADMIN_PASSWORD}"
-
-  - id: submit_login
-    module: core.browser.click
-    params:
-      browser: "${launch_browser.browser}"
-      selector: "button[type=submit]"
-
-  - id: wait_dashboard
-    module: core.browser.wait
-    params:
-      browser: "${launch_browser.browser}"
-      selector: ".dashboard"
-      timeout_ms: 5000
-
-  - id: goto_reports
-    module: core.browser.goto
-    params:
-      browser: "${launch_browser.browser}"
-      url: "https://admin.yourcompany.com/reports/daily"
-
-  - id: extract_metrics
-    module: core.browser.extract
-    params:
-      browser: "${launch_browser.browser}"
-      selector: ".report-row"
-      limit: 100
-      fields:
-        metric: { selector: ".metric-name", type: "text" }
-        value: { selector: ".metric-value", type: "text" }
-
-  - id: ai_summary
-    module: ai.openai.chat
-    params:
-      api_key: "${env.OPENAI_API_KEY}"
-      prompt: "Summarize these metrics and highlight anomalies: ${extract_metrics.data}"
-
-  - id: notify_slack
-    module: api.http.post
-    params:
-      url: "${env.SLACK_WEBHOOK_URL}"
-      body: { text: "${ai_summary.message}" }
-```
-
-**Version control:** Track strategy changes with `git diff daily_report.yaml`
-
-### Example 3: SEO Rank Tracking
-
-Track keyword rankings and save historical data:
-
-```yaml
-name: "SEO Rank Tracker"
-steps:
-  - id: launch_browser
-    module: core.browser.launch
-
-  - id: search_keyword
-    module: core.browser.goto
-    params:
-      browser: "${launch_browser.browser}"
-      url: "https://google.com/search?q=${params.keyword}"
-
-  - id: extract_results
-    module: core.browser.extract
-    params:
-      browser: "${launch_browser.browser}"
-      selector: "#search .g"
-      limit: 100
-      fields:
-        position: { type: "index" }
-        title: { selector: "h3", type: "text" }
-        url: { selector: "a", type: "attribute", attribute: "href" }
-
-  - id: find_our_ranking
-    module: core.flow.loop
-    params:
-      items: "${extract_results.data}"
-      steps:
-        - module: core.data.filter
-          params:
-            condition: "${item.url} contains 'mysite.com'"
-            output: "our_ranking"
-
-  - id: save_ranking
-    module: api.http.post
-    params:
-      url: "${env.DATABASE_API}/rankings"
-      body:
-        keyword: "${params.keyword}"
-        position: "${find_our_ranking.our_ranking.position}"
-        date: "${timestamp}"
-```
-
-**Run in CI/CD:** Perfect for scheduled jobs in GitHub Actions or GitLab CI
+[→ See all 9 example workflows](workflows/)
 
 ---
 
-**More production examples:** See [workflows/](workflows/) directory for complete, runnable workflow files.
+## Documentation
+
+📘 **Essential Guides**
+- [DSL Specification](docs/DSL.md) - Complete YAML syntax reference
+- [Module Registry](docs/MODULES.md) - All available modules with parameters
+- [CLI Usage](docs/CLI.md) - Command-line interface guide
+
+🛠️ **Development**
+- [Writing Modules](docs/WRITING_MODULES.md) - Create custom modules
+- [Contributing Guide](CONTRIBUTING.md) - How to contribute
+
+🏗️ **Architecture**
+- [System Architecture](docs/ARCHITECTURE.md) - Engine design
+- [UI Builder Integration](docs/UI_BUILDER_INTEGRATION.md) - For UI developers
+
+---
+
+## Production Deployment
+
+### Docker
+
+```dockerfile
+FROM python:3.10-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install -r requirements.txt && playwright install chromium chromium-deps
+COPY . .
+CMD ["python", "-m", "cli.main", "workflows/production.yaml"]
+```
+
+### Kubernetes CronJob
+
+```yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: flyto2-daily-report
+spec:
+  schedule: "0 9 * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: flyto2
+            image: flyto2:latest
+            args: ["python", "-m", "cli.main", "workflows/daily_report.yaml"]
+            envFrom:
+            - secretRef:
+                name: flyto2-secrets
+```
+
+### GitHub Actions
+
+```yaml
+name: Run Workflow
+on:
+  schedule:
+    - cron: '0 * * * *'
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+      - run: |
+          pip install -r requirements.txt
+          playwright install chromium
+      - run: python -m cli.main workflows/production.yaml
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+```
+
+---
+
+## Architecture: Open Engine + Optional UI
+
+### 🔓 Workflow Engine (This Repository)
+
+**Open Source • MIT License • Community-Driven**
+
+The runtime that executes YAML workflows. Run anywhere, no database required.
+
+```bash
+pip install -r requirements.txt
+python -m cli.main my_workflow.yaml
+```
+
+### 🎨 Visual Workflow Builder (Separate Product)
+
+**Free to Use • Closed Source • Completely Optional**
+
+A drag-and-drop editor for building workflows visually.
+
+**Important:** The engine is fully usable without the UI. All workflows created in the UI are standard YAML files that use this open source engine.
+
+---
+
+## Roadmap
+
+**Current (v1.0-alpha)**
+- ✅ YAML workflow parser & execution engine
+- ✅ Browser automation (Playwright)
+- ✅ 20+ production-ready modules
+- ✅ Flow control (if/when, retry, error handling)
+- ✅ Integrations: Slack, Discord, Telegram, Email, GitHub, OpenAI
+
+**Coming Soon (v1.1)**
+- 🚧 Enhanced observability dashboard
+- 🚧 More AI integrations (Claude, Gemini)
+- 🚧 Database modules (PostgreSQL, MongoDB, Redis)
+- 🚧 Cloud storage (S3, GCS, Azure)
+- 🚧 Loop & parallel execution control flow
+
+**Future (v2.0)**
+- 🔮 Module marketplace
+- 🔮 Workflow template library
+- 🔮 Distributed execution engine
+- 🔮 Kubernetes operator
+
+---
+
+## Contributing
+
+We welcome contributions! **Ways to help:**
+
+- ⚡ **Add modules** - New integrations, AI services, cloud APIs
+- 📝 **Improve docs** - Better examples, tutorials
+- 🐛 **Report bugs** - Help us improve stability
+- 💡 **Share workflows** - Show the community what you build
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+### Good First Issues
+
+Looking to contribute? Check out issues tagged [`good first issue`](https://github.com/flytohub/flyto2/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22):
+
+- Add module: `api.http.delete`
+- Add example: GitHub stars scraper
+- Add module: `db.postgresql.query`
+
+---
+
+## Community
+
+- **GitHub Discussions** - [Ask questions, share workflows](https://github.com/flytohub/flyto2/discussions)
+- **Issues** - [Report bugs, request features](https://github.com/flytohub/flyto2/issues)
+- **Contributing** - [How to contribute](CONTRIBUTING.md)
 
 ---
 
@@ -973,37 +329,36 @@ steps:
 
 MIT License - see [LICENSE](LICENSE) file.
 
-Feel free to use this in commercial projects!
+**You can:**
+✅ Use commercially
+✅ Modify and distribute
+✅ Use in proprietary software
+✅ Sub-license
+
+**You must:**
+📋 Include license and copyright notice
 
 ---
 
 ## Acknowledgments
 
-Built with:
+**Built with:**
 - [Playwright](https://playwright.dev/) - Browser automation
 - Python's async/await - Performance
 
-Inspired by:
+**Inspired by:**
 - Unix philosophy - Do one thing well
-- LEGO blocks - Composable modules
 - YAML - Human-readable configuration
-
----
-
-## Community
-
-- **GitHub Issues**: [Report bugs or request features](https://github.com/flytohub/flyto2/issues)
-- **Discussions**: [Ask questions, share workflows](https://github.com/flytohub/flyto2/discussions)
-- **Contributing**: [Join the development](CONTRIBUTING.md)
+- Git workflows - Version-controlled automation
 
 ---
 
 <div align="center">
 
-**If you find this useful, give it a ⭐!**
+**If this project helps you, give it a ⭐!**
 
-**Flyto2: Open Engine • Free UI • Portable YAML**
+[🌟 Star on GitHub](https://github.com/flytohub/flyto2) • [📖 Read Docs](docs/) • [💬 Discussions](https://github.com/flytohub/flyto2/discussions)
 
-[⭐ Star](https://github.com/flytohub/flyto2) | [🐛 Report Bug](https://github.com/flytohub/flyto2/issues) | [💡 Request Feature](https://github.com/flytohub/flyto2/issues)
+**Flyto2: Git-Native Workflow Automation**
 
 </div>
