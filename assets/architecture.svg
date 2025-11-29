@@ -1,0 +1,56 @@
+<svg width="600" height="400" xmlns="http://www.w3.org/2000/svg">
+  <!-- Title -->
+  <text x="300" y="30" font-family="Arial, sans-serif" font-size="18" font-weight="bold" text-anchor="middle" fill="#1F2937">
+    Flyto Architecture
+  </text>
+
+  <!-- User -->
+  <rect x="250" y="50" width="100" height="60" fill="#DBEAFE" stroke="#3B82F6" stroke-width="2" rx="5"/>
+  <text x="300" y="75" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="#1F2937">User</text>
+  <text x="300" y="95" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#4B5563">(Developer/</text>
+  <text x="300" y="108" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#4B5563">Automation)</text>
+
+  <!-- Arrow from User to UI -->
+  <path d="M 300 110 L 300 140" stroke="#6B7280" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <text x="320" y="130" font-family="Arial, sans-serif" font-size="10" fill="#6B7280">creates</text>
+
+  <!-- UI Box -->
+  <rect x="200" y="140" width="200" height="80" fill="#FEF3C7" stroke="#F59E0B" stroke-width="2" rx="5"/>
+  <text x="300" y="165" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="#1F2937">Flyto Visual Builder</text>
+  <text x="300" y="182" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#78350F">(UI - Closed Source)</text>
+  <text x="300" y="200" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="#92400E">Free to use</text>
+  <text x="300" y="213" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="#92400E">Drag-and-drop editor</text>
+
+  <!-- Arrow from UI to Engine -->
+  <path d="M 300 220 L 300 250" stroke="#6B7280" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <text x="330" y="240" font-family="Arial, sans-serif" font-size="10" fill="#6B7280">generates YAML</text>
+
+  <!-- Engine Box -->
+  <rect x="150" y="250" width="300" height="90" fill="#D1FAE5" stroke="#10B981" stroke-width="3" rx="5"/>
+  <text x="300" y="275" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="#1F2937">Flyto Workflow Engine</text>
+  <text x="300" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#065F46">(Engine - MIT Open Source)</text>
+  <text x="300" y="310" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="#047857">YAML Parser • Module Registry • Execution Runtime</text>
+  <text x="300" y="328" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="#047857">Browser • AI • API • Data Processing</text>
+
+  <!-- Arrow from Engine to External -->
+  <path d="M 300 340 L 300 370" stroke="#6B7280" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <text x="340" y="360" font-family="Arial, sans-serif" font-size="10" fill="#6B7280">executes automation</text>
+
+  <!-- External Services -->
+  <rect x="50" y="370" width="500" height="20" fill="#E5E7EB" stroke="#9CA3AF" stroke-width="1" rx="3"/>
+  <text x="300" y="384" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="#374151">Playwright • OpenAI • Slack • GitHub • PostgreSQL • AWS S3 • ...</text>
+
+  <!-- Legend -->
+  <text x="20" y="30" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#6B7280">Legend:</text>
+  <rect x="20" y="40" width="15" height="15" fill="#D1FAE5" stroke="#10B981" stroke-width="2" rx="2"/>
+  <text x="40" y="51" font-family="Arial, sans-serif" font-size="9" fill="#374151">MIT Open Source</text>
+  <rect x="20" y="60" width="15" height="15" fill="#FEF3C7" stroke="#F59E0B" stroke-width="2" rx="2"/>
+  <text x="40" y="71" font-family="Arial, sans-serif" font-size="9" fill="#374151">Free but Closed</text>
+
+  <!-- Arrow marker definition -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#6B7280" />
+    </marker>
+  </defs>
+</svg>

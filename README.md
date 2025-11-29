@@ -253,24 +253,44 @@ jobs:
 
 ---
 
-## Architecture: Open Engine + Optional UI
+## License Model
 
-### 🔓 Workflow Engine (This Repository)
+Flyto adopts a **hybrid licensing model** similar to Supabase, AppSmith, and n8n:
 
-**Open Source • MIT License • Community-Driven**
+<div align="center">
+  <img src="assets/architecture.svg" alt="Flyto Architecture" width="600"/>
+</div>
 
-The runtime that executes YAML workflows. Run anywhere, no database required.
+### 🔓 Flyto Engine — MIT License (Fully Open Source)
 
+**This Repository** (Engine + Modules + CLI) is released under MIT License:
+
+✅ **Free to use commercially** - Integrate into any product or service
+✅ **Free to fork** - Create your own version
+✅ **Free to modify** - Customize for your needs
+✅ **Free to embed** - Build SaaS products on top
+✅ **No restrictions** - Do whatever you want
+
+MIT License is the most permissive and contributor-friendly license.
+
+**Run the engine:**
 ```bash
 pip install -r requirements.txt
 python -m cli.main my_workflow.yaml
 ```
 
-### 🎨 Visual Workflow Builder (Separate Product)
+### 🎨 Flyto Visual Builder (UI) — Free but Closed-Source
 
-**Free to Use • Closed Source • Completely Optional**
+The drag-and-drop workflow builder will be:
 
-A drag-and-drop editor for building workflows visually.
+✅ **Free to use** - No subscription, no feature locks
+✅ **Connects to the engine** - Uses all open source modules
+✅ **Maintained long-term** - Continuously updated
+
+⚠️ **UI code is closed-source** (not open source), but will remain **free forever**.
+
+**Why this model?**
+All core technology is MIT open source. The visual builder is kept private to ensure quality, but provided free to the community. This is the same model used by successful open source projects like Supabase Studio and n8n Cloud.
 
 **Important:** The engine is fully usable without the UI. All workflows created in the UI are standard YAML files that use this open source engine.
 
@@ -331,16 +351,13 @@ Looking to contribute? Check out issues tagged [`good first issue`](https://gith
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) file.
+**Flyto Engine (This Repository):** [MIT License](LICENSE)
 
-**You can:**
-✅ Use commercially
-✅ Modify and distribute
-✅ Use in proprietary software
-✅ Sub-license
+The workflow engine, all modules, CLI, and documentation in this repository are fully open source under MIT License.
 
-**You must:**
-📋 Include license and copyright notice
+**Flyto Visual Builder (UI):** Closed-source but free to use
+
+For complete licensing details, see the [License Model](#license-model) section above.
 
 ---
 

@@ -9,6 +9,7 @@ Please add your logo files here:
 ### Required Files
 - `logo.svg` - Main logo (vector format, recommended)
 - `logo.png` - PNG fallback (transparent background)
+- `architecture.svg` - Architecture diagram showing Engine/UI separation
 
 ### Recommended Sizes
 - **512x512** - GitHub repository avatar
