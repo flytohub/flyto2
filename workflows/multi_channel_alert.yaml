@@ -1,0 +1,152 @@
+# Multi-Channel Alert System
+# Send the same alert to Slack, Discord, Telegram, and Email
+
+id: multi-channel-alert
+name: "Multi-Channel Alert System"
+version: "1.0.0"
+description: "Send urgent alerts to multiple notification channels simultaneously"
+author: "Flyto2 Team"
+tags: ["notification", "slack", "discord", "telegram", "email", "alert"]
+
+# User parameters
+params:
+  - name: alert_title
+    type: string
+    label: "Alert Title"
+    description: "Alert title/subject"
+    required: true
+    default: "🚨 URGENT ALERT"
+
+  - name: alert_message
+    type: string
+    label: "Alert Message"
+    description: "The alert message content"
+    required: true
+    placeholder: "System critical error detected!"
+
+  - name: severity
+    type: string
+    label: "Severity Level"
+    description: "Alert severity"
+    required: false
+    default: "high"
+
+# Workflow steps
+steps:
+  # === Generate Alert ID ===
+  - id: generate_id
+    module: utility.random.string
+    description: "Generate unique alert ID"
+    params:
+      charset: "uuid"
+
+  # === Get Timestamp ===
+  - id: timestamp
+    module: utility.datetime.now
+    description: "Get current timestamp"
+    params:
+      format: "iso"
+
+  # === Format Full Message ===
+  - id: format_message
+    module: data.text.template
+    description: "Format complete alert message"
+    params:
+      template: |
+        {title}
+
+        Message: {message}
+        Severity: {severity}
+        Alert ID: {alert_id}
+        Time: {time}
+      variables:
+        title: "${params.alert_title}"
+        message: "${params.alert_message}"
+        severity: "${params.severity}"
+        alert_id: "${generate_id.value}"
+        time: "${timestamp.datetime}"
+
+  # === Send to Slack ===
+  - id: send_slack
+    module: notification.slack.send_message
+    description: "Send to Slack"
+    params:
+      webhook_url: "${env.SLACK_WEBHOOK_URL}"
+      text: "${format_message.result}"
+      channel: "#alerts"
+      username: "Alert System"
+      icon_emoji: ":rotating_light:"
+    on_error: "continue"
+
+  # === Send to Discord ===
+  - id: send_discord
+    module: notification.discord.send_message
+    description: "Send to Discord"
+    params:
+      webhook_url: "${env.DISCORD_WEBHOOK_URL}"
+      content: "${format_message.result}"
+      username: "Alert System"
+    on_error: "continue"
+
+  # === Send to Telegram ===
+  - id: send_telegram
+    module: notification.telegram.send_message
+    description: "Send to Telegram"
+    params:
+      bot_token: "${env.TELEGRAM_BOT_TOKEN}"
+      chat_id: "${env.TELEGRAM_CHAT_ID}"
+      text: "${format_message.result}"
+      parse_mode: "Markdown"
+    on_error: "continue"
+
+  # === Send Email ===
+  - id: send_email
+    module: notification.email.send
+    description: "Send email alert"
+    params:
+      smtp_server: "${env.SMTP_SERVER}"
+      smtp_port: 587
+      username: "${env.SMTP_USERNAME}"
+      password: "${env.SMTP_PASSWORD}"
+      from_email: "alerts@company.com"
+      to_email: "${env.ALERT_EMAIL}"
+      subject: "${params.alert_title}"
+      body: "${format_message.result}"
+      html: false
+    on_error: "continue"
+
+  # === Generate Summary ===
+  - id: summary
+    module: data.json.stringify
+    description: "Generate delivery summary"
+    params:
+      data:
+        alert_id: "${generate_id.value}"
+        timestamp: "${timestamp.datetime}"
+        channels_sent:
+          slack: "${send_slack.sent}"
+          discord: "${send_discord.sent}"
+          telegram: "${send_telegram.sent}"
+          email: "${send_email.sent}"
+      pretty: true
+
+# Output
+output:
+  alert_id: "${generate_id.value}"
+  alert_title: "${params.alert_title}"
+  timestamp: "${timestamp.datetime}"
+  delivery_summary:
+    slack: "${send_slack.sent}"
+    discord: "${send_discord.sent}"
+    telegram: "${send_telegram.sent}"
+    email: "${send_email.sent}"
+
+# Environment variables needed:
+# - SLACK_WEBHOOK_URL: Slack webhook URL
+# - DISCORD_WEBHOOK_URL: Discord webhook URL
+# - TELEGRAM_BOT_TOKEN: Telegram bot token
+# - TELEGRAM_CHAT_ID: Telegram chat ID
+# - SMTP_SERVER: SMTP server
+# - SMTP_USERNAME: SMTP username
+# - SMTP_PASSWORD: SMTP password
+# - ALERT_EMAIL: Alert recipient email

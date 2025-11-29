@@ -343,19 +343,51 @@ All examples in this README follow a consistent variable access pattern:
 
 ---
 
-## Third-party Integrations
+## Built-in Integrations & Modules
 
-Flyto2 follows a modular architecture similar to n8n - the core engine is lightweight, and you install only the integrations you need.
+Flyto2 comes with **production-ready integrations** out of the box - no additional packages needed for most common use cases!
 
-### Available Integrations
+### 🔔 Notification & Messaging
 
-| Integration | Install Command | Modules | Status |
-|-------------|----------------|---------|--------|
-| **OpenAI** | `pip install openai` | `core.ai.openai.chat`<br/>`core.ai.analyze_text`<br/>`core.ai.summarize` | ✅ Available |
-| **Anthropic** | `pip install anthropic` | Coming soon | 🚧 Planned |
-| **Google Gemini** | `pip install google-generativeai` | Coming soon | 🚧 Planned |
-| **Slack** | `pip install slack-sdk` | Coming soon | 🚧 Planned |
-| **Discord** | `pip install discord.py` | Coming soon | 🚧 Planned |
+| Service | Module ID | Features | Setup |
+|---------|-----------|----------|-------|
+| **Slack** | `notification.slack.send_message` | Webhooks, custom channels, formatting | Get webhook URL from Slack |
+| **Discord** | `notification.discord.send_message` | Webhooks, embeds, custom avatars | Get webhook from Discord server |
+| **Telegram** | `notification.telegram.send_message` | Bot API, Markdown/HTML support | Get bot token from @BotFather |
+| **Email** | `notification.email.send` | SMTP, HTML emails, attachments | Any SMTP server (Gmail, etc.) |
+
+### 🔗 Third-party APIs
+
+| Service | Module ID | Features | Status |
+|---------|-----------|----------|--------|
+| **GitHub** | `api.github.get_repo`<br/>`api.github.list_issues`<br/>`api.github.create_issue` | Repository info, issues, PRs | ✅ Available |
+| **HTTP/REST** | `api.http.get`<br/>`api.http.post` | Any REST API, custom headers | ✅ Available |
+| **OpenAI** | `ai.openai.chat`<br/>`ai.openai.completion` | GPT-4, embeddings, analysis | ✅ Available (`pip install openai`) |
+
+### 📊 Data Processing
+
+| Category | Module ID | Features |
+|----------|-----------|----------|
+| **CSV** | `data.csv.read`<br/>`data.csv.write` | Parse CSV, export data |
+| **JSON** | `data.json.parse`<br/>`data.json.stringify` | Parse/serialize JSON |
+| **Templates** | `data.text.template` | Variable substitution |
+
+### 🛠️ Utilities
+
+| Category | Module ID | Use Cases |
+|----------|-----------|-----------|
+| **Timing** | `utility.delay` | Rate limiting, delays between requests |
+| **Random** | `utility.random.number`<br/>`utility.random.string` | Generate test data, UUIDs, tokens |
+| **DateTime** | `utility.datetime.now` | Timestamps, date formatting |
+| **Crypto** | `utility.hash.md5` | Checksums, hashing |
+
+### 🚧 Coming Soon
+
+| Integration | Install Command | Status |
+|-------------|----------------|--------|
+| **Anthropic Claude** | `pip install anthropic` | Planned |
+| **Google Gemini** | `pip install google-generativeai` | Planned |
+| **Database** | PostgreSQL, MongoDB, Redis | Planned |
 
 ### How to Use Integrations
 
@@ -542,13 +574,34 @@ Unlike n8n or Zapier, your workflows aren't trapped in a database:
 
 Ready-to-use workflow examples in [`workflows/`](workflows/):
 
-| Workflow | Description | Technologies | Use Case |
-|----------|-------------|--------------|----------|
-| [`google_search.yaml`](workflows/google_search.yaml) | Google search automation | Browser, Playwright | Web scraping, SEO tracking |
-| [`api_pipeline.yaml`](workflows/api_pipeline.yaml) | Pure API data pipeline | HTTP, REST APIs | Data aggregation, no browser needed |
-| [`ai_content_summarizer.yaml`](workflows/ai_content_summarizer.yaml) | Article scraping + AI summary | Browser, OpenAI | Content analysis, research automation |
-| [`authenticated_scraping.yaml`](workflows/authenticated_scraping.yaml) | Login + extract protected data | Browser, Forms | Internal dashboards, member portals |
-| [`pagination_scraper.yaml`](workflows/pagination_scraper.yaml) | Multi-page data extraction | Browser, Loops | E-commerce, job boards, listings |
+### 🌐 Browser Automation
+
+| Workflow | Description | Technologies |
+|----------|-------------|--------------|
+| [`google_search.yaml`](workflows/google_search.yaml) | Google search automation | Browser, Playwright |
+| [`authenticated_scraping.yaml`](workflows/authenticated_scraping.yaml) | Login + extract protected data | Browser, Forms |
+| [`pagination_scraper.yaml`](workflows/pagination_scraper.yaml) | Multi-page data extraction | Browser, Loops |
+| [`ai_content_summarizer.yaml`](workflows/ai_content_summarizer.yaml) | Article scraping + AI summary | Browser, OpenAI |
+
+### 🔗 API Integration & Automation
+
+| Workflow | Description | Technologies |
+|----------|-------------|--------------|
+| [`api_pipeline.yaml`](workflows/api_pipeline.yaml) | Pure API data pipeline | HTTP, REST APIs |
+| [`github_to_slack.yaml`](workflows/github_to_slack.yaml) | Monitor GitHub issues → Slack alerts | GitHub API, Slack webhook |
+| [`daily_report_email.yaml`](workflows/daily_report_email.yaml) | Fetch metrics + email report | API, Email, Templates |
+
+### 📊 Data Processing
+
+| Workflow | Description | Technologies |
+|----------|-------------|--------------|
+| [`data_scraping_to_csv.yaml`](workflows/data_scraping_to_csv.yaml) | Scrape web data → export CSV | Browser, CSV, Notifications |
+
+### 🔔 Multi-Channel Notifications
+
+| Workflow | Description | Technologies |
+|----------|-------------|--------------|
+| [`multi_channel_alert.yaml`](workflows/multi_channel_alert.yaml) | Send alerts to Slack/Discord/Telegram/Email | All notification services |
 
 **Run any example:**
 ```bash

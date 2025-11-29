@@ -1,0 +1,124 @@
+# Web Scraping → CSV Export
+# Scrape data from web pages and export to CSV file
+
+id: scraping-to-csv
+name: "Web Scraping → CSV Export"
+version: "1.0.0"
+description: "Scrape product data and export to CSV file"
+author: "Flyto2 Team"
+tags: ["scraping", "csv", "data", "export", "automation"]
+
+# User parameters
+params:
+  - name: target_url
+    type: string
+    label: "Target URL"
+    description: "URL to scrape"
+    required: true
+    default: "https://example.com/products"
+
+  - name: output_file
+    type: string
+    label: "Output CSV File"
+    description: "Where to save the CSV"
+    required: false
+    default: "output/scraped_data.csv"
+
+# Workflow steps
+steps:
+  # === Launch Browser ===
+  - id: browser
+    module: core.browser.launch
+    description: "Launch headless browser"
+    params:
+      headless: true
+
+  # === Navigate to Page ===
+  - id: navigate
+    module: core.browser.goto
+    description: "Go to target URL"
+    params:
+      browser: "${browser.browser}"
+      url: "${params.target_url}"
+      wait_until: "networkidle"
+
+  # === Wait for Content ===
+  - id: wait_content
+    module: core.browser.wait
+    description: "Wait for products to load"
+    params:
+      browser: "${browser.browser}"
+      selector: ".product, .item, [data-product]"
+      timeout_ms: 10000
+
+  # === Extract Product Data ===
+  - id: extract_data
+    module: core.browser.extract
+    description: "Extract product information"
+    params:
+      browser: "${browser.browser}"
+      selector: ".product, .item"
+      limit: 50
+      fields:
+        name:
+          selector: "h2, .product-name, .title"
+          type: "text"
+        price:
+          selector: ".price, .amount"
+          type: "text"
+        url:
+          selector: "a"
+          type: "attribute"
+          attribute: "href"
+        image:
+          selector: "img"
+          type: "attribute"
+          attribute: "src"
+
+  # === Generate Unique ID for Each Row ===
+  - id: add_ids
+    module: utility.random.string
+    description: "Generate batch ID"
+    params:
+      charset: "uuid"
+
+  # === Add Timestamp ===
+  - id: get_timestamp
+    module: utility.datetime.now
+    description: "Get current timestamp"
+    params:
+      format: "iso"
+
+  # === Write to CSV ===
+  - id: export_csv
+    module: data.csv.write
+    description: "Export data to CSV file"
+    params:
+      file_path: "${params.output_file}"
+      data: "${extract_data.data}"
+      delimiter: ","
+      encoding: "utf-8"
+
+  # === Close Browser ===
+  - id: close
+    module: core.browser.close
+    description: "Close browser"
+    params:
+      browser: "${browser.browser}"
+
+  # === Send Completion Notification (Optional) ===
+  - id: notify_complete
+    module: notification.slack.send_message
+    description: "Notify completion"
+    params:
+      webhook_url: "${env.SLACK_WEBHOOK_URL}"
+      text: "✅ Data scraping completed! Exported ${export_csv.rows_written} rows to ${params.output_file}"
+    on_error: "continue"
+
+# Output
+output:
+  url: "${params.target_url}"
+  items_scraped: "${extract_data.count}"
+  csv_file: "${export_csv.file_path}"
+  rows_written: "${export_csv.rows_written}"
+  timestamp: "${get_timestamp.iso}"
