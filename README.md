@@ -490,7 +490,8 @@ Unlike n8n or Zapier, your workflows aren't trapped in a database:
 
 - **DSL Specification**: [docs/DSL.md](docs/DSL.md) - Complete YAML workflow syntax reference
 - **UI Builder Integration**: [docs/UI_BUILDER_INTEGRATION.md](docs/UI_BUILDER_INTEGRATION.md) - Metadata API for dynamic form generation (like Swagger)
-- **Metadata API**: [METADATA_API_COMPLETE.md](METADATA_API_COMPLETE.md) - REST API endpoints for module metadata
+- **Metadata API**: [docs/METADATA_API.md](docs/METADATA_API.md) - REST API endpoints for module metadata
+- **Architecture**: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) - Third-party integrations design
 - **Contributing Guide**: [CONTRIBUTING.md](CONTRIBUTING.md) - How to add modules
 - **Module Taxonomy**: [NAMESPACES.yaml](NAMESPACES.yaml) - All available modules
 - **Example Workflows**: [workflows/](workflows/) - Ready-to-use examples
