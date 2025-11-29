@@ -31,6 +31,7 @@ from . import file
 from . import string
 from . import array
 from . import math
+from . import datetime
 
 __all__ = [
     'BrowserFindModule',

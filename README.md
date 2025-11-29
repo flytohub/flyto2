@@ -76,26 +76,26 @@ python -m cli.main my_workflow.yaml
 
 ## Built-in Integrations
 
-Flyto2 comes with **67 production-ready modules** organized by architecture:
+Flyto2 comes with **85 production-ready modules** organized by architecture:
 
-### Atomic Modules (40 modules)
+### Atomic Modules (52 modules)
 Core building blocks with no external dependencies:
 - **Browser** - Launch, navigate, click, type, extract, screenshot, press, find, wait (9)
 - **File** - Read, write, exists, delete, move, copy (6)
 - **String** - Split, replace, regex, trim, lowercase, uppercase, titlecase (7)
-- **Array** - Filter, sort, unique (3)
+- **Array** - Filter, sort, unique, map, reduce, join (6)
 - **Data** - CSV read/write, JSON parse/stringify, text templates (5)
-- **Math** - Calculate (1)
+- **Math** - Calculate, round, floor, ceil, abs, power (6)
 - **Element** - Query, text, attribute (3)
-- **Utilities** - Delay, random numbers/strings, datetime, hash (5)
+- **Utilities** - Delay, random numbers/strings, datetime operations (format, parse, add, subtract), hash (9)
 - **Flow** - Loop control (1)
 
-### Third-party Integrations (27 modules)
+### Third-party Integrations (33 modules)
 Connect to external services and platforms:
-- **AI** - OpenAI GPT, OpenAI DALL-E, Anthropic Claude, Google Gemini (4)
+- **AI** - OpenAI GPT/DALL-E, Anthropic Claude, Google Gemini, AI Agents (autonomous, chain) (6)
 - **Communication** - Slack, Discord, Telegram, Email SMTP (4)
 - **Databases** - PostgreSQL, MySQL, MongoDB find/insert, Redis get/set (6)
-- **Cloud** - AWS S3 upload/download (2)
+- **Cloud** - AWS S3, Google Cloud Storage, Azure Blob Storage (6)
 - **Productivity** - Notion pages/databases, Google Sheets read/write (4)
 - **Developer** - GitHub repos/issues/create, HTTP GET/POST, Google Search, SerpAPI (7)
 
@@ -310,30 +310,30 @@ All core technology is MIT open source. The visual builder is kept private to en
 **Current (v1.0-alpha)** - Fully Implemented ✅
 - ✅ YAML workflow parser & execution engine
 - ✅ Browser automation (Playwright)
-- ✅ **67 production-ready modules** (atomic + third-party)
+- ✅ **85 production-ready modules** (atomic + third-party)
 - ✅ Phase 2: Execution control (timeout, retry, concurrency)
 - ✅ Phase 2: Security settings (credentials, permissions, sensitive data)
 - ✅ Flow control (if/when, retry, error handling, loops)
 - ✅ AI: OpenAI GPT, OpenAI DALL-E, Anthropic Claude, Google Gemini
+- ✅ AI Agents: Autonomous agent, Chain agent
 - ✅ Communication: Slack, Discord, Telegram, Email
 - ✅ Databases: PostgreSQL, MySQL, MongoDB, Redis
-- ✅ Cloud: AWS S3
+- ✅ Cloud: AWS S3, Google Cloud Storage, Azure Blob Storage
 - ✅ Productivity: Notion, Google Sheets
 - ✅ Developer: GitHub, HTTP APIs
 - ✅ i18n support: English, Chinese, Japanese
 - ✅ File operations: Read, write, delete, move, copy
-- ✅ String operations: Trim, case conversion, regex
+- ✅ String operations: Split, replace, regex, trim, case conversion
+- ✅ Array operations: Filter, sort, unique, map, reduce, join
+- ✅ Math operations: Calculate, round, floor, ceil, abs, power
+- ✅ Datetime operations: Format, parse, add, subtract
 
 **Coming Soon (v1.1)** - Help Wanted!
-- 🚧 Array operations: Map, reduce, join
-- 🚧 Math operations: Round, floor, ceil, abs
-- 🚧 Datetime operations: Format, add, subtract, parse
-- 🚧 GCS (Google Cloud Storage) module
-- 🚧 Azure Blob Storage module
-- 🚧 AI Agent modules (autonomous, chain, ReAct)
 - 🚧 Enhanced observability dashboard
 - 🚧 Parallel execution blocks in DSL
 - 🚧 More example workflows
+- 🚧 Additional AI agent patterns (ReAct, tool-using agents)
+- 🚧 More cloud providers (DigitalOcean Spaces, Cloudflare R2)
 
 **Future (v2.0)** - Community Driven
 - 💡 Module marketplace
@@ -359,13 +359,14 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 Looking to contribute? Great starting points for new contributors:
 
-- 🔰 Add module: `array.map` (Array map operation)
-- 🔰 Add module: `array.reduce` (Array reduce operation)
-- 🔰 Add module: `math.round/floor/ceil` (Math operations)
-- 🔰 Add module: `datetime.format` (Date formatting)
 - 🔰 Add module: `api.http.delete` (HTTP DELETE requests)
-- 🔰 Add module: `cloud.gcs.upload` (Google Cloud Storage)
-- 🔰 Add module: `agent.autonomous` (AI agent with memory)
+- 🔰 Add module: `api.http.put` (HTTP PUT requests)
+- 🔰 Add module: `api.http.patch` (HTTP PATCH requests)
+- 🔰 Add module: `cloud.digitalocean.upload` (DigitalOcean Spaces)
+- 🔰 Add module: `cloud.cloudflare.upload` (Cloudflare R2)
+- 🔰 Add module: `agent.react` (ReAct pattern AI agent)
+- 🔰 Add module: `string.substring` (Extract substring)
+- 🔰 Add module: `array.slice` (Array slicing)
 - 🔰 Add example: GitHub stars scraper workflow
 - 🔰 Add example: AI content generator with GPT-4/Claude/Gemini
 - 🔰 Improve docs: Add tutorial for building custom modules
