@@ -11,7 +11,13 @@ flyto2/                          # GitHub Repository
 │   ├── README.md                # Project homepage
 │   ├── CONTRIBUTING.md          # Contribution guide
 │   ├── LICENSE                  # MIT License
-│   └── PROJECT_STRUCTURE.md     # This file
+│   ├── PROJECT_STRUCTURE.md     # This file
+│   └── GITHUB_METADATA.md       # GitHub repository metadata guide
+│
+├── 🎨 assets/                   # Brand Assets
+│   ├── logo.svg                 # Flyto logo (vector)
+│   ├── architecture.svg         # Architecture diagram
+│   └── README.md                # Asset specifications
 │
 ├── 📦 Installation
 │   ├── setup.py                 # Package setup
@@ -21,8 +27,10 @@ flyto2/                          # GitHub Repository
 │
 ├── 📖 docs/                     # Detailed Documentation
 │   ├── DSL.md                   # YAML workflow syntax
+│   ├── MODULES.md               # Complete module reference
+│   ├── CLI.md                   # CLI usage guide
+│   ├── WRITING_MODULES.md       # Module development guide
 │   ├── ARCHITECTURE.md          # System architecture
-│   ├── METADATA_API.md          # REST API reference
 │   └── UI_BUILDER_INTEGRATION.md  # UI integration guide
 │
 ├── 💻 src/                      # Source Code
@@ -30,16 +38,35 @@ flyto2/                          # GitHub Repository
 │   │   ├── engine/              # Workflow execution engine
 │   │   │   ├── variable_resolver.py
 │   │   │   └── workflow_engine.py
-│   │   ├── modules/             # Module system
+│   │   ├── modules/             # Module System (Three-tier Architecture)
+│   │   │   ├── __init__.py      # Main module entry point
 │   │   │   ├── registry.py      # Module registry
 │   │   │   ├── base.py          # Base module class
-│   │   │   ├── browser_modules.py
-│   │   │   ├── api_modules.py
-│   │   │   └── atomic/          # Atomic modules
-│   │   └── browser/             # Browser automation
+│   │   │   │
+│   │   │   ├── atomic/          # Atomic Modules (no external dependencies)
+│   │   │   │   ├── browser_ops/ # Browser automation (Playwright)
+│   │   │   │   ├── data/        # Data transformation (CSV, JSON)
+│   │   │   │   ├── utility/     # Utilities (delay, random, hash)
+│   │   │   │   ├── file/        # File operations (read, write, exists)
+│   │   │   │   ├── string/      # String processing (split, replace, regex)
+│   │   │   │   ├── array/       # Array manipulation (filter, sort, unique)
+│   │   │   │   └── math/        # Math operations (calculate)
+│   │   │   │
+│   │   │   ├── third_party/     # Third-party Integrations
+│   │   │   │   ├── ai/          # AI services (OpenAI, Claude, Gemini)
+│   │   │   │   ├── communication/  # Messaging (Slack, Discord, Telegram, Email)
+│   │   │   │   ├── database/    # Databases (PostgreSQL, MySQL, MongoDB)
+│   │   │   │   ├── cloud/       # Cloud storage (AWS S3)
+│   │   │   │   ├── productivity/   # Productivity tools (Notion, Google Sheets)
+│   │   │   │   └── developer/   # Developer tools (GitHub, HTTP APIs)
+│   │   │   │
+│   │   │   └── composite/       # Composite Modules (high-level templates)
+│   │   │       └── README.md    # Coming in v1.1
+│   │   │
+│   │   └── browser/             # Browser automation driver
 │   │       └── driver.py        # Playwright driver
 │   │
-│   ├── integrations/            # Third-party integrations (optional)
+│   ├── integrations/            # Legacy integrations (deprecated)
 │   │   ├── __init__.py
 │   │   └── openai_integration.py
 │   │
@@ -61,8 +88,12 @@ flyto2/                          # GitHub Repository
 │   └── start_api_server.py      # API server launcher
 │
 ├── 📋 workflows/                # Example Workflows
-│   ├── google_search.yaml       # Google search example
-│   └── test_simple.yaml         # Simple test workflow
+│   ├── google_search.yaml       # Google search automation
+│   ├── api_pipeline.yaml        # API integration pipeline
+│   ├── ai_content_summarizer.yaml  # Browser + AI workflow
+│   ├── multi_channel_alert.yaml # Multi-channel notifications
+│   ├── daily_report_email.yaml  # Scheduled reporting
+│   └── [5 more examples]        # Additional workflow templates
 │
 ├── 📝 examples/                 # Configuration Examples
 │   ├── engine.yaml              # Engine config example
@@ -81,12 +112,30 @@ All production code lives here. The main components are:
 
 - **core/** - The heart of flyto2
   - `engine/` - Workflow execution, variable resolution
-  - `modules/` - All workflow modules (browser, API, AI, etc.)
+  - `modules/` - Three-tier module architecture (see below)
   - `browser/` - Playwright browser automation driver
 
-- **integrations/** - Third-party service integrations
+- **core/modules/** - Three-tier Module System
+  - **atomic/** - Atomic modules (no external dependencies)
+    - `browser_ops/` - Browser automation with Playwright
+    - `data/` - CSV, JSON processing
+    - `utility/` - Delay, random, hash functions
+    - `file/` - File operations (read, write, exists)
+    - `string/` - String processing (split, replace, regex)
+    - `array/` - Array manipulation (filter, sort, unique)
+    - `math/` - Mathematical operations
+  - **third_party/** - External service integrations
+    - `ai/` - OpenAI, Claude, Gemini
+    - `communication/` - Slack, Discord, Telegram, Email
+    - `database/` - PostgreSQL, MySQL, MongoDB
+    - `cloud/` - AWS S3
+    - `productivity/` - Notion, Google Sheets
+    - `developer/` - GitHub, HTTP APIs
+  - **composite/** - High-level workflow templates (v1.1)
+
+- **integrations/** - Legacy integrations (being phased out)
   - Optional dependencies, install what you need
-  - Example: OpenAI, Anthropic, Gemini
+  - Being migrated to `modules/third_party/`
 
 - **ui/web/backend/** - REST API for UI builders
   - Metadata API endpoints
@@ -94,6 +143,12 @@ All production code lives here. The main components are:
 
 - **cli/** - Command-line interface
   - Workflow execution from terminal
+
+### Brand Assets (`assets/`)
+Visual assets for branding and documentation:
+- `logo.svg` - Official Flyto2 logo (vector format)
+- `architecture.svg` - System architecture diagram
+- `README.md` - Asset specifications and usage guidelines
 
 ### Tests (`tests/`)
 All test files in one place. Run with:
@@ -162,5 +217,5 @@ This structure follows GitHub best practices:
 
 ---
 
-**Last updated**: 2024-11-29
+**Last updated**: 2025-11-30
 **Repository**: https://github.com/flytohub/flyto2
