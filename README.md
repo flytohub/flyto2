@@ -200,6 +200,7 @@ kubectl create configmap workflow --from-file=workflow.yaml
 
 ### Developer Experience
 - 🎨 **Free Visual Builder** - Optional drag-and-drop UI (closed source, free to use)
+- 🔌 **Metadata API** - REST API for UI builders to auto-generate forms (like Swagger)
 - ☁️ **Deploy Anywhere** - Local, Docker, Kubernetes, Lambda, CI/CD
 - 🌍 **i18n Support** - Multi-language module labels and descriptions
 - 📝 **Git Native** - Diff workflows, PR reviews, version control
@@ -488,6 +489,8 @@ Unlike n8n or Zapier, your workflows aren't trapped in a database:
 ## Documentation
 
 - **DSL Specification**: [docs/DSL.md](docs/DSL.md) - Complete YAML workflow syntax reference
+- **UI Builder Integration**: [docs/UI_BUILDER_INTEGRATION.md](docs/UI_BUILDER_INTEGRATION.md) - Metadata API for dynamic form generation (like Swagger)
+- **Metadata API**: [METADATA_API_COMPLETE.md](METADATA_API_COMPLETE.md) - REST API endpoints for module metadata
 - **Contributing Guide**: [CONTRIBUTING.md](CONTRIBUTING.md) - How to add modules
 - **Module Taxonomy**: [NAMESPACES.yaml](NAMESPACES.yaml) - All available modules
 - **Example Workflows**: [workflows/](workflows/) - Ready-to-use examples
