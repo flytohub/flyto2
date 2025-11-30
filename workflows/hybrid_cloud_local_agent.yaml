@@ -1,0 +1,100 @@
+name: "Hybrid Agent: Cloud + Local LLM"
+description: "Demonstrate switching between cloud (OpenAI) and local (Ollama) LLMs"
+
+# This workflow shows how to use both cloud and local LLMs in the same workflow
+# Use cloud for complex tasks, local for simple/private tasks
+
+# Requirements:
+# For OpenAI: export OPENAI_API_KEY=sk-...
+# For Ollama: ollama serve && ollama pull llama2
+
+parameters:
+  use_local:
+    type: boolean
+    default: false
+    description: "Use local LLM instead of cloud (for privacy/offline)"
+
+steps:
+  # Step 1: Complex reasoning with cloud LLM (GPT-4)
+  - id: cloud_analysis
+    module: agent.autonomous
+    if: "${params.use_local == false}"
+    params:
+      llm_provider: "openai"
+      model: "gpt-4-turbo-preview"
+      goal: "Analyze the security implications of using local vs cloud LLMs for sensitive data"
+      max_iterations: 5
+      temperature: 0.7
+
+  # Step 1 (Alternative): Same task with local LLM
+  - id: local_analysis
+    module: agent.autonomous
+    if: "${params.use_local == true}"
+    params:
+      llm_provider: "ollama"
+      model: "mistral"
+      ollama_url: "http://localhost:11434"
+      goal: "Analyze the security implications of using local vs cloud LLMs for sensitive data"
+      max_iterations: 5
+      temperature: 0.7
+
+  # Step 2: Always use local LLM for sensitive data processing
+  # (Demonstrates privacy-first approach)
+  - id: process_sensitive_data
+    module: ai.local_ollama.chat
+    params:
+      prompt: |
+        Summarize this confidential business data:
+        - Revenue: $5.2M
+        - Customer count: 1,234
+        - Top client: Acme Corp ($800K)
+
+        Keep it brief and professional.
+      model: "llama2"
+      temperature: 0.3
+      system_message: "You are a business analyst. All data is confidential."
+
+  # Step 3: Generate public-facing content with cloud LLM
+  # (No sensitive data, benefit from more powerful model)
+  - id: public_content
+    module: ai.openai.chat
+    if: "${params.use_local == false}"
+    params:
+      prompt: "Write a 2-sentence company tagline for a workflow automation platform"
+      model: "gpt-4"
+      temperature: 0.9
+
+  # Step 3 (Alternative): Local version
+  - id: public_content_local
+    module: ai.local_ollama.chat
+    if: "${params.use_local == true}"
+    params:
+      prompt: "Write a 2-sentence company tagline for a workflow automation platform"
+      model: "llama2"
+      temperature: 0.9
+
+  # Step 4: Save combined report
+  - id: save_report
+    module: data.file.write
+    params:
+      file_path: "hybrid_agent_report_${timestamp}.txt"
+      content: |
+        Hybrid AI Agent Report
+        ======================
+
+        Mode: ${params.use_local ? 'Local (Privacy-First)' : 'Cloud (Performance)'}
+
+        Security Analysis:
+        ${params.use_local ? local_analysis.result : cloud_analysis.result}
+
+        Confidential Data Summary (Local LLM):
+        ${process_sensitive_data.response}
+
+        Public Tagline:
+        ${params.use_local ? public_content_local.response : public_content.response}
+
+# Key insights:
+# 1. Use cloud LLMs for complex, non-sensitive tasks
+# 2. Use local LLMs for sensitive data / offline scenarios
+# 3. Combine both in same workflow for optimal balance
+# 4. Switch providers via simple parameter change

@@ -59,6 +59,8 @@ High-level workflows combining multiple atomic or third-party modules:
   - [OpenAI](#openai)
   - [Anthropic Claude](#anthropic-claude)
   - [Google Gemini](#google-gemini)
+  - [Local Ollama](#local-ollama)
+  - [AI Agents](#ai-agents)
 - [Communication](#integration-communication)
   - [Slack](#slack)
   - [Discord](#discord)
@@ -796,6 +798,192 @@ Modules that connect to external services and platforms.
 ```
 
 **Documentation:** https://ai.google.dev/api/rest/v1/models/generateContent
+
+---
+
+### Local Ollama
+
+#### ai.local_ollama.chat
+
+**Description:** Local LLM chat via Ollama (completely offline, no API key needed)
+
+**Category:** Third-party Integration
+
+**Requires:** Ollama installed and running (`ollama serve`)
+
+**Authentication:** None (local only)
+
+**Parameters:**
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `prompt` | string | Yes | - | The message to send to local LLM |
+| `model` | string | No | `"llama2"` | Ollama model (llama2, mistral, codellama, etc.) |
+| `temperature` | number | No | `0.7` | Sampling temperature 0-2 |
+| `system_message` | string | No | - | System role message |
+| `ollama_url` | string | No | `"http://localhost:11434"` | Ollama server URL |
+| `max_tokens` | number | No | - | Maximum tokens in response |
+
+**Returns:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `response` | string | LLM response text |
+| `model` | string | Model used |
+| `context` | array | Context vector for conversation continuity |
+| `total_duration` | number | Total processing time (nanoseconds) |
+| `eval_count` | number | Number of tokens generated |
+
+**Example:**
+
+```yaml
+- id: local_chat
+  module: ai.local_ollama.chat
+  params:
+    prompt: "Explain workflow automation in 3 sentences"
+    model: "llama2"
+    temperature: 0.7
+```
+
+**Setup:**
+
+```bash
+# Install Ollama
+curl -fsSL https://ollama.ai/install.sh | sh
+
+# Pull a model
+ollama pull llama2
+
+# Start server
+ollama serve
+```
+
+**Documentation:** https://ollama.ai/
+
+---
+
+### AI Agents
+
+#### agent.autonomous
+
+**Description:** Self-directed AI agent with memory and goal-oriented behavior
+
+**Category:** Third-party Integration
+
+**Requires:** OpenAI library (`pip install openai`) OR Ollama (local)
+
+**Authentication:** API Key (for OpenAI) or None (for Ollama)
+
+**Parameters:**
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `goal` | string | Yes | - | The goal for the agent to achieve |
+| `context` | string | No | - | Additional context or constraints |
+| `max_iterations` | number | No | `5` | Maximum reasoning steps (1-20) |
+| `llm_provider` | string | No | `"openai"` | LLM provider: "openai" or "ollama" |
+| `model` | string | No | `"gpt-4-turbo-preview"` | Model name (gpt-4, llama2, mistral, etc.) |
+| `ollama_url` | string | No | `"http://localhost:11434"` | Ollama URL (for ollama provider) |
+| `temperature` | number | No | `0.7` | Creativity level 0-2 |
+
+**Returns:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `result` | string | Final result/answer |
+| `thoughts` | array | Array of reasoning steps |
+| `iterations` | number | Number of iterations used |
+| `goal_achieved` | boolean | Whether goal was achieved |
+
+**Example (Cloud):**
+
+```yaml
+- id: research_agent
+  module: agent.autonomous
+  params:
+    llm_provider: "openai"
+    model: "gpt-4"
+    goal: "Research the top 3 trends in AI for 2025"
+    max_iterations: 5
+```
+
+**Example (Local):**
+
+```yaml
+- id: local_agent
+  module: agent.autonomous
+  params:
+    llm_provider: "ollama"
+    model: "mistral"
+    ollama_url: "http://localhost:11434"
+    goal: "Analyze pros and cons of microservices architecture"
+    max_iterations: 5
+```
+
+**Documentation:** [Local AI Agent Guide](LOCAL_AI_AGENT.md)
+
+---
+
+#### agent.chain
+
+**Description:** Sequential AI processing chain with multiple steps
+
+**Category:** Third-party Integration
+
+**Requires:** OpenAI library (`pip install openai`) OR Ollama (local)
+
+**Authentication:** API Key (for OpenAI) or None (for Ollama)
+
+**Parameters:**
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `input` | string | Yes | - | Initial input for the chain |
+| `chain_steps` | array | Yes | - | Array of prompt templates (use {input}, {previous}) |
+| `llm_provider` | string | No | `"openai"` | LLM provider: "openai" or "ollama" |
+| `model` | string | No | `"gpt-3.5-turbo"` | Model name |
+| `ollama_url` | string | No | `"http://localhost:11434"` | Ollama URL (for ollama provider) |
+| `temperature` | number | No | `0.7` | Creativity level 0-2 |
+
+**Returns:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `result` | string | Final output from last step |
+| `intermediate_results` | array | Outputs from each step |
+| `steps_completed` | number | Number of steps executed |
+
+**Example (Cloud):**
+
+```yaml
+- id: content_pipeline
+  module: agent.chain
+  params:
+    llm_provider: "openai"
+    model: "gpt-4"
+    input: "AI in healthcare"
+    chain_steps:
+      - "Generate 5 blog post ideas about: {input}"
+      - "Write outline for first idea: {previous}"
+      - "Write introduction paragraph: {previous}"
+```
+
+**Example (Local):**
+
+```yaml
+- id: local_pipeline
+  module: agent.chain
+  params:
+    llm_provider: "ollama"
+    model: "llama2"
+    input: "Docker best practices"
+    chain_steps:
+      - "List 5 best practices for: {input}"
+      - "Explain the first practice in detail: {previous}"
+      - "Provide a code example: {previous}"
+```
+
+**Documentation:** [Local AI Agent Guide](LOCAL_AI_AGENT.md)
 
 ---
 

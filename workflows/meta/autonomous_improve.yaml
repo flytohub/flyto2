@@ -1,0 +1,113 @@
+name: "Autonomous Workflow Improvement"
+description: "Agent autonomously improves workflow based on execution logs"
+
+parameters:
+  target_workflow:
+    type: string
+    required: true
+    description: "Workflow to improve"
+
+  error_log_path:
+    type: string
+    required: false
+    description: "Path to error logs"
+
+  output_path:
+    type: string
+    required: true
+    description: "Where to save improved workflow"
+
+  llm_provider:
+    type: string
+    default: "openai"
+    description: "LLM provider: openai or ollama"
+
+  model:
+    type: string
+    default: "gpt-4"
+    description: "Model for autonomous agent"
+
+steps:
+  - id: read_workflow
+    module: data.file.read
+    params:
+      file_path: "${params.target_workflow}"
+
+  - id: read_error_logs
+    module: data.file.read
+    if: "${params.error_log_path != null}"
+    params:
+      file_path: "${params.error_log_path}"
+
+  - id: read_dsl
+    module: data.file.read
+    params:
+      file_path: "docs/DSL.md"
+
+  - id: read_modules
+    module: data.file.read
+    params:
+      file_path: "docs/MODULES.md"
+
+  - id: autonomous_improvement
+    module: agent.autonomous
+    params:
+      llm_provider: "${params.llm_provider}"
+      model: "${params.model}"
+      goal: |
+        Improve this Flyto2 workflow by:
+        1. Fixing errors found in logs
+        2. Adding retry logic for failed steps
+        3. Improving error handling
+        4. Optimizing module usage
+        5. Adding timeouts where missing
+
+        Context:
+        - DSL Spec: ${read_dsl.content}
+        - Available Modules: ${read_modules.content}
+        - Current Workflow: ${read_workflow.content}
+        - Error Logs: ${params.error_log_path != null ? read_error_logs.content : 'No logs provided'}
+
+        Output the improved YAML workflow.
+      context: "You must follow Flyto2 DSL specification and use only available modules"
+      max_iterations: 10
+      temperature: 0.3
+
+  - id: save_improved
+    module: data.file.write
+    params:
+      file_path: "${params.output_path}"
+      content: "${autonomous_improvement.result}"
+
+  - id: save_improvement_report
+    module: data.file.write
+    params:
+      file_path: "workflows/_improvements/${timestamp}_improvement.md"
+      content: |
+        # Autonomous Improvement Report
+
+        Target: ${params.target_workflow}
+        Output: ${params.output_path}
+        Model: ${params.model}
+        Provider: ${params.llm_provider}
+        Iterations: ${autonomous_improvement.iterations}
+        Goal Achieved: ${autonomous_improvement.goal_achieved}
+
+        ## Reasoning Steps
+
+        ${autonomous_improvement.thoughts}
+
+        ## Improved Workflow
+
+        ```yaml
+        ${autonomous_improvement.result}
+        ```
+
+        ## Review Checklist
+
+        - [ ] Verify all module IDs are valid
+        - [ ] Check error handling is appropriate
+        - [ ] Confirm retry logic makes sense
+        - [ ] Test in sandbox environment
+        - [ ] Compare behavior with original
+        - [ ] Create PR if approved

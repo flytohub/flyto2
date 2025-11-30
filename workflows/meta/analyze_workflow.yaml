@@ -1,0 +1,120 @@
+name: "Analyze Workflow Structure"
+description: "Analyze existing workflow and provide improvement suggestions"
+
+parameters:
+  target_workflow:
+    type: string
+    required: true
+    description: "Path to workflow YAML file to analyze"
+
+  llm_provider:
+    type: string
+    default: "openai"
+    description: "LLM provider: openai or ollama"
+
+  model:
+    type: string
+    default: "gpt-4"
+    description: "Model to use for analysis"
+
+steps:
+  - id: read_dsl_spec
+    module: data.file.read
+    params:
+      file_path: "docs/DSL.md"
+
+  - id: read_module_registry
+    module: data.file.read
+    params:
+      file_path: "docs/MODULES.md"
+
+  - id: read_target_workflow
+    module: data.file.read
+    params:
+      file_path: "${params.target_workflow}"
+
+  - id: analyze_with_ai
+    module: ai.openai.chat
+    if: "${params.llm_provider == 'openai'}"
+    params:
+      model: "${params.model}"
+      temperature: 0.3
+      system_message: |
+        You are a Flyto2 workflow analysis expert.
+        Analyze YAML workflows and provide actionable improvement suggestions.
+        Focus on:
+        - Module usage correctness
+        - Error handling gaps
+        - Performance opportunities
+        - Structural improvements
+        Output must be structured markdown.
+      prompt: |
+        DSL Specification:
+        ---
+        ${read_dsl_spec.content}
+
+        Available Modules:
+        ---
+        ${read_module_registry.content}
+
+        Target Workflow:
+        ---
+        ${read_target_workflow.content}
+
+        Analyze this workflow and provide:
+        1. Correctness issues
+        2. Missing error handling
+        3. Performance bottlenecks
+        4. Suggested improvements
+        5. Module usage optimization
+
+  - id: analyze_with_local
+    module: ai.local_ollama.chat
+    if: "${params.llm_provider == 'ollama'}"
+    params:
+      model: "${params.model}"
+      temperature: 0.3
+      system_message: |
+        You are a Flyto2 workflow analysis expert.
+        Analyze YAML workflows and provide actionable improvement suggestions.
+        Focus on:
+        - Module usage correctness
+        - Error handling gaps
+        - Performance opportunities
+        - Structural improvements
+        Output must be structured markdown.
+      prompt: |
+        DSL Specification:
+        ---
+        ${read_dsl_spec.content}
+
+        Available Modules:
+        ---
+        ${read_module_registry.content}
+
+        Target Workflow:
+        ---
+        ${read_target_workflow.content}
+
+        Analyze this workflow and provide:
+        1. Correctness issues
+        2. Missing error handling
+        3. Performance bottlenecks
+        4. Suggested improvements
+        5. Module usage optimization
+
+  - id: save_analysis
+    module: data.file.write
+    params:
+      file_path: "workflows/_analysis/${timestamp}_analysis.md"
+      content: |
+        # Workflow Analysis Report
+
+        Target: ${params.target_workflow}
+        Analyzed: ${timestamp}
+        Model: ${params.model}
+        Provider: ${params.llm_provider}
+
+        ## Analysis Results
+
+        ${params.llm_provider == 'openai' ? analyze_with_ai.response : analyze_with_local.response}

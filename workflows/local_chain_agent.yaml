@@ -1,0 +1,66 @@
+name: "Local Chain AI Agent"
+description: "Multi-step AI processing pipeline using local LLM"
+
+# Requirements:
+# 1. Install Ollama: https://ollama.ai
+# 2. Pull a model: ollama pull llama2
+# 3. Start Ollama: ollama serve
+# 4. Run: python -m src.cli.main workflows/local_chain_agent.yaml
+
+parameters:
+  topic:
+    type: string
+    default: "artificial intelligence in healthcare"
+    description: "Topic for content generation"
+
+steps:
+  - id: content_pipeline
+    module: agent.chain
+    params:
+      # Use local Ollama instead of OpenAI
+      llm_provider: "ollama"
+      model: "llama2"
+      ollama_url: "http://localhost:11434"
+
+      # Input for the chain
+      input: "${params.topic}"
+
+      # Sequential processing steps
+      chain_steps:
+        - "Generate 5 blog post ideas about: {input}"
+        - "Take the first idea from this list and write a detailed outline: {previous}"
+        - "Write an introduction paragraph (100 words) based on this outline: {previous}"
+
+      temperature: 0.7
+
+  - id: save_content
+    module: data.file.write
+    params:
+      file_path: "content_${timestamp}.md"
+      content: |
+        # AI Content Pipeline Output
+
+        Topic: ${params.topic}
+        Model: Local Llama2 (Offline)
+        Steps Completed: ${content_pipeline.steps_completed}
+
+        ## Step 1: Ideas
+        ${content_pipeline.intermediate_results[0]}
+
+        ## Step 2: Outline
+        ${content_pipeline.intermediate_results[1]}
+
+        ## Step 3: Introduction
+        ${content_pipeline.result}
+
+# Example use cases for local chain agents:
+# - Content generation (blog posts, documentation)
+# - Data analysis pipelines
+# - Research automation
+# - Code generation workflows
+#
+# Benefits of local execution:
+# - Complete data privacy
+# - No cloud costs
+# - No rate limits
+# - Works offline

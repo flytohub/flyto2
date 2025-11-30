@@ -1,0 +1,32 @@
+name: "Local Ollama Chat Demo"
+description: "Demonstrate local LLM chat using Ollama (completely offline)"
+
+# This workflow requires Ollama to be installed and running:
+# 1. Install Ollama: https://ollama.ai
+# 2. Pull a model: ollama pull llama2
+# 3. Start Ollama server: ollama serve
+# 4. Run this workflow: python -m src.cli.main workflows/local_ollama_chat.yaml
+
+steps:
+  - id: local_chat
+    module: ai.local_ollama.chat
+    params:
+      prompt: "Explain what a workflow automation engine is in 3 sentences."
+      model: "llama2"
+      temperature: 0.7
+      ollama_url: "http://localhost:11434"
+
+  - id: display_result
+    module: core.utility.delay
+    params:
+      duration: 0
+      # Using delay module just to display results
+      # In a real workflow, you would use the response in subsequent steps
+
+# Example output:
+# {
+#   "response": "A workflow automation engine is a software system...",
+#   "model": "llama2",
+#   "total_duration": 1234567890,
+#   "eval_count": 42
+# }

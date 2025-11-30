@@ -1,0 +1,116 @@
+name: "Continuous Learning from Execution"
+description: "Monitor workflow executions and propose improvements based on patterns"
+
+parameters:
+  log_directory:
+    type: string
+    default: "logs/executions"
+    description: "Directory containing execution logs"
+
+  analysis_period_days:
+    type: number
+    default: 7
+    description: "Days of logs to analyze"
+
+  min_failure_rate:
+    type: number
+    default: 0.1
+    description: "Minimum failure rate to trigger improvement"
+
+  llm_provider:
+    type: string
+    default: "ollama"
+    description: "Use local LLM for cost efficiency"
+
+  model:
+    type: string
+    default: "mistral"
+    description: "Model for analysis"
+
+steps:
+  - id: collect_logs
+    module: core.file.list
+    params:
+      directory: "${params.log_directory}"
+      pattern: "*.json"
+      recursive: true
+
+  - id: analyze_patterns
+    module: agent.autonomous
+    params:
+      llm_provider: "${params.llm_provider}"
+      model: "${params.model}"
+      goal: |
+        Analyze execution logs and identify:
+        1. Workflows with high failure rates
+        2. Common error patterns
+        3. Performance bottlenecks
+        4. Missing error handling
+        5. Timeout issues
+
+        Logs: ${collect_logs.files}
+      context: "Focus on actionable improvements"
+      max_iterations: 8
+      temperature: 0.3
+
+  - id: prioritize_improvements
+    module: agent.chain
+    params:
+      llm_provider: "${params.llm_provider}"
+      model: "${params.model}"
+      input: "${analyze_patterns.result}"
+      chain_steps:
+        - "Extract top 5 workflows needing improvement from: {input}"
+        - "For each workflow, list specific improvement actions: {previous}"
+        - "Prioritize by impact and create action plan: {previous}"
+      temperature: 0.3
+
+  - id: save_learning_report
+    module: data.file.write
+    params:
+      file_path: "workflows/_learning/${timestamp}_learning_report.md"
+      content: |
+        # Continuous Learning Report
+
+        Analysis Period: ${params.analysis_period_days} days
+        Logs Analyzed: ${collect_logs.count}
+        Model: ${params.model}
+        Provider: ${params.llm_provider}
+
+        ## Pattern Analysis
+
+        ${analyze_patterns.result}
+
+        ## Improvement Priorities
+
+        ${prioritize_improvements.result}
+
+        ## Recommended Actions
+
+        1. Review high-failure workflows
+        2. Apply suggested improvements
+        3. Monitor impact after changes
+        4. Iterate on learning
+
+        ## Next Steps
+
+        For each identified workflow, run:
+        ```bash
+        python -m src.cli.main workflows/meta/autonomous_improve.yaml \
+          --param target_workflow=<path> \
+          --param error_log_path=${params.log_directory}/<workflow>.log
+        ```
+
+  - id: notify_improvements
+    module: notification.slack.send_message
+    if: "${env.SLACK_WEBHOOK_URL != null}"
+    params:
+      text: |
+        Continuous Learning Report Available
+
+        Workflows analyzed: ${collect_logs.count}
+        Improvements identified: See report
+        Report: workflows/_learning/${timestamp}_learning_report.md
+
+        Top priority improvements:
+        ${prioritize_improvements.result}

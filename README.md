@@ -105,9 +105,80 @@ python -m src.cli.main  # Interactive menu: select language → workflow → par
 
 ---
 
+## Meta-Workflows: Self-Improving Engine (New!)
+
+Flyto2 can improve itself using AI-powered meta-workflows:
+
+```yaml
+# Analyze existing workflow
+python -m src.cli.main workflows/meta/analyze_workflow.yaml \
+  --param target_workflow=workflows/google_search.yaml
+
+# Generate new workflow from description
+python -m src.cli.main workflows/meta/generate_workflow.yaml \
+  --param description="Scrape news and post to Slack" \
+  --param output_path=workflows/_generated/news_scraper.yaml
+
+# Autonomous improvement from error logs
+python -m src.cli.main workflows/meta/autonomous_improve.yaml \
+  --param target_workflow=workflows/api_pipeline.yaml \
+  --param error_log_path=logs/errors.log
+```
+
+**Meta-Workflow Features:**
+- Generate workflows from natural language
+- Refactor and improve existing workflows
+- Autonomous learning from execution logs
+- Automatic PR creation for improvements
+- Continuous quality improvement
+
+[Meta-Workflow Guide](docs/META_WORKFLOWS.md) | [Safety Guide](docs/META_WORKFLOW_SAFETY.md)
+
+---
+
+## Local AI Agents (New!)
+
+Run AI agents **completely offline** with local LLMs:
+
+```yaml
+# Autonomous agent with local Mistral (no cloud, no API key)
+- id: local_agent
+  module: agent.autonomous
+  params:
+    llm_provider: "ollama"      # ← Use local instead of cloud
+    model: "mistral"
+    goal: "Analyze microservices vs monolithic architecture"
+    max_iterations: 5
+```
+
+**Benefits:**
+- ✅ **100% Privacy** - Data never leaves your machine
+- ✅ **Zero Cost** - No cloud API fees
+- ✅ **Offline Capable** - Works without internet
+- ✅ **No Rate Limits** - Run unlimited requests
+
+**Setup:**
+```bash
+# Install Ollama
+curl -fsSL https://ollama.ai/install.sh | sh
+
+# Pull a model
+ollama pull mistral
+
+# Start server
+ollama serve
+
+# Run local AI workflows
+python -m src.cli.main workflows/local_autonomous_agent.yaml
+```
+
+[📖 Full Local AI Agent Guide](docs/LOCAL_AI_AGENT.md) | [🎯 Example Workflows](workflows/)
+
+---
+
 ## Built-in Integrations
 
-Flyto2 comes with **102 production-ready modules** organized by architecture:
+Flyto2 comes with **103 production-ready modules** organized by architecture:
 
 ### Atomic Modules (61 modules)
 Core building blocks with no external dependencies:
@@ -122,9 +193,9 @@ Core building blocks with no external dependencies:
 - **Utilities** - Delay, random numbers/strings, datetime operations (format, parse, add, subtract), hash (9)
 - **Flow** - Loop control (1)
 
-### Third-party Integrations (41 modules)
+### Third-party Integrations (42 modules)
 Connect to external services and platforms:
-- **AI** - OpenAI GPT/DALL-E, Anthropic Claude, Google Gemini, AI Agents (autonomous, chain) (6)
+- **AI** - OpenAI GPT/DALL-E, Anthropic Claude, Google Gemini, Local Ollama (offline), AI Agents (autonomous, chain) (7)
 - **Communication** - Slack, Discord, Telegram, Email SMTP, Twilio SMS/Voice (6)
 - **Databases** - PostgreSQL, MySQL, MongoDB find/insert, Redis get/set (6)
 - **Cloud** - AWS S3, Google Cloud Storage, Azure Blob Storage (6)
@@ -224,6 +295,8 @@ steps:
 - [Module Registry](docs/MODULES.md) - All available modules with parameters
 - [CLI Usage](docs/CLI.md) - Command-line interface guide
 - [Parameter Best Practices](docs/PARAMETER_BEST_PRACTICES.md) - Design flexible, reusable workflows
+- [Meta-Workflows](docs/META_WORKFLOWS.md) - Self-improving workflow system
+- [Local AI Agent Guide](docs/LOCAL_AI_AGENT.md) - Offline AI agents
 
 🛠️ **Module Development**
 - [Module Specification](docs/MODULE_SPECIFICATION.md) - Complete module specification
@@ -349,7 +422,9 @@ All core technology is MIT open source. The visual builder is kept private to en
 - ✅ Phase 2: Security settings (credentials, permissions, sensitive data)
 - ✅ Flow control (if/when, retry, error handling, loops)
 - ✅ AI: OpenAI GPT, OpenAI DALL-E, Anthropic Claude, Google Gemini
-- ✅ AI Agents: Autonomous agent, Chain agent
+- ✅ AI: Local Ollama (offline LLM support)
+- ✅ AI Agents: Autonomous agent, Chain agent (with local LLM support)
+- ✅ Meta-Workflows: Self-improving workflow system (analyze, generate, refactor)
 - ✅ Communication: Slack, Discord, Telegram, Email, Twilio SMS/Voice
 - ✅ Databases: PostgreSQL, MySQL, MongoDB, Redis
 - ✅ Cloud: AWS S3, Google Cloud Storage, Azure Blob Storage

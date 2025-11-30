@@ -66,18 +66,35 @@ from ...registry import register_module
             'max': 20,
             'required': False
         },
-        'model': {
+        'llm_provider': {
             'type': 'select',
+            'label': 'LLM Provider',
+            'label_key': 'modules.agent.autonomous.params.llm_provider.label',
+            'description': 'Choose LLM provider (cloud or local)',
+            'description_key': 'modules.agent.autonomous.params.llm_provider.description',
+            'options': [
+                {'label': 'OpenAI (Cloud)', 'value': 'openai'},
+                {'label': 'Ollama (Local)', 'value': 'ollama'}
+            ],
+            'default': 'openai',
+            'required': False
+        },
+        'model': {
+            'type': 'string',
             'label': 'Model',
             'label_key': 'modules.agent.autonomous.params.model.label',
-            'description': 'AI model to use',
+            'description': 'Model name (e.g., gpt-4, llama2, mistral)',
             'description_key': 'modules.agent.autonomous.params.model.description',
-            'options': [
-                {'label': 'GPT-4 Turbo', 'value': 'gpt-4-turbo-preview'},
-                {'label': 'GPT-4', 'value': 'gpt-4'},
-                {'label': 'GPT-3.5 Turbo', 'value': 'gpt-3.5-turbo'}
-            ],
             'default': 'gpt-4-turbo-preview',
+            'required': False
+        },
+        'ollama_url': {
+            'type': 'string',
+            'label': 'Ollama URL',
+            'label_key': 'modules.agent.autonomous.params.ollama_url.label',
+            'description': 'Ollama server URL (only for ollama provider)',
+            'description_key': 'modules.agent.autonomous.params.ollama_url.description',
+            'default': 'http://localhost:11434',
             'required': False
         },
         'temperature': {
@@ -126,32 +143,87 @@ class AutonomousAgentModule(BaseModule):
         self.goal = self.params.get('goal')
         self.context = self.params.get('context', '')
         self.max_iterations = self.params.get('max_iterations', 5)
+        self.llm_provider = self.params.get('llm_provider', 'openai')
         self.model = self.params.get('model', 'gpt-4-turbo-preview')
+        self.ollama_url = self.params.get('ollama_url', 'http://localhost:11434')
         self.temperature = self.params.get('temperature', 0.7)
 
         if not self.goal:
             raise ValueError("goal is required")
 
-        # Get API key from environment
+        # Validate provider-specific requirements
         import os
-        self.api_key = os.environ.get('OPENAI_API_KEY')
-        if not self.api_key:
-            raise ValueError("OPENAI_API_KEY environment variable is required")
+        if self.llm_provider == 'openai':
+            self.api_key = os.environ.get('OPENAI_API_KEY')
+            if not self.api_key:
+                raise ValueError("OPENAI_API_KEY environment variable is required for OpenAI provider")
+        elif self.llm_provider == 'ollama':
+            # No API key needed for local Ollama
+            self.api_key = None
+        else:
+            raise ValueError(f"Unsupported LLM provider: {self.llm_provider}")
+
+    async def _call_llm(self, messages: List[Dict[str, str]]) -> str:
+        """Call LLM based on configured provider"""
+        if self.llm_provider == 'openai':
+            return await self._call_openai(messages)
+        elif self.llm_provider == 'ollama':
+            return await self._call_ollama(messages)
+        else:
+            raise ValueError(f"Unsupported LLM provider: {self.llm_provider}")
+
+    async def _call_openai(self, messages: List[Dict[str, str]]) -> str:
+        """Call OpenAI API"""
+        try:
+            import openai
+        except ImportError:
+            raise ImportError(
+                "OpenAI library not installed. "
+                "Install with: pip install openai"
+            )
+
+        openai.api_key = self.api_key
+        response = await openai.ChatCompletion.acreate(
+            model=self.model,
+            messages=messages,
+            temperature=self.temperature,
+            max_tokens=2000
+        )
+        return response.choices[0].message.content
+
+    async def _call_ollama(self, messages: List[Dict[str, str]]) -> str:
+        """Call local Ollama API"""
+        import aiohttp
+        import json
+
+        payload = {
+            "model": self.model,
+            "messages": messages,
+            "stream": False,
+            "options": {
+                "temperature": self.temperature,
+                "num_predict": 2000
+            }
+        }
+
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                f"{self.ollama_url}/api/chat",
+                json=payload,
+                timeout=aiohttp.ClientTimeout(total=180)
+            ) as response:
+                if response.status != 200:
+                    error_text = await response.text()
+                    raise RuntimeError(
+                        f"Ollama API error (status {response.status}): {error_text}"
+                    )
+                result = await response.json()
+
+        message = result.get('message', {})
+        return message.get('content', '')
 
     async def execute(self) -> Any:
         try:
-            # Import OpenAI
-            try:
-                import openai
-            except ImportError:
-                raise ImportError(
-                    "OpenAI library not installed. "
-                    "Install with: pip install openai"
-                )
-
-            # Set API key
-            openai.api_key = self.api_key
-
             # Agent memory (thoughts and actions)
             thoughts: List[str] = []
             memory: List[Dict[str, str]] = []
@@ -186,16 +258,8 @@ Be concise but thorough. Focus on achieving the goal efficiently."""
 
             # Iterative reasoning loop
             for iteration in range(self.max_iterations):
-                # Make API call
-                response = await openai.ChatCompletion.acreate(
-                    model=self.model,
-                    messages=memory,
-                    temperature=self.temperature,
-                    max_tokens=2000
-                )
-
-                # Get agent's thought/action
-                thought = response.choices[0].message.content
+                # Make API call to configured LLM provider
+                thought = await self._call_llm(memory)
                 thoughts.append(thought)
 
                 # Add to memory
@@ -276,18 +340,35 @@ Be concise but thorough. Focus on achieving the goal efficiently."""
             'description_key': 'modules.agent.chain.params.chain_steps.description',
             'required': True
         },
-        'model': {
+        'llm_provider': {
             'type': 'select',
+            'label': 'LLM Provider',
+            'label_key': 'modules.agent.chain.params.llm_provider.label',
+            'description': 'Choose LLM provider (cloud or local)',
+            'description_key': 'modules.agent.chain.params.llm_provider.description',
+            'options': [
+                {'label': 'OpenAI (Cloud)', 'value': 'openai'},
+                {'label': 'Ollama (Local)', 'value': 'ollama'}
+            ],
+            'default': 'openai',
+            'required': False
+        },
+        'model': {
+            'type': 'string',
             'label': 'Model',
             'label_key': 'modules.agent.chain.params.model.label',
-            'description': 'AI model to use',
+            'description': 'Model name (e.g., gpt-4, llama2, mistral)',
             'description_key': 'modules.agent.chain.params.model.description',
-            'options': [
-                {'label': 'GPT-4 Turbo', 'value': 'gpt-4-turbo-preview'},
-                {'label': 'GPT-4', 'value': 'gpt-4'},
-                {'label': 'GPT-3.5 Turbo', 'value': 'gpt-3.5-turbo'}
-            ],
             'default': 'gpt-3.5-turbo',
+            'required': False
+        },
+        'ollama_url': {
+            'type': 'string',
+            'label': 'Ollama URL',
+            'label_key': 'modules.agent.chain.params.ollama_url.label',
+            'description': 'Ollama server URL (only for ollama provider)',
+            'description_key': 'modules.agent.chain.params.ollama_url.description',
+            'default': 'http://localhost:11434',
             'required': False
         },
         'temperature': {
@@ -341,7 +422,9 @@ class ChainAgentModule(BaseModule):
     def validate_params(self):
         self.input = self.params.get('input')
         self.chain_steps = self.params.get('chain_steps', [])
+        self.llm_provider = self.params.get('llm_provider', 'openai')
         self.model = self.params.get('model', 'gpt-3.5-turbo')
+        self.ollama_url = self.params.get('ollama_url', 'http://localhost:11434')
         self.temperature = self.params.get('temperature', 0.7)
 
         if not self.input:
@@ -350,26 +433,79 @@ class ChainAgentModule(BaseModule):
         if not self.chain_steps or len(self.chain_steps) == 0:
             raise ValueError("chain_steps must contain at least one step")
 
-        # Get API key from environment
+        # Validate provider-specific requirements
         import os
-        self.api_key = os.environ.get('OPENAI_API_KEY')
-        if not self.api_key:
-            raise ValueError("OPENAI_API_KEY environment variable is required")
+        if self.llm_provider == 'openai':
+            self.api_key = os.environ.get('OPENAI_API_KEY')
+            if not self.api_key:
+                raise ValueError("OPENAI_API_KEY environment variable is required for OpenAI provider")
+        elif self.llm_provider == 'ollama':
+            # No API key needed for local Ollama
+            self.api_key = None
+        else:
+            raise ValueError(f"Unsupported LLM provider: {self.llm_provider}")
+
+    async def _call_llm(self, messages: List[Dict[str, str]]) -> str:
+        """Call LLM based on configured provider"""
+        if self.llm_provider == 'openai':
+            return await self._call_openai(messages)
+        elif self.llm_provider == 'ollama':
+            return await self._call_ollama(messages)
+        else:
+            raise ValueError(f"Unsupported LLM provider: {self.llm_provider}")
+
+    async def _call_openai(self, messages: List[Dict[str, str]]) -> str:
+        """Call OpenAI API"""
+        try:
+            import openai
+        except ImportError:
+            raise ImportError(
+                "OpenAI library not installed. "
+                "Install with: pip install openai"
+            )
+
+        openai.api_key = self.api_key
+        response = await openai.ChatCompletion.acreate(
+            model=self.model,
+            messages=messages,
+            temperature=self.temperature,
+            max_tokens=2000
+        )
+        return response.choices[0].message.content
+
+    async def _call_ollama(self, messages: List[Dict[str, str]]) -> str:
+        """Call local Ollama API"""
+        import aiohttp
+        import json
+
+        payload = {
+            "model": self.model,
+            "messages": messages,
+            "stream": False,
+            "options": {
+                "temperature": self.temperature,
+                "num_predict": 2000
+            }
+        }
+
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                f"{self.ollama_url}/api/chat",
+                json=payload,
+                timeout=aiohttp.ClientTimeout(total=180)
+            ) as response:
+                if response.status != 200:
+                    error_text = await response.text()
+                    raise RuntimeError(
+                        f"Ollama API error (status {response.status}): {error_text}"
+                    )
+                result = await response.json()
+
+        message = result.get('message', {})
+        return message.get('content', '')
 
     async def execute(self) -> Any:
         try:
-            # Import OpenAI
-            try:
-                import openai
-            except ImportError:
-                raise ImportError(
-                    "OpenAI library not installed. "
-                    "Install with: pip install openai"
-                )
-
-            # Set API key
-            openai.api_key = self.api_key
-
             # Track results
             intermediate_results: List[str] = []
             current_input = self.input
@@ -381,18 +517,11 @@ class ChainAgentModule(BaseModule):
                 prompt = step_template.replace('{input}', current_input)
                 prompt = prompt.replace('{previous}', previous_output)
 
-                # Make API call
-                response = await openai.ChatCompletion.acreate(
-                    model=self.model,
-                    messages=[
-                        {"role": "user", "content": prompt}
-                    ],
-                    temperature=self.temperature,
-                    max_tokens=2000
-                )
+                # Make API call to configured LLM provider
+                output = await self._call_llm([
+                    {"role": "user", "content": prompt}
+                ])
 
-                # Get result
-                output = response.choices[0].message.content
                 intermediate_results.append(output)
                 previous_output = output
 

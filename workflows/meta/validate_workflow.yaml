@@ -1,0 +1,67 @@
+name: "Validate Workflow YAML"
+description: "Validate workflow YAML structure and module usage"
+
+parameters:
+  target:
+    type: string
+    required: true
+    description: "Path to workflow YAML to validate"
+
+  strict:
+    type: boolean
+    default: false
+    description: "Enable strict validation mode"
+
+steps:
+  - id: read_workflow
+    module: data.file.read
+    params:
+      file_path: "${params.target}"
+
+  - id: read_module_registry
+    module: data.file.read
+    params:
+      file_path: "docs/MODULES.md"
+
+  - id: parse_yaml
+    module: data.json.parse
+    params:
+      json_string: "${read_workflow.content}"
+
+  - id: validate_structure
+    module: ai.openai.chat
+    params:
+      model: "gpt-3.5-turbo"
+      temperature: 0
+      system_message: |
+        You are a YAML structure validator for Flyto2.
+        Check if workflow YAML follows correct structure.
+        Output JSON with validation results.
+      prompt: |
+        Available Modules:
+        ---
+        ${read_module_registry.content}
+
+        Workflow YAML:
+        ---
+        ${read_workflow.content}
+
+        Validate:
+        1. All module IDs exist in registry
+        2. Required parameters are present
+        3. Step IDs are unique
+        4. Variable references are valid
+        5. Conditional logic is correct
+
+        Output JSON:
+        {
+          "valid": true/false,
+          "errors": [],
+          "warnings": []
+        }
+
+  - id: save_validation_report
+    module: data.file.write
+    params:
+      file_path: "workflows/_validation/${timestamp}_validation.json"
+      content: "${validate_structure.response}"
