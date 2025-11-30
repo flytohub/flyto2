@@ -1,0 +1,33 @@
+name: "Test string.split"
+description: "Verify string.split module works correctly"
+
+steps:
+  - id: test_basic_split
+    module: string.split
+    params:
+      text: "apple,banana,orange"
+      delimiter: ","
+
+  - id: verify_result_exists
+    module: test.assert_not_null
+    params:
+      value: "${test_basic_split.parts}"
+      message: "string.split should return parts"
+
+  - id: test_space_delimiter
+    module: string.split
+    params:
+      text: "hello world test"
+      delimiter: " "
+
+  - id: test_pipe_delimiter
+    module: string.split
+    params:
+      text: "one|two|three"
+      delimiter: "|"
+
+  - id: test_empty_string
+    module: string.split
+    params:
+      text: ""
+      delimiter: ","

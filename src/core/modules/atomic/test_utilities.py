@@ -1,5 +1,6 @@
 from typing import Any
-from ..base import BaseModule, register_module
+from ..base import BaseModule
+from ..registry import register_module
 
 
 @register_module(
@@ -44,6 +45,13 @@ from ..base import BaseModule, register_module
     }
 )
 class AssertEqualModule(BaseModule):
+    def validate_params(self):
+        """Validate parameters"""
+        if 'actual' not in self.params:
+            raise ValueError("Parameter 'actual' is required")
+        if 'expected' not in self.params:
+            raise ValueError("Parameter 'expected' is required")
+
     async def execute(self) -> Any:
         actual = self.params.get('actual')
         expected = self.params.get('expected')
@@ -98,6 +106,11 @@ class AssertEqualModule(BaseModule):
     }
 )
 class AssertTrueModule(BaseModule):
+    def validate_params(self):
+        """Validate parameters"""
+        if 'condition' not in self.params:
+            raise ValueError("Parameter 'condition' is required")
+
     async def execute(self) -> Any:
         condition = self.params.get('condition')
         custom_message = self.params.get('message')
@@ -162,6 +175,13 @@ class AssertTrueModule(BaseModule):
     }
 )
 class AssertContainsModule(BaseModule):
+    def validate_params(self):
+        """Validate parameters"""
+        if 'collection' not in self.params:
+            raise ValueError("Parameter 'collection' is required")
+        if 'value' not in self.params:
+            raise ValueError("Parameter 'value' is required")
+
     async def execute(self) -> Any:
         collection = self.params.get('collection')
         value = self.params.get('value')
@@ -229,6 +249,13 @@ class AssertContainsModule(BaseModule):
     }
 )
 class AssertGreaterThanModule(BaseModule):
+    def validate_params(self):
+        """Validate parameters"""
+        if 'actual' not in self.params:
+            raise ValueError("Parameter 'actual' is required")
+        if 'threshold' not in self.params:
+            raise ValueError("Parameter 'threshold' is required")
+
     async def execute(self) -> Any:
         actual = self.params.get('actual')
         threshold = self.params.get('threshold')
@@ -296,6 +323,13 @@ class AssertGreaterThanModule(BaseModule):
     }
 )
 class AssertLengthModule(BaseModule):
+    def validate_params(self):
+        """Validate parameters"""
+        if 'collection' not in self.params:
+            raise ValueError("Parameter 'collection' is required")
+        if 'expected_length' not in self.params:
+            raise ValueError("Parameter 'expected_length' is required")
+
     async def execute(self) -> Any:
         collection = self.params.get('collection')
         expected_length = self.params.get('expected_length')
@@ -351,6 +385,11 @@ class AssertLengthModule(BaseModule):
     }
 )
 class AssertNotNullModule(BaseModule):
+    def validate_params(self):
+        """Validate parameters"""
+        # value can be None, so we check if it's in params dict instead
+        pass
+
     async def execute(self) -> Any:
         value = self.params.get('value')
         custom_message = self.params.get('message')

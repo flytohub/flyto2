@@ -1,0 +1,44 @@
+name: "Test data.json.parse"
+description: "Verify JSON parsing works correctly"
+
+steps:
+  - id: test_simple_object
+    module: data.json.parse
+    params:
+      json_string: '{"name": "test", "value": 123}'
+
+  - id: verify_parsed
+    module: test.assert_not_null
+    params:
+      value: "${test_simple_object.data}"
+      message: "JSON parse should return data"
+
+  - id: test_array
+    module: data.json.parse
+    params:
+      json_string: '[1, 2, 3, 4, 5]'
+
+  - id: test_nested_object
+    module: data.json.parse
+    params:
+      json_string: '{"user": {"name": "Alice", "age": 30}}'
+
+  - id: test_boolean
+    module: data.json.parse
+    params:
+      json_string: '{"active": true, "deleted": false}'
+
+  - id: test_null_value
+    module: data.json.parse
+    params:
+      json_string: '{"value": null}'
+
+  - id: test_empty_object
+    module: data.json.parse
+    params:
+      json_string: '{}'
+
+  - id: test_empty_array
+    module: data.json.parse
+    params:
+      json_string: '[]'

@@ -4,8 +4,8 @@ Meta-Operations Modules
 Modules for introspection and meta-operations on the workflow system itself.
 """
 from typing import Any, Dict, List, Optional
-from ...base import BaseModule
-from ...registry import ModuleRegistry, register_module
+from ..base import BaseModule
+from ..registry import ModuleRegistry, register_module
 import json
 
 

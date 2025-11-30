@@ -340,8 +340,41 @@ def register_module(
         author: Module author
         license: License (default: "MIT")
     """
-    def decorator(module_class: Type[BaseModule]):
-        module_class.module_id = module_id
+    def decorator(module_class_or_func):
+        # Check if it's a function or a class
+        import inspect
+        is_function = inspect.isfunction(module_class_or_func) or inspect.iscoroutinefunction(module_class_or_func)
+
+        if is_function:
+            # Wrap function in a class
+            class FunctionModuleWrapper(BaseModule):
+                """Wrapper to make function-based modules work with class-based engine"""
+
+                def __init__(self, params: Dict[str, Any], context: Dict[str, Any]):
+                    self.params = params
+                    self.context = context
+
+                def validate_params(self):
+                    """Validation handled by function"""
+                    pass
+
+                async def execute(self) -> Any:
+                    """Execute the wrapped function"""
+                    # Build context dict for function
+                    func_context = {
+                        'params': self.params,
+                        **self.context
+                    }
+                    return await module_class_or_func(func_context)
+
+            FunctionModuleWrapper.module_id = module_id
+            FunctionModuleWrapper.__name__ = f"{module_class_or_func.__name__}_Wrapper"
+            FunctionModuleWrapper.__doc__ = module_class_or_func.__doc__
+            module_class = FunctionModuleWrapper
+        else:
+            # It's already a class
+            module_class = module_class_or_func
+            module_class.module_id = module_id
 
         # Build metadata
         metadata = {
