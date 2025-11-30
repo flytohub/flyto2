@@ -131,8 +131,9 @@ python -m src.cli.main workflows/meta/autonomous_improve.yaml \
 - Autonomous learning from execution logs
 - Automatic PR creation for improvements
 - Continuous quality improvement
+- Dynamic module registry (always knows current modules)
 
-[Meta-Workflow Guide](docs/META_WORKFLOWS.md) | [Safety Guide](docs/META_WORKFLOW_SAFETY.md)
+[Meta-Workflow Guide](docs/META_WORKFLOWS.md) | [Safety Guide](docs/META_WORKFLOW_SAFETY.md) | [Case Study](docs/CASE_STUDY_META_WORKFLOW.md)
 
 ---
 
@@ -178,9 +179,9 @@ python -m src.cli.main workflows/local_autonomous_agent.yaml
 
 ## Built-in Integrations
 
-Flyto2 comes with **103 production-ready modules** organized by architecture:
+Flyto2 comes with **105+ production-ready modules** organized by architecture:
 
-### Atomic Modules (61 modules)
+### Atomic Modules (63 modules)
 Core building blocks with no external dependencies:
 - **Browser** - Launch, navigate, click, type, extract, screenshot, press, find, wait (9)
 - **File** - Read, write, exists, delete, move, copy (6)
@@ -190,6 +191,7 @@ Core building blocks with no external dependencies:
 - **Data** - CSV read/write, JSON parse/stringify, text templates (5)
 - **Math** - Calculate, round, floor, ceil, abs, power (6)
 - **Element** - Query, text, attribute (3)
+- **Meta** - List modules, update docs (2)
 - **Utilities** - Delay, random numbers/strings, datetime operations (format, parse, add, subtract), hash (9)
 - **Flow** - Loop control (1)
 
@@ -295,8 +297,13 @@ steps:
 - [Module Registry](docs/MODULES.md) - All available modules with parameters
 - [CLI Usage](docs/CLI.md) - Command-line interface guide
 - [Parameter Best Practices](docs/PARAMETER_BEST_PRACTICES.md) - Design flexible, reusable workflows
+
+🤖 **AI & Meta-Workflows**
 - [Meta-Workflows](docs/META_WORKFLOWS.md) - Self-improving workflow system
 - [Local AI Agent Guide](docs/LOCAL_AI_AGENT.md) - Offline AI agents
+- [Dynamic Module Registry](docs/DYNAMIC_MODULE_REGISTRY.md) - Self-maintaining module list
+- [Meta-Workflow Safety](docs/META_WORKFLOW_SAFETY.md) - Safety protocols
+- [Case Study](docs/CASE_STUDY_META_WORKFLOW.md) - Real improvement example
 
 🛠️ **Module Development**
 - [Module Specification](docs/MODULE_SPECIFICATION.md) - Complete module specification
@@ -417,7 +424,7 @@ All core technology is MIT open source. The visual builder is kept private to en
 **Current (v1.0-alpha)** - Fully Implemented ✅
 - ✅ YAML workflow parser & execution engine
 - ✅ Browser automation (Playwright)
-- ✅ **102 production-ready modules** (atomic + third-party)
+- ✅ **105+ production-ready modules** (atomic + third-party)
 - ✅ Phase 2: Execution control (timeout, retry, concurrency)
 - ✅ Phase 2: Security settings (credentials, permissions, sensitive data)
 - ✅ Flow control (if/when, retry, error handling, loops)
@@ -425,6 +432,7 @@ All core technology is MIT open source. The visual builder is kept private to en
 - ✅ AI: Local Ollama (offline LLM support)
 - ✅ AI Agents: Autonomous agent, Chain agent (with local LLM support)
 - ✅ Meta-Workflows: Self-improving workflow system (analyze, generate, refactor)
+- ✅ Dynamic Module Registry: Self-maintaining module list (AI always knows current modules)
 - ✅ Communication: Slack, Discord, Telegram, Email, Twilio SMS/Voice
 - ✅ Databases: PostgreSQL, MySQL, MongoDB, Redis
 - ✅ Cloud: AWS S3, Google Cloud Storage, Azure Blob Storage
