@@ -27,6 +27,16 @@ parameters:
     default: "gpt-4"
     description: "Model for autonomous agent"
 
+  use_quality_gate:
+    type: boolean
+    default: false
+    description: "Run quality gate validation after improvement"
+
+  target_module:
+    type: string
+    required: false
+    description: "If improving a module (not workflow), specify module ID for quality gate"
+
 steps:
   - id: read_workflow
     module: data.file.read
@@ -113,3 +123,41 @@ steps:
         - [ ] Test in sandbox environment
         - [ ] Compare behavior with original
         - [ ] Create PR if approved
+
+  - id: run_quality_gate
+    module: workflow.execute
+    if: "${params.use_quality_gate == true && params.target_module != null}"
+    params:
+      workflow_path: "workflows/meta/module_quality_pipeline.yaml"
+      parameters:
+        target_module: "${params.target_module}"
+        improved_module_path: "${params.output_path}"
+        test_runs: 50
+        auto_pr: false
+        telegram_notify: true
+
+  - id: quality_gate_summary
+    module: data.file.write
+    if: "${params.use_quality_gate == true}"
+    params:
+      file_path: "workflows/_improvements/${timestamp}_with_gate.md"
+      content: |
+        # Improvement with Quality Gate
+
+        Target: ${params.target_workflow}
+        Module: ${params.target_module}
+
+        ## Autonomous Improvement
+        Output: ${params.output_path}
+        Iterations: ${autonomous_improvement.iterations}
+        Goal Achieved: ${autonomous_improvement.goal_achieved}
+
+        ## Quality Gate
+        ${params.target_module != null ?
+          'Gate validation executed. See gate report in _reports/' :
+          'Skipped (not a module improvement)'}
+
+        ## Next Steps
+        ${params.target_module != null ?
+          '1. Review gate report\n2. If passed: Review PR\n3. If failed: Review improvement approach' :
+          '1. Validate improved workflow manually\n2. Test in sandbox\n3. Create PR if approved'}

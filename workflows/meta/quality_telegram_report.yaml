@@ -1,0 +1,160 @@
+name: "Send Quality Report to Telegram"
+description: "Daily/on-demand quality summary to Telegram"
+
+parameters:
+  telegram_bot_token:
+    type: string
+    required: true
+    description: "Telegram bot token"
+
+  telegram_chat_id:
+    type: string
+    required: true
+    description: "Telegram chat ID"
+
+  report_type:
+    type: string
+    default: "summary"
+    description: "Type of report: summary, detailed, critical_only"
+
+  include_trends:
+    type: boolean
+    default: true
+    description: "Include quality trends"
+
+steps:
+  - id: read_quality_metrics
+    module: data.file.read
+    params:
+      file_path: "metrics/module_quality.json"
+
+  - id: parse_metrics
+    module: data.json.parse
+    params:
+      json_string: "${read_quality_metrics.content}"
+
+  - id: get_module_list
+    module: meta.modules.list
+    params:
+      format: "json"
+      include_params: false
+
+  - id: analyze_quality_status
+    module: ai.openai.chat
+    params:
+      model: "gpt-4"
+      temperature: 0.2
+      system_message: |
+        Analyze module quality metrics and generate a concise report.
+
+        Focus on:
+        1. Overall health (modules at 98%+)
+        2. Critical issues (below 90%)
+        3. Recent changes
+        4. Trends (improving/degrading)
+
+        Keep it concise for Telegram (under 1000 chars if summary).
+      prompt: |
+        Quality metrics:
+        ${parse_metrics.data}
+
+        Total modules: ${get_module_list.count}
+
+        Report type: ${params.report_type}
+
+        Generate ${params.report_type} report.
+
+        For summary: Brief overview with key numbers
+        For detailed: Include module-by-module breakdown
+        For critical_only: Only modules needing attention
+
+        Output JSON:
+        {
+          "title": "Report title",
+          "summary_stats": {
+            "total_modules": xx,
+            "above_98": xx,
+            "95_to_98": xx,
+            "below_95": xx,
+            "critical": xx
+          },
+          "critical_modules": [
+            {
+              "module_id": "xxx",
+              "pass_rate": 0.xx,
+              "issue": "description"
+            }
+          ],
+          "recent_improvements": [
+            {
+              "module_id": "xxx",
+              "old_rate": 0.xx,
+              "new_rate": 0.xx
+            }
+          ],
+          "trends": {
+            "improving": xx,
+            "stable": xx,
+            "degrading": xx
+          },
+          "recommendations": ["action items"]
+        }
+
+  - id: parse_analysis
+    module: data.json.parse
+    params:
+      json_string: "${analyze_quality_status.response}"
+
+  - id: format_telegram_message
+    module: string.template
+    params:
+      template: |
+        Flyto2 Module Quality Report
+        ${parse_analysis.data.title}
+
+        OVERALL HEALTH
+        Total: ${parse_analysis.data.summary_stats.total_modules}
+        Above 98%: ${parse_analysis.data.summary_stats.above_98}
+        95-98%: ${parse_analysis.data.summary_stats.95_to_98}
+        Below 95%: ${parse_analysis.data.summary_stats.below_95}
+        Critical: ${parse_analysis.data.summary_stats.critical}
+
+        ${parse_analysis.data.critical_modules.length > 0 ?
+          'CRITICAL ISSUES\n' + parse_analysis.data.critical_modules.map(m =>
+            `- ${m.module_id}: ${m.pass_rate * 100}% (${m.issue})`
+          ).join('\n') : ''}
+
+        ${params.include_trends && parse_analysis.data.recent_improvements.length > 0 ?
+          'RECENT IMPROVEMENTS\n' + parse_analysis.data.recent_improvements.map(m =>
+            `- ${m.module_id}: ${m.old_rate * 100}% -> ${m.new_rate * 100}%`
+          ).join('\n') : ''}
+
+        ${params.include_trends ?
+          `TRENDS\nImproving: ${parse_analysis.data.trends.improving}\nStable: ${parse_analysis.data.trends.stable}\nDegrading: ${parse_analysis.data.trends.degrading}` : ''}
+
+        ${parse_analysis.data.recommendations.length > 0 ?
+          'RECOMMENDED ACTIONS\n' + parse_analysis.data.recommendations.map((r, i) =>
+            `${i + 1}. ${r}`
+          ).join('\n') : ''}
+
+        Last updated: ${timestamp}
+
+  - id: send_to_telegram
+    module: notification.telegram.send_message
+    params:
+      bot_token: "${params.telegram_bot_token}"
+      chat_id: "${params.telegram_chat_id}"
+      message: "${format_telegram_message.result}"
+      parse_mode: "Markdown"
+
+  - id: save_sent_report
+    module: data.file.write
+    params:
+      file_path: "workflows/_reports/telegram_quality_${timestamp}.txt"
+      content: |
+        Sent to Telegram at ${timestamp}
+
+        ${format_telegram_message.result}
+
+        Analysis:
+        ${analyze_quality_status.response}

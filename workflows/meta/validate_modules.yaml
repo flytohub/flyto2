@@ -1,0 +1,225 @@
+name: "Validate Module Quality"
+description: "Classify modules, run tests, update quality metrics"
+
+parameters:
+  target_module:
+    type: string
+    required: false
+    description: "Specific module to validate (validates all if not specified)"
+
+  run_tests:
+    type: boolean
+    default: true
+    description: "Run test workflows for modules"
+
+  update_metrics:
+    type: boolean
+    default: true
+    description: "Update module_quality.json"
+
+  send_telegram:
+    type: boolean
+    default: false
+    description: "Send results to Telegram"
+
+  telegram_bot_token:
+    type: string
+    required: false
+    description: "Telegram bot token"
+
+  telegram_chat_id:
+    type: string
+    required: false
+    description: "Telegram chat ID"
+
+steps:
+  - id: read_category_rules
+    module: data.file.read
+    params:
+      file_path: "docs/MODULE_CATEGORIES.md"
+
+  - id: get_all_modules
+    module: meta.modules.list
+    params:
+      format: "json"
+      include_params: true
+      include_output: true
+
+  - id: read_current_metrics
+    module: data.file.read
+    params:
+      file_path: "metrics/module_quality.json"
+
+  - id: parse_metrics
+    module: data.json.parse
+    params:
+      json_string: "${read_current_metrics.content}"
+
+  - id: classify_modules_with_ai
+    module: ai.openai.chat
+    params:
+      model: "gpt-4"
+      temperature: 0.1
+      system_message: |
+        You are a module classification expert.
+        Analyze each module and classify as: atomic, third_party, or composed.
+
+        Rules:
+        - atomic: Pure functions, no external deps, standard library only
+        - third_party: External APIs, databases, cloud services, browser
+        - composed: Orchestrates multiple other modules
+
+        Also identify any violations:
+        - Misnamed modules (category doesn't match naming)
+        - Import violations (atomic importing external libs)
+        - Dependency violations (atomic calling third_party)
+
+        Output JSON only.
+      prompt: |
+        Classification Rules:
+        ${read_category_rules.content}
+
+        Current Modules:
+        ${get_all_modules.formatted}
+
+        Classify each module and identify violations.
+
+        Output format:
+        {
+          "classifications": {
+            "module.id": {
+              "category": "atomic|third_party|composed",
+              "confidence": 0.0-1.0,
+              "violations": ["list of violations if any"],
+              "reasoning": "brief explanation"
+            }
+          },
+          "summary": {
+            "total": 105,
+            "atomic": 63,
+            "third_party": 40,
+            "composed": 2,
+            "violations": 3
+          }
+        }
+
+  - id: parse_classification
+    module: data.json.parse
+    params:
+      json_string: "${classify_modules_with_ai.response}"
+
+  - id: identify_test_workflows
+    module: ai.openai.chat
+    if: "${params.run_tests == true}"
+    params:
+      model: "gpt-4"
+      temperature: 0.1
+      system_message: |
+        Map each module to its test workflow file.
+        Test files follow pattern: tests/modules/{module_name}_test.yaml
+
+        For modules without tests, suggest creating them.
+        Only include atomic modules for testing priority.
+      prompt: |
+        Modules to test:
+        ${get_all_modules.formatted}
+
+        Current test files exist:
+        - tests/modules/string_split_test.yaml
+        - tests/modules/array_map_test.yaml
+        - tests/modules/json_parse_test.yaml
+        - tests/modules/math_sum_test.yaml
+
+        Output JSON mapping:
+        {
+          "test_mapping": {
+            "module.id": {
+              "test_file": "path or null",
+              "priority": "high|medium|low",
+              "needs_creation": true|false
+            }
+          }
+        }
+
+  - id: save_classification_report
+    module: data.file.write
+    params:
+      file_path: "workflows/_reports/module_classification_${timestamp}.json"
+      content: |
+        {
+          "timestamp": "${timestamp}",
+          "total_modules": ${get_all_modules.count},
+          "classifications": ${classify_modules_with_ai.response},
+          "test_coverage": ${identify_test_workflows.response}
+        }
+
+  - id: generate_quality_summary
+    module: ai.openai.chat
+    params:
+      model: "gpt-4"
+      temperature: 0.2
+      system_message: |
+        Generate a quality summary report.
+        Focus on:
+        - Modules meeting 98% threshold
+        - Modules needing attention
+        - New violations found
+        - Improvement trends
+      prompt: |
+        Classification Results:
+        ${parse_classification.data}
+
+        Current Quality Metrics:
+        ${parse_metrics.data}
+
+        Generate a concise summary:
+        1. Overall health (how many modules at 98%+)
+        2. Critical issues (violations, failures)
+        3. Modules needing attention
+        4. Recommended actions
+
+        Output markdown format.
+
+  - id: save_quality_report
+    module: data.file.write
+    params:
+      file_path: "workflows/_reports/quality_report_${timestamp}.md"
+      content: |
+        # Module Quality Report
+
+        Generated: ${timestamp}
+        Total Modules: ${get_all_modules.count}
+
+        ## Classification Summary
+
+        ${parse_classification.data.summary}
+
+        ## Quality Analysis
+
+        ${generate_quality_summary.response}
+
+        ## Detailed Metrics
+
+        See: metrics/module_quality.json
+
+        ## Test Coverage
+
+        See: workflows/_reports/module_classification_${timestamp}.json
+
+  - id: send_telegram_notification
+    module: notification.telegram.send_message
+    if: "${params.send_telegram == true && params.telegram_bot_token != null}"
+    params:
+      bot_token: "${params.telegram_bot_token}"
+      chat_id: "${params.telegram_chat_id}"
+      message: |
+        Flyto2 Module Validation Complete
+
+        Total: ${get_all_modules.count} modules
+        Atomic: ${parse_classification.data.summary.atomic}
+        Third-party: ${parse_classification.data.summary.third_party}
+        Composed: ${parse_classification.data.summary.composed}
+
+        Violations: ${parse_classification.data.summary.violations}
+
+        Report: workflows/_reports/quality_report_${timestamp}.md

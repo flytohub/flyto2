@@ -1,0 +1,71 @@
+name: "Test string.split Module"
+description: "Validates string.split module functionality"
+
+steps:
+  - id: test_basic_split
+    module: string.split
+    params:
+      text: "a,b,c"
+      separator: ","
+
+  - id: assert_length
+    module: test.assert_length
+    params:
+      collection: "${test_basic_split.parts}"
+      expected_length: 3
+      message: "string.split should produce 3 parts from 'a,b,c'"
+
+  - id: assert_first_element
+    module: test.assert_equal
+    params:
+      actual: "${test_basic_split.parts[0]}"
+      expected: "a"
+      message: "First element should be 'a'"
+
+  - id: test_custom_separator
+    module: string.split
+    params:
+      text: "apple|orange|banana"
+      separator: "|"
+
+  - id: assert_custom_length
+    module: test.assert_length
+    params:
+      collection: "${test_custom_separator.parts}"
+      expected_length: 3
+
+  - id: test_no_separator_found
+    module: string.split
+    params:
+      text: "noseparator"
+      separator: ","
+
+  - id: assert_single_element
+    module: test.assert_length
+    params:
+      collection: "${test_no_separator_found.parts}"
+      expected_length: 1
+
+  - id: test_empty_string
+    module: string.split
+    params:
+      text: ""
+      separator: ","
+
+  - id: assert_empty_result
+    module: test.assert_length
+    params:
+      collection: "${test_empty_string.parts}"
+      expected_length: 1
+
+  - id: test_multiple_separators
+    module: string.split
+    params:
+      text: "a,,b,,c"
+      separator: ","
+
+  - id: assert_includes_empty
+    module: test.assert_length
+    params:
+      collection: "${test_multiple_separators.parts}"
+      expected_length: 5

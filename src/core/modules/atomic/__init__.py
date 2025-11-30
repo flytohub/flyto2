@@ -34,6 +34,7 @@ from . import math
 from . import datetime
 from . import object
 from . import meta_operations
+from . import test_utilities
 
 __all__ = [
     'BrowserFindModule',
