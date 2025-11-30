@@ -187,6 +187,287 @@ steps:
 
 ## Validation Requirements
 
+All AI-generated workflows must pass validation before use. The validation system checks multiple aspects of workflow correctness.
+
+### What Validation Checks
+
+The `validate_workflow.yaml` meta-workflow performs comprehensive checks:
+
+#### 1. YAML Syntax Validation
+
+**Checks:**
+- Valid YAML format
+- Proper indentation
+- No syntax errors
+- Correct data types
+
+**Fails when:**
+- Invalid YAML syntax
+- Malformed structure
+- Incorrect indentation
+- Type mismatches
+
+**Example Failure:**
+```yaml
+steps:
+  - id: step1
+  module: test  # ERROR: Missing indentation
+```
+
+#### 2. Required Fields Validation
+
+**Checks:**
+- Workflow has `name` field
+- Workflow has `steps` array
+- Each step has `id` field
+- Each step has `module` field
+- Each step has `params` object
+
+**Fails when:**
+- Missing required top-level fields
+- Steps array is empty
+- Step missing id or module
+- Invalid field types
+
+**Example Failure:**
+```yaml
+name: "Test Workflow"
+# ERROR: Missing steps field
+```
+
+#### 3. Step ID Uniqueness
+
+**Checks:**
+- All step IDs are unique
+- No duplicate IDs in workflow
+- IDs follow naming conventions
+
+**Fails when:**
+- Duplicate step IDs found
+- ID contains invalid characters
+- ID is empty or null
+
+**Example Failure:**
+```yaml
+steps:
+  - id: fetch_data
+    module: api.http.get
+  - id: fetch_data  # ERROR: Duplicate ID
+    module: data.csv.write
+```
+
+#### 4. Module Existence Validation
+
+**Checks:**
+- All module IDs exist in registry
+- Module IDs follow naming pattern
+- Module IDs are correctly formatted
+
+**Fails when:**
+- Module ID not found in registry
+- Typo in module name
+- Invalid module ID format
+- Using deprecated modules
+
+**Example Failure:**
+```yaml
+steps:
+  - id: send_email
+    module: email.send  # ERROR: Should be notification.email.send
+```
+
+#### 5. Parameter Schema Validation
+
+**Checks:**
+- Required parameters present
+- Parameter types correct
+- Values within valid ranges
+- Enum values are valid options
+
+**Fails when:**
+- Missing required parameters
+- Wrong parameter types
+- Values out of range
+- Invalid enum values
+
+**Example Failure:**
+```yaml
+steps:
+  - id: delay
+    module: core.utility.delay
+    params:
+      duration: "5"  # ERROR: Should be number, not string
+```
+
+#### 6. Variable Reference Validation
+
+**Checks:**
+- References to previous steps valid
+- Step exists before reference
+- Variable paths are correct
+- No circular dependencies
+
+**Fails when:**
+- Referencing non-existent step
+- Forward references (step not yet defined)
+- Invalid variable path syntax
+- Circular step dependencies
+
+**Example Failure:**
+```yaml
+steps:
+  - id: step1
+    module: data.string.uppercase
+    params:
+      text: "${step2.output}"  # ERROR: step2 not defined yet
+  - id: step2
+    module: data.string.lowercase
+```
+
+#### 7. Conditional Logic Validation
+
+**Checks:**
+- `if` conditions are valid expressions
+- Referenced variables exist
+- Boolean logic is correct
+- No syntax errors in conditions
+
+**Fails when:**
+- Invalid condition syntax
+- Undefined variables in condition
+- Type errors in comparisons
+- Malformed boolean expressions
+
+**Example Failure:**
+```yaml
+steps:
+  - id: conditional_step
+    module: core.utility.delay
+    if: "${undefined_var == true}"  # ERROR: undefined_var not defined
+```
+
+#### 8. Security Validation
+
+**Checks:**
+- No hardcoded secrets
+- No exposed credentials
+- Safe file paths
+- No command injection risks
+
+**Fails when:**
+- API keys in YAML
+- Passwords in params
+- Absolute paths to sensitive files
+- Dangerous shell commands
+
+**Example Failure:**
+```yaml
+steps:
+  - id: auth
+    module: api.http.post
+    params:
+      headers:
+        Authorization: "Bearer sk-1234567890"  # ERROR: Hardcoded secret
+```
+
+### Validation Severity Levels
+
+Validation issues are categorized by severity:
+
+#### Critical Errors
+
+Block workflow execution completely:
+- Invalid YAML syntax
+- Missing required fields
+- Non-existent modules
+- Security violations
+
+#### Errors
+
+Should be fixed before production:
+- Missing required parameters
+- Invalid parameter types
+- Broken variable references
+- Duplicate step IDs
+
+#### Warnings
+
+Should be reviewed but not blocking:
+- Deprecated module usage
+- Suboptimal patterns
+- Missing error handling
+- Performance concerns
+
+### Validation Output Format
+
+Validation returns structured JSON:
+
+```json
+{
+  "valid": false,
+  "errors": [
+    {
+      "severity": "critical",
+      "type": "module_not_found",
+      "step_id": "send_email",
+      "message": "Module 'email.send' does not exist",
+      "suggestion": "Use 'notification.email.send' instead"
+    }
+  ],
+  "warnings": [
+    {
+      "severity": "warning",
+      "type": "missing_error_handling",
+      "step_id": "api_call",
+      "message": "No retry or error handling configured",
+      "suggestion": "Add max_retries parameter"
+    }
+  ],
+  "quality_score": 65
+}
+```
+
+### Running Validation
+
+#### Via Meta-Workflow
+
+```bash
+python -m src.cli.main workflows/meta/validate_workflow.yaml \
+  --param target=workflows/_generated/my_workflow.yaml
+```
+
+#### Via CLI Alias (Coming Soon)
+
+```bash
+python -m src.cli.validate workflows/_generated/my_workflow.yaml
+```
+
+### Validation in Pipeline
+
+Always validate before deployment:
+
+```yaml
+steps:
+  - id: generate
+    module: ai.openai.chat
+
+  - id: save_generated
+    module: data.file.write
+    params:
+      file_path: "workflows/_generated/new_workflow.yaml"
+
+  - id: validate
+    module: workflow.execute
+    params:
+      workflow_path: workflows/meta/validate_workflow.yaml
+      params:
+        target: "workflows/_generated/new_workflow.yaml"
+
+  - id: only_proceed_if_valid
+    if: "${validate.valid == true}"
+    module: api.github.create_pr
+```
+
 ### YAML Structure Validation
 
 ```yaml

@@ -90,10 +90,33 @@ api.github.*            -> Create PRs
 
 Low coupling, high cohesion, atomic composition.
 
+## Quick Validation
+
+Use the validation helper script:
+
+```bash
+# Linux/Mac
+./scripts/validate.sh workflows/_generated/my_workflow.yaml
+
+# Windows
+scripts\validate.bat workflows\_generated\my_workflow.yaml
+
+# Strict mode
+./scripts/validate.sh workflows/_generated/my_workflow.yaml --strict
+```
+
+Or use the meta-workflow directly:
+
+```bash
+python -m src.cli.main workflows/meta/validate_workflow.yaml \
+  --param target=workflows/_generated/my_workflow.yaml
+```
+
 ## Documentation
 
 - [Meta-Workflow Guide](../../docs/META_WORKFLOWS.md)
 - [Safety Guide](../../docs/META_WORKFLOW_SAFETY.md)
+- [Case Study](../../docs/CASE_STUDY_META_WORKFLOW.md)
 - [DSL Specification](../../docs/DSL.md)
 - [Module Registry](../../docs/MODULES.md)
 

@@ -516,11 +516,24 @@ Build knowledge base of improvements:
     category: "error_handling"
 ```
 
+## Real-World Case Study
+
+See [Case Study: Improving google_search.yaml](CASE_STUDY_META_WORKFLOW.md) for a complete example of using the meta-workflow system to improve an existing workflow.
+
+**Highlights:**
+- Original workflow: 36 lines, 50/100 quality score
+- Improved workflow: 134 lines, 92/100 quality score
+- Time investment: 10 minutes
+- Reliability improvement: 70% → 95%
+- Execution time improvement: 4s → 3s
+
 ## Resources
 
 - [DSL Specification](DSL.md)
 - [Module Registry](MODULES.md)
 - [Local AI Agent Guide](LOCAL_AI_AGENT.md)
+- [Safety Guide](META_WORKFLOW_SAFETY.md)
+- [Case Study](CASE_STUDY_META_WORKFLOW.md)
 - [Example Workflows](../workflows/)
 
 ## Contributing
