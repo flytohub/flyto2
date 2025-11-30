@@ -11,9 +11,10 @@ Complete documentation for the Flyto2 workflow automation engine.
 - [Contributor Quickstart](../QUICKSTART.md) - 5-minute guide for new contributors
 - [CLI Usage](CLI.md) - Command-line interface reference
 - [DSL Specification](DSL.md) - Complete YAML workflow syntax
+- [Parameter Best Practices](PARAMETER_BEST_PRACTICES.md) - Design flexible, reusable workflows
 
 ### Core References
-- [Module Registry](MODULES.md) - All 56 available modules with parameters
+- [Module Registry](MODULES.md) - All 102 available modules with parameters
 - [Architecture](ARCHITECTURE.md) - System design and engine internals
 - [Project Structure](PROJECT_STRUCTURE.md) - Directory organization
 - [Contributing Guide](../CONTRIBUTING.md) - How to contribute

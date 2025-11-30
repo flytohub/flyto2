@@ -66,14 +66,26 @@ Flyto2 CLI supports two execution modes:
 
 **Non-Interactive Mode** (for automation, CI/CD, cron jobs):
 ```bash
-python -m src.cli.main workflows/example.yaml           # Direct execution
-python -m src.cli.main workflows/example.yaml --lang zh # Specify language
-python -m src.cli.main example.yaml --params '{...}'    # Pass parameters
+# Basic execution
+python -m src.cli.main workflows/example.yaml
+python -m src.cli.main workflows/example.yaml --lang zh
+
+# Parameter passing - 5 flexible methods:
+python -m src.cli.main workflow.yaml --params '{"keyword":"nodejs"}'        # JSON string
+python -m src.cli.main workflow.yaml --params-file params.json              # From file
+python -m src.cli.main workflow.yaml --env-file .env.production             # Environment vars
+python -m src.cli.main workflow.yaml --param keyword=nodejs --param max=20  # Command-line args
+python -m src.cli.main workflow.yaml --params-file base.json --param keyword=override  # Combined
 ```
 
 **Interactive Mode** (for manual testing, learning):
 ```bash
 python -m src.cli.main  # Interactive menu: select language → workflow → parameters
+```
+
+**Parameter Priority** (highest to lowest):
+```
+--param > --params > --params-file > YAML defaults
 ```
 
 ---
@@ -211,6 +223,7 @@ steps:
 - [DSL Specification](docs/DSL.md) - Complete YAML syntax reference
 - [Module Registry](docs/MODULES.md) - All available modules with parameters
 - [CLI Usage](docs/CLI.md) - Command-line interface guide
+- [Parameter Best Practices](docs/PARAMETER_BEST_PRACTICES.md) - Design flexible, reusable workflows
 
 🛠️ **Module Development**
 - [Module Specification](docs/MODULE_SPECIFICATION.md) - Complete module specification

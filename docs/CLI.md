@@ -62,58 +62,255 @@ python -m src.cli.main ~/flyto2/workflows/api_pipeline.yaml
 
 ## Passing Parameters
 
-### Method 1: Command Line Arguments
+Flyto2 supports **5 flexible methods** for passing parameters to workflows, with a clear priority system.
 
-Use `--param.name=value` syntax:
+### Method 1: Individual Parameters (Highest Priority)
+
+Use `--param key=value` for individual parameters:
 
 ```bash
 python -m src.cli.main workflow.yaml \
-  --param.keyword=python \
-  --param.max_results=20 \
-  --param.headless=true
+  --param keyword=python \
+  --param max_results=20 \
+  --param headless=true
 ```
 
-**Parameter types:**
-- **String:** `--param.url=https://example.com`
-- **Number:** `--param.count=10`
-- **Boolean:** `--param.headless=true` or `--param.headless=false`
+**Automatic type conversion:**
+- **String:** `--param url=https://example.com`
+- **Number:** `--param count=10` (integer) or `--param price=19.99` (float)
+- **Boolean:** `--param headless=true` or `--param headless=false`
 
-### Method 2: Environment Variables
+**Advantages:**
+- ✅ Quick testing and iteration
+- ✅ Override any other parameter source
+- ✅ Perfect for CI/CD pipelines
 
-Reference in workflow with `${env.VAR_NAME}`:
+### Method 2: JSON String
+
+Pass parameters as JSON string using `--params`:
 
 ```bash
-# Set environment variables
-export API_KEY=your_api_key
-export SLACK_WEBHOOK=https://hooks.slack.com/...
-
-# Run workflow
-python -m src.cli.main workflow.yaml
+python -m src.cli.main workflow.yaml --params '{"keyword":"nodejs","max_results":20}'
 ```
 
-**In workflow.yaml:**
+**Advantages:**
+- ✅ Pass complex nested objects
+- ✅ Easy to generate programmatically
+- ✅ Backward compatible
+
+### Method 3: Parameter File
+
+Load parameters from a JSON or YAML file using `--params-file`:
+
+**Create params.json:**
+```json
+{
+  "keyword": "workflow automation",
+  "max_results": 50,
+  "headless": true,
+  "filters": {
+    "language": "en",
+    "date_range": "past_month"
+  }
+}
+```
+
+**Or params.yaml:**
+```yaml
+keyword: "workflow automation"
+max_results: 50
+headless: true
+filters:
+  language: en
+  date_range: past_month
+```
+
+**Run with parameter file:**
+```bash
+python -m src.cli.main workflow.yaml --params-file params.json
+python -m src.cli.main workflow.yaml --params-file params.yaml
+```
+
+**Advantages:**
+- ✅ Reusable configurations
+- ✅ Version controlled parameter sets
+- ✅ Easy to maintain multiple environments (dev, staging, prod)
+
+**Example use case:**
+```bash
+# Development
+python -m src.cli.main workflow.yaml --params-file params.dev.json
+
+# Production
+python -m src.cli.main workflow.yaml --params-file params.prod.json
+```
+
+### Method 4: Environment File
+
+Load environment variables from a `.env` file using `--env-file`:
+
+**Create .env.production:**
+```bash
+# API Keys
+GITHUB_TOKEN=ghp_xxxxxxxxxxxx
+OPENAI_API_KEY=sk-xxxxxxxxxxxx
+SLACK_WEBHOOK_URL=https://hooks.slack.com/services/...
+
+# Configuration
+DATABASE_URL=postgresql://user:pass@host/db
+REDIS_URL=redis://localhost:6379
+```
+
+**Run with environment file:**
+```bash
+python -m src.cli.main workflow.yaml --env-file .env.production
+```
+
+**Reference in workflow using `${env.VAR_NAME}`:**
 ```yaml
 steps:
   - id: api_call
     module: api.http.get
     params:
       headers:
-        Authorization: "Bearer ${env.API_KEY}"
+        Authorization: "Bearer ${env.GITHUB_TOKEN}"
+
+  - id: notify
+    module: notification.slack.send_message
+    params:
+      webhook_url: "${env.SLACK_WEBHOOK_URL}"
+      text: "Workflow completed!"
 ```
 
-### Method 3: .env File
+**Advantages:**
+- ✅ Keep secrets separate from code
+- ✅ Different configurations per environment
+- ✅ Never commit secrets to Git (add to `.gitignore`)
 
-Create `.env` file in project root:
+### Method 5: YAML Defaults (Lowest Priority)
+
+Define default values directly in your workflow YAML:
+
+```yaml
+name: "Google Search Workflow"
+
+params:
+  - name: keyword
+    type: string
+    required: true
+    default: "python"  # ← Default value
+
+  - name: max_results
+    type: number
+    default: 10        # ← Default value
+
+  - name: headless
+    type: boolean
+    default: false     # ← Default value
+
+steps:
+  - id: search
+    module: core.browser.type
+    params:
+      text: "${params.keyword}"
+```
+
+**Advantages:**
+- ✅ Self-documenting workflows
+- ✅ Works without any CLI parameters
+- ✅ Easy for beginners
+
+---
+
+### Parameter Priority (Merge Order)
+
+When multiple parameter sources are used, they merge with this priority:
+
+```
+┌─────────────────────────────────────┐
+│ 1. YAML defaults (lowest priority)  │  Overridden by ↓
+├─────────────────────────────────────┤
+│ 2. --params-file                    │  Overridden by ↓
+├─────────────────────────────────────┤
+│ 3. --env-file (environment vars)    │  Overridden by ↓
+├─────────────────────────────────────┤
+│ 4. --params (JSON string)           │  Overridden by ↓
+├─────────────────────────────────────┤
+│ 5. --param (highest priority)       │  Final value
+└─────────────────────────────────────┘
+```
+
+**Example of parameter merging:**
 
 ```bash
-# .env
-API_KEY=your_api_key
-SLACK_WEBHOOK_URL=https://hooks.slack.com/...
-GITHUB_TOKEN=ghp_xxxxx
-OPENAI_API_KEY=sk-xxxxx
+# workflow.yaml has: keyword="python" (default)
+# base.json has: keyword="nodejs", max_results=50
+# Command overrides keyword to "rust"
+
+python -m src.cli.main workflow.yaml \
+  --params-file base.json \
+  --param keyword=rust
+
+# Result:
+# keyword = "rust"        (from --param, highest priority)
+# max_results = 50        (from base.json)
+# headless = false        (from workflow.yaml default)
 ```
 
-Flyto2 automatically loads `.env` file if it exists.
+---
+
+### Real-World Examples
+
+#### Example 1: Quick Testing
+```bash
+# Override one parameter for quick test
+python -m src.cli.main workflow.yaml --param keyword="test query"
+```
+
+#### Example 2: Environment-Specific Runs
+```bash
+# Development
+python -m src.cli.main workflow.yaml --env-file .env.dev --params-file params.dev.json
+
+# Production
+python -m src.cli.main workflow.yaml --env-file .env.prod --params-file params.prod.json
+```
+
+#### Example 3: CI/CD Pipeline
+```bash
+# Use base configuration + override specific values
+python -m src.cli.main workflow.yaml \
+  --params-file ci_config.json \
+  --param build_number=$CI_BUILD_NUMBER \
+  --param commit_sha=$CI_COMMIT_SHA
+```
+
+#### Example 4: Combined Approach
+```bash
+# Base config + secrets + runtime overrides
+python -m src.cli.main workflow.yaml \
+  --params-file base_params.json \
+  --env-file .env.production \
+  --param date=$(date +%Y-%m-%d) \
+  --param run_id=$RANDOM
+```
+
+---
+
+### Environment Variables (Alternative Method)
+
+You can also set environment variables directly in your shell:
+
+```bash
+# Set environment variables
+export GITHUB_TOKEN=ghp_xxxxxxxxxxxx
+export SLACK_WEBHOOK_URL=https://hooks.slack.com/...
+
+# Run workflow (variables accessible via ${env.VAR_NAME})
+python -m src.cli.main workflow.yaml
+```
+
+**Note:** `.env` files are NOT loaded automatically. Use `--env-file` to load them.
 
 ---
 
