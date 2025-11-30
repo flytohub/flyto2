@@ -38,8 +38,11 @@ cd flyto2
 pip install -r requirements.txt
 playwright install chromium
 
-# 2. Run example
+# 2. Run example (non-interactive mode)
 python -m src.cli.main workflows/google_search.yaml
+
+# Or use interactive mode (select workflow from menu)
+python -m src.cli.main
 
 # 3. Create your own
 cat > my_workflow.yaml <<EOF
@@ -56,6 +59,22 @@ python -m src.cli.main my_workflow.yaml
 ```
 
 **That's it!** You're automating with YAML workflows.
+
+### CLI Modes
+
+Flyto2 CLI supports two execution modes:
+
+**Non-Interactive Mode** (for automation, CI/CD, cron jobs):
+```bash
+python -m src.cli.main workflows/example.yaml           # Direct execution
+python -m src.cli.main workflows/example.yaml --lang zh # Specify language
+python -m src.cli.main example.yaml --params '{...}'    # Pass parameters
+```
+
+**Interactive Mode** (for manual testing, learning):
+```bash
+python -m src.cli.main  # Interactive menu: select language → workflow → parameters
+```
 
 ---
 
