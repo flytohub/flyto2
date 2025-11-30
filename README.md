@@ -95,27 +95,29 @@ python -m src.cli.main  # Interactive menu: select language → workflow → par
 
 ## Built-in Integrations
 
-Flyto2 comes with **85 production-ready modules** organized by architecture:
+Flyto2 comes with **102 production-ready modules** organized by architecture:
 
-### Atomic Modules (52 modules)
+### Atomic Modules (61 modules)
 Core building blocks with no external dependencies:
 - **Browser** - Launch, navigate, click, type, extract, screenshot, press, find, wait (9)
 - **File** - Read, write, exists, delete, move, copy (6)
 - **String** - Split, replace, regex, trim, lowercase, uppercase, titlecase (7)
-- **Array** - Filter, sort, unique, map, reduce, join (6)
+- **Array** - Filter, sort, unique, map, reduce, join, flatten, chunk, intersection, difference (10)
+- **Object** - Keys, values, merge, pick, omit (5)
 - **Data** - CSV read/write, JSON parse/stringify, text templates (5)
 - **Math** - Calculate, round, floor, ceil, abs, power (6)
 - **Element** - Query, text, attribute (3)
 - **Utilities** - Delay, random numbers/strings, datetime operations (format, parse, add, subtract), hash (9)
 - **Flow** - Loop control (1)
 
-### Third-party Integrations (33 modules)
+### Third-party Integrations (41 modules)
 Connect to external services and platforms:
 - **AI** - OpenAI GPT/DALL-E, Anthropic Claude, Google Gemini, AI Agents (autonomous, chain) (6)
-- **Communication** - Slack, Discord, Telegram, Email SMTP (4)
+- **Communication** - Slack, Discord, Telegram, Email SMTP, Twilio SMS/Voice (6)
 - **Databases** - PostgreSQL, MySQL, MongoDB find/insert, Redis get/set (6)
 - **Cloud** - AWS S3, Google Cloud Storage, Azure Blob Storage (6)
-- **Productivity** - Notion pages/databases, Google Sheets read/write (4)
+- **Productivity** - Notion pages/databases, Google Sheets read/write, Airtable (7)
+- **Payment** - Stripe payments/customers/charges (3)
 - **Developer** - GitHub repos/issues/create, HTTP GET/POST, Google Search, SerpAPI (7)
 
 [View complete module list](docs/MODULES.md)
@@ -329,21 +331,23 @@ All core technology is MIT open source. The visual builder is kept private to en
 **Current (v1.0-alpha)** - Fully Implemented ✅
 - ✅ YAML workflow parser & execution engine
 - ✅ Browser automation (Playwright)
-- ✅ **85 production-ready modules** (atomic + third-party)
+- ✅ **102 production-ready modules** (atomic + third-party)
 - ✅ Phase 2: Execution control (timeout, retry, concurrency)
 - ✅ Phase 2: Security settings (credentials, permissions, sensitive data)
 - ✅ Flow control (if/when, retry, error handling, loops)
 - ✅ AI: OpenAI GPT, OpenAI DALL-E, Anthropic Claude, Google Gemini
 - ✅ AI Agents: Autonomous agent, Chain agent
-- ✅ Communication: Slack, Discord, Telegram, Email
+- ✅ Communication: Slack, Discord, Telegram, Email, Twilio SMS/Voice
 - ✅ Databases: PostgreSQL, MySQL, MongoDB, Redis
 - ✅ Cloud: AWS S3, Google Cloud Storage, Azure Blob Storage
-- ✅ Productivity: Notion, Google Sheets
+- ✅ Productivity: Notion, Google Sheets, Airtable
+- ✅ Payment: Stripe (payments, customers, charges)
 - ✅ Developer: GitHub, HTTP APIs
 - ✅ i18n support: English, Chinese, Japanese
 - ✅ File operations: Read, write, delete, move, copy
 - ✅ String operations: Split, replace, regex, trim, case conversion
-- ✅ Array operations: Filter, sort, unique, map, reduce, join
+- ✅ Array operations: Filter, sort, unique, map, reduce, join, flatten, chunk, intersection, difference
+- ✅ Object operations: Keys, values, merge, pick, omit
 - ✅ Math operations: Calculate, round, floor, ceil, abs, power
 - ✅ Datetime operations: Format, parse, add, subtract
 

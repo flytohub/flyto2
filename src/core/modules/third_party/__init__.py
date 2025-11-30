@@ -10,6 +10,7 @@ from . import database
 from . import cloud
 from . import productivity
 from . import developer
+from . import payment
 
 __all__ = [
     'ai',
