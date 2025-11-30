@@ -42,7 +42,7 @@ output:
 
 **Run it:**
 ```bash
-python -m cli.main my_workflow.yaml
+python -m src.cli.main my_workflow.yaml
 ```
 
 ---
@@ -370,7 +370,7 @@ steps:
 **Set environment variables:**
 ```bash
 export API_TOKEN=your_token_here
-python -m cli.main workflow.yaml
+python -m src.cli.main workflow.yaml
 ```
 
 ### Accessing Step Outputs
@@ -465,7 +465,7 @@ output:
 When workflow completes:
 ```bash
 # CLI prints JSON output
-python -m cli.main workflow.yaml
+python -m src.cli.main workflow.yaml
 # Output:
 # {
 #   "url": "https://example.com",

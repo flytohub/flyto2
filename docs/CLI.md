@@ -8,14 +8,14 @@ Complete reference for the Flyto2 command-line interface.
 
 ```bash
 # Run a workflow
-python -m cli.main workflow.yaml
+python -m src.cli.main workflow.yaml
 
 # With parameters
-python -m cli.main workflow.yaml --param.keyword=python
+python -m src.cli.main workflow.yaml --param.keyword=python
 
 # With environment variables
 export API_KEY=your_key
-python -m cli.main workflow.yaml
+python -m src.cli.main workflow.yaml
 ```
 
 ---
@@ -42,20 +42,20 @@ playwright install chromium
 
 **Syntax:**
 ```bash
-python -m cli.main <workflow_file> [options]
+python -m src.cli.main <workflow_file> [options]
 ```
 
 **Examples:**
 ```bash
 # Run workflow
-python -m cli.main workflows/google_search.yaml
+python -m src.cli.main workflows/google_search.yaml
 
 # Run with absolute path
-python -m cli.main /path/to/my_workflow.yaml
+python -m src.cli.main /path/to/my_workflow.yaml
 
 # Run from different directory
 cd /other/directory
-python -m cli.main ~/flyto2/workflows/api_pipeline.yaml
+python -m src.cli.main ~/flyto2/workflows/api_pipeline.yaml
 ```
 
 ---
@@ -67,7 +67,7 @@ python -m cli.main ~/flyto2/workflows/api_pipeline.yaml
 Use `--param.name=value` syntax:
 
 ```bash
-python -m cli.main workflow.yaml \
+python -m src.cli.main workflow.yaml \
   --param.keyword=python \
   --param.max_results=20 \
   --param.headless=true
@@ -88,7 +88,7 @@ export API_KEY=your_api_key
 export SLACK_WEBHOOK=https://hooks.slack.com/...
 
 # Run workflow
-python -m cli.main workflow.yaml
+python -m src.cli.main workflow.yaml
 ```
 
 **In workflow.yaml:**
@@ -123,10 +123,10 @@ Flyto2 automatically loads `.env` file if it exists.
 
 ```bash
 # Show detailed execution logs
-python -m cli.main workflow.yaml --verbose
+python -m src.cli.main workflow.yaml --verbose
 
 # Or set log level
-python -m cli.main workflow.yaml --log-level=DEBUG
+python -m src.cli.main workflow.yaml --log-level=DEBUG
 ```
 
 **Log levels:** DEBUG, INFO, WARNING, ERROR
@@ -135,7 +135,7 @@ python -m cli.main workflow.yaml --log-level=DEBUG
 
 ```bash
 # Validate workflow without executing
-python -m cli.main workflow.yaml --dry-run
+python -m src.cli.main workflow.yaml --dry-run
 ```
 
 **Checks:**
@@ -148,13 +148,13 @@ python -m cli.main workflow.yaml --dry-run
 
 ```bash
 # JSON output (default)
-python -m cli.main workflow.yaml
+python -m src.cli.main workflow.yaml
 
 # Pretty JSON
-python -m cli.main workflow.yaml --pretty
+python -m src.cli.main workflow.yaml --pretty
 
 # Minimal output
-python -m cli.main workflow.yaml --quiet
+python -m src.cli.main workflow.yaml --quiet
 ```
 
 ---
@@ -215,7 +215,7 @@ OPENAI_API_KEY=sk-xxxxxxxxxxxx
 ### Example 1: Google Search
 
 ```bash
-python -m cli.main workflows/google_search.yaml \
+python -m src.cli.main workflows/google_search.yaml \
   --param.keyword="workflow automation" \
   --param.max_results=10
 ```
@@ -228,7 +228,7 @@ export GITHUB_TOKEN=ghp_xxxxxxxxxxxx
 export SLACK_WEBHOOK_URL=https://hooks.slack.com/...
 
 # Run workflow
-python -m cli.main workflows/github_to_slack.yaml \
+python -m src.cli.main workflows/github_to_slack.yaml \
   --param.repo_owner=facebook \
   --param.repo_name=react
 ```
@@ -243,7 +243,7 @@ export SMTP_PASSWORD=your_app_password
 export API_TOKEN=your_api_token
 
 # Run workflow
-python -m cli.main workflows/daily_report_email.yaml \
+python -m src.cli.main workflows/daily_report_email.yaml \
   --param.recipient_email=manager@company.com
 ```
 
@@ -261,7 +261,7 @@ export SMTP_PASSWORD=password
 export ALERT_EMAIL=oncall@company.com
 
 # Send alert
-python -m cli.main workflows/multi_channel_alert.yaml \
+python -m src.cli.main workflows/multi_channel_alert.yaml \
   --param.alert_title="Production Down" \
   --param.alert_message="Server crashed" \
   --param.severity=critical
@@ -281,13 +281,13 @@ crontab -e
 Add scheduled workflows:
 ```bash
 # Run every day at 9 AM
-0 9 * * * cd /path/to/flyto2 && python -m cli.main workflows/daily_report_email.yaml
+0 9 * * * cd /path/to/flyto2 && python -m src.cli.main workflows/daily_report_email.yaml
 
 # Run every hour
-0 * * * * cd /path/to/flyto2 && python -m cli.main workflows/monitor.yaml
+0 * * * * cd /path/to/flyto2 && python -m src.cli.main workflows/monitor.yaml
 
 # Run every 15 minutes
-*/15 * * * * cd /path/to/flyto2 && python -m cli.main workflows/check_status.yaml
+*/15 * * * * cd /path/to/flyto2 && python -m src.cli.main workflows/check_status.yaml
 ```
 
 ### Using systemd Timer (Linux)
@@ -332,7 +332,7 @@ Create batch file `run_workflow.bat`:
 ```batch
 @echo off
 cd C:\path\to\flyto2
-python -m cli.main workflows\daily_report_email.yaml
+python -m src.cli.main workflows\daily_report_email.yaml
 ```
 
 Schedule in Task Scheduler:
@@ -388,7 +388,7 @@ docker run --rm \
 docker run --rm \
   -v $(pwd)/workflows:/app/workflows \
   -e SLACK_WEBHOOK_URL=$SLACK_WEBHOOK_URL \
-  flyto2 python -m cli.main workflows/my_workflow.yaml
+  flyto2 python -m src.cli.main workflows/my_workflow.yaml
 
 # Run with .env file
 docker run --rm \
@@ -403,7 +403,7 @@ docker run --rm \
 ### Enable Debug Logging
 
 ```bash
-python -m cli.main workflow.yaml --log-level=DEBUG
+python -m src.cli.main workflow.yaml --log-level=DEBUG
 ```
 
 **Shows:**
@@ -416,7 +416,7 @@ python -m cli.main workflow.yaml --log-level=DEBUG
 
 ```bash
 # Check syntax without running
-python -m cli.main workflow.yaml --dry-run
+python -m src.cli.main workflow.yaml --dry-run
 ```
 
 ### Common Issues
@@ -488,7 +488,7 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          python -m cli.main workflows/daily_report_email.yaml
+          python -m src.cli.main workflows/daily_report_email.yaml
 ```
 
 ### GitLab CI
@@ -505,7 +505,7 @@ run-workflow:
     - playwright install-deps chromium
 
   script:
-    - python -m cli.main workflows/daily_report_email.yaml
+    - python -m src.cli.main workflows/daily_report_email.yaml
 
   only:
     - schedules

@@ -38,7 +38,7 @@ playwright install chromium
 
 ```bash
 # Run a simple example workflow
-python -m cli.main workflows/api_pipeline.yaml
+python -m src.cli.main workflows/api_pipeline.yaml
 ```
 
 You should see output showing the workflow executing successfully! ✅
@@ -310,7 +310,7 @@ python -m pytest tests/test_phase2_features.py -v
 
 ```bash
 # Development
-python -m cli.main <workflow.yaml>          # Run workflow
+python -m src.cli.main <workflow.yaml>          # Run workflow
 python scripts/validate_all_modules.py      # Validate modules
 python scripts/lint_modules.py --strict     # Lint modules
 python -m pytest tests/ -v                  # Run all tests

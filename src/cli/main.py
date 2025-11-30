@@ -373,40 +373,94 @@ def run_workflow(workflow_path: Path, params: Dict[str, Any], config: Dict[str, 
 
 def main():
     """Main CLI entry point"""
-    # Select language
-    lang = select_language()
-    i18n = I18n(lang)
-    
-    # Clear screen and show logo
-    os.system('clear' if os.name != 'nt' else 'cls')
-    print_logo(i18n)
-    
-    # Load global config
-    config = load_config()
-    
-    # Select workflow
-    workflow_path = select_workflow(i18n)
-    if not workflow_path:
+    import argparse
+
+    # Parse command-line arguments
+    parser = argparse.ArgumentParser(
+        description='Flyto2 Workflow Automation Engine',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Interactive mode
+  python -m src.cli.main
+
+  # Non-interactive mode
+  python -m src.cli.main workflows/google_search.yaml
+  python -m src.cli.main workflows/api_pipeline.yaml --lang zh
+        """
+    )
+    parser.add_argument('workflow', nargs='?', help='Path to workflow YAML file')
+    parser.add_argument('--lang', '-l', default='en', choices=['en', 'zh', 'ja'],
+                       help='Language (en, zh, ja)')
+    parser.add_argument('--params', '-p', help='Workflow parameters as JSON string')
+
+    args = parser.parse_args()
+
+    # Determine mode: interactive or non-interactive
+    if args.workflow:
+        # Non-interactive mode
+        lang = args.lang
+        i18n = I18n(lang)
+        config = load_config()
+
+        workflow_path = Path(args.workflow)
+        if not workflow_path.exists():
+            print(f"{Colors.FAIL}Error: Workflow file not found: {workflow_path}{Colors.ENDC}")
+            sys.exit(1)
+
+        # Load workflow
+        print(f"{i18n.t('cli.loading_workflow')}: {Colors.OKGREEN}{workflow_path.name}{Colors.ENDC}")
+        with open(workflow_path, 'r') as f:
+            workflow = yaml.safe_load(f)
+
+        # Parse params if provided
+        params = {}
+        if args.params:
+            try:
+                params = json.loads(args.params)
+            except json.JSONDecodeError as e:
+                print(f"{Colors.FAIL}Error parsing parameters: {e}{Colors.ENDC}")
+                sys.exit(1)
+
+        # Run workflow
+        run_workflow(workflow_path, params, config, i18n)
+
+    else:
+        # Interactive mode
+        # Select language
+        lang = select_language()
+        i18n = I18n(lang)
+
+        # Clear screen and show logo
+        os.system('clear' if os.name != 'nt' else 'cls')
+        print_logo(i18n)
+
+        # Load global config
+        config = load_config()
+
+        # Select workflow
+        workflow_path = select_workflow(i18n)
+        if not workflow_path:
+            print()
+            print(i18n.t('cli.goodbye'))
+            sys.exit(0)
+
+        # Load workflow to get params
+        print()
+        print(f"{i18n.t('cli.loading_workflow')}: {Colors.OKGREEN}{workflow_path.name}{Colors.ENDC}")
+
+        with open(workflow_path, 'r') as f:
+            workflow = yaml.safe_load(f)
+
+        # Collect parameters
+        params = collect_params(workflow, i18n)
+
+        # Run workflow
+        run_workflow(workflow_path, params, config, i18n)
+
+        # Goodbye
         print()
         print(i18n.t('cli.goodbye'))
-        sys.exit(0)
-    
-    # Load workflow to get params
-    print()
-    print(f"{i18n.t('cli.loading_workflow')}: {Colors.OKGREEN}{workflow_path.name}{Colors.ENDC}")
-    
-    with open(workflow_path, 'r') as f:
-        workflow = yaml.safe_load(f)
-    
-    # Collect parameters
-    params = collect_params(workflow, i18n)
-    
-    # Run workflow
-    run_workflow(workflow_path, params, config, i18n)
-    
-    # Goodbye
-    print()
-    print(i18n.t('cli.goodbye'))
 
 
 if __name__ == '__main__':

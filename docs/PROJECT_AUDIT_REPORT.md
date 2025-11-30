@@ -100,7 +100,7 @@ args: ["python", "-m", "cli.main", "workflows/daily_report.yaml"]
 # Should be: "workflows/daily_report_email.yaml"
 
 # README.md line 249
-python -m cli.main workflows/production.yaml
+python -m src.cli.main workflows/production.yaml
 # Should be: actual workflow file
 ```
 

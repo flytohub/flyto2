@@ -39,7 +39,7 @@ pip install -r requirements.txt
 playwright install chromium
 
 # 2. Run example
-python -m cli.main workflows/google_search.yaml
+python -m src.cli.main workflows/google_search.yaml
 
 # 3. Create your own
 cat > my_workflow.yaml <<EOF
@@ -52,7 +52,7 @@ steps:
 EOF
 
 export SLACK_WEBHOOK_URL=https://hooks.slack.com/...
-python -m cli.main my_workflow.yaml
+python -m src.cli.main my_workflow.yaml
 ```
 
 **That's it!** You're automating with YAML workflows.
@@ -131,12 +131,12 @@ steps:
 ```bash
 export GITHUB_TOKEN=ghp_xxxxx
 export SLACK_WEBHOOK_URL=https://hooks.slack.com/...
-python -m cli.main github_monitor.yaml
+python -m src.cli.main github_monitor.yaml
 ```
 
 **Schedule (cron):**
 ```bash
-*/15 * * * * cd /app && python -m cli.main github_monitor.yaml
+*/15 * * * * cd /app && python -m src.cli.main github_monitor.yaml
 ```
 
 ### Example 2: Web Scraping → CSV Export
@@ -255,7 +255,7 @@ jobs:
       - run: |
           pip install -r requirements.txt
           playwright install chromium
-      - run: python -m cli.main workflows/daily_report_email.yaml
+      - run: python -m src.cli.main workflows/daily_report_email.yaml
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 ```
@@ -264,13 +264,13 @@ jobs:
 
 ## License Model
 
-Flyto adopts a **hybrid licensing model** similar to Supabase, AppSmith, and n8n:
+Flyto2 adopts a **hybrid licensing model** similar to Supabase, AppSmith, and n8n:
 
 <div align="center">
-  <img src="assets/architecture.svg" alt="Flyto Architecture" width="600"/>
+  <img src="assets/architecture.svg" alt="Flyto2 Architecture" width="600"/>
 </div>
 
-### 🔓 Flyto Engine — MIT License (Fully Open Source)
+### 🔓 Flyto2 Engine — MIT License (Fully Open Source)
 
 **This Repository** (Engine + Modules + CLI) is released under MIT License:
 
@@ -285,10 +285,10 @@ MIT License is the most permissive and contributor-friendly license.
 **Run the engine:**
 ```bash
 pip install -r requirements.txt
-python -m cli.main my_workflow.yaml
+python -m src.cli.main my_workflow.yaml
 ```
 
-### 🎨 Flyto Visual Builder (UI) — Free but Closed-Source
+### 🎨 Flyto2 Visual Builder (UI) — Free but Closed-Source
 
 The drag-and-drop workflow builder will be:
 
@@ -386,11 +386,11 @@ Looking to contribute? Great starting points for new contributors:
 
 ## License
 
-**Flyto Engine (This Repository):** [MIT License](LICENSE)
+**Flyto2 Engine (This Repository):** [MIT License](LICENSE)
 
 The workflow engine, all modules, CLI, and documentation in this repository are fully open source under MIT License.
 
-**Flyto Visual Builder (UI):** Closed-source but free to use
+**Flyto2 Visual Builder (UI):** Closed-source but free to use
 
 For complete licensing details, see the [License Model](#license-model) section above.
 

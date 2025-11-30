@@ -140,7 +140,7 @@ pip install -r requirements.txt
 playwright install chromium
 
 # 2. Run example
-python -m cli.main workflows/google_search.yaml
+python -m src.cli.main workflows/google_search.yaml
 
 # 3. See all examples
 ls workflows/
@@ -201,10 +201,10 @@ Choose your deployment method:
 
 ```bash
 # Enable debug logging
-python -m cli.main workflow.yaml --log-level=DEBUG
+python -m src.cli.main workflow.yaml --log-level=DEBUG
 
 # Validate without running
-python -m cli.main workflow.yaml --dry-run
+python -m src.cli.main workflow.yaml --dry-run
 ```
 
 **Next:** See [CLI Usage - Debugging](CLI.md#debugging)
