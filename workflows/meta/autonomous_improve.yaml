@@ -44,10 +44,12 @@ steps:
     params:
       file_path: "docs/DSL.md"
 
-  - id: read_modules
-    module: data.file.read
+  - id: get_modules
+    module: meta.modules.list
     params:
-      file_path: "docs/MODULES.md"
+      format: "markdown"
+      include_params: true
+      include_output: false
 
   - id: autonomous_improvement
     module: agent.autonomous
@@ -64,7 +66,7 @@ steps:
 
         Context:
         - DSL Spec: ${read_dsl.content}
-        - Available Modules: ${read_modules.content}
+        - Available Modules: ${get_modules.formatted}
         - Current Workflow: ${read_workflow.content}
         - Error Logs: ${params.error_log_path != null ? read_error_logs.content : 'No logs provided'}
 

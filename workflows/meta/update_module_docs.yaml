@@ -1,0 +1,57 @@
+name: "Update Module Documentation"
+description: "Automatically generate MODULES.md from current module registry"
+
+# Run this workflow whenever you add/remove/modify modules
+# to keep documentation in sync with actual code
+
+parameters:
+  output_path:
+    type: string
+    default: "docs/MODULES.md"
+    description: "Where to write updated documentation"
+
+  backup_old:
+    type: boolean
+    default: true
+    description: "Backup existing MODULES.md before overwriting"
+
+steps:
+  # Backup existing file if requested
+  - id: check_exists
+    module: data.file.exists
+    if: "${params.backup_old == true}"
+    params:
+      file_path: "${params.output_path}"
+
+  - id: backup
+    module: data.file.copy
+    if: "${params.backup_old == true && check_exists.exists == true}"
+    params:
+      source: "${params.output_path}"
+      destination: "${params.output_path}.backup_${timestamp}"
+
+  # Generate new documentation from live registry
+  - id: update_docs
+    module: meta.modules.update_docs
+    params:
+      output_path: "${params.output_path}"
+      include_examples: true
+
+  # Print summary
+  - id: summary
+    module: core.utility.log
+    params:
+      message: |
+        Module documentation updated successfully
+
+        Output: ${params.output_path}
+        Modules: ${update_docs.modules_count}
+        Categories: ${update_docs.categories}
+
+        ${params.backup_old ? 'Backup: ' + params.output_path + '.backup_' + timestamp : ''}
+
+# Usage:
+# python -m src.cli.main workflows/meta/update_module_docs.yaml
+#
+# This keeps MODULES.md always up-to-date with your actual module registry
+# No manual maintenance required

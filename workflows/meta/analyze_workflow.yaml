@@ -23,10 +23,12 @@ steps:
     params:
       file_path: "docs/DSL.md"
 
-  - id: read_module_registry
-    module: data.file.read
+  - id: get_module_registry
+    module: meta.modules.list
     params:
-      file_path: "docs/MODULES.md"
+      format: "markdown"
+      include_params: true
+      include_output: false
 
   - id: read_target_workflow
     module: data.file.read
@@ -55,7 +57,7 @@ steps:
 
         Available Modules:
         ---
-        ${read_module_registry.content}
+        ${get_module_registry.formatted}
 
         Target Workflow:
         ---
@@ -90,7 +92,7 @@ steps:
 
         Available Modules:
         ---
-        ${read_module_registry.content}
+        ${get_module_registry.formatted}
 
         Target Workflow:
         ---

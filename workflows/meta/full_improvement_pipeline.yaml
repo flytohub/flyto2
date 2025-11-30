@@ -46,10 +46,12 @@ steps:
     params:
       file_path: "docs/DSL.md"
 
-  - id: read_modules
-    module: data.file.read
+  - id: get_modules
+    module: meta.modules.list
     params:
-      file_path: "docs/MODULES.md"
+      format: "markdown"
+      include_params: true
+      include_output: false
 
   - id: read_workflow
     module: data.file.read
@@ -67,7 +69,7 @@ steps:
           Based on this analysis: {input}
 
           DSL Spec: ${read_dsl.content}
-          Modules: ${read_modules.content}
+          Modules: ${get_modules.formatted}
           Original: ${read_workflow.content}
 
           Generate specific improvements as a list.

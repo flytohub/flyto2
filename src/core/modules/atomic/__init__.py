@@ -33,6 +33,7 @@ from . import array
 from . import math
 from . import datetime
 from . import object
+from . import meta_operations
 
 __all__ = [
     'BrowserFindModule',
