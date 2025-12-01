@@ -20,7 +20,7 @@ import os
 import json
 import asyncio
 import subprocess
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -344,7 +344,7 @@ async def run_tests_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("🧪 Running quality tests on all modules...\n\nThis may take a few minutes.")
 
     results = await run_module_quality_tests()
-    state.last_test_run = datetime.utcnow()
+    state.last_test_run = datetime.now(timezone.utc)
     state.module_quality_data = results
 
     if "error" in results:
