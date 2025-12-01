@@ -224,19 +224,21 @@ Write-Host ""
 
 Write-Host "Choose launch mode:" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "  [1] Interactive Mode (Recommended for first time)" -ForegroundColor White
+Write-Host "  [1] Interactive Mode (Recommended first time)" -ForegroundColor White
+Write-Host "      - Auto-tests in background (hourly)" -ForegroundColor Gray
 Write-Host "      - Chat with AI via Telegram" -ForegroundColor Gray
-Write-Host "      - Test modules manually" -ForegroundColor Gray
-Write-Host "      - Review all proposals before merging" -ForegroundColor Gray
+Write-Host "      - AI auto-analyzes and proposes fixes" -ForegroundColor Gray
+Write-Host "      - Requires your approval to merge (safe)" -ForegroundColor Gray
 Write-Host ""
-Write-Host "  [2] Autonomous Mode (Advanced)" -ForegroundColor White
-Write-Host "      - AI runs continuously in background" -ForegroundColor Gray
-Write-Host "      - Auto-tests + auto-improves modules" -ForegroundColor Gray
-Write-Host "      - Notifies you via Telegram" -ForegroundColor Gray
+Write-Host "  [2] Autonomous Mode (Fully automated, advanced)" -ForegroundColor White
+Write-Host "      - Auto-tests in background (hourly)" -ForegroundColor Gray
+Write-Host "      - AI auto-improves modules" -ForegroundColor Gray
+Write-Host "      - Auto-merges if pass 98% gate" -ForegroundColor Gray
+Write-Host "      - Only notifies results (after merge)" -ForegroundColor Gray
 Write-Host ""
-Write-Host "  [3] One-time Test Run" -ForegroundColor White
+Write-Host "  [3] One-time Test Run (Test once and exit)" -ForegroundColor White
 Write-Host "      - Run quality tests once" -ForegroundColor Gray
-Write-Host "      - Get AI analysis" -ForegroundColor Gray
+Write-Host "      - Get AI analysis report" -ForegroundColor Gray
 Write-Host "      - Exit after completion" -ForegroundColor Gray
 Write-Host ""
 
