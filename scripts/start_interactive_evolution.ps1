@@ -40,22 +40,120 @@ try {
 }
 
 # Check Ollama
+$ollamaRunning = $false
 try {
-    $ollamaCheck = Invoke-WebRequest -Uri "http://localhost:11434/api/tags" -UseBasicParsing -TimeoutSec 5
+    $ollamaCheck = Invoke-WebRequest -Uri "http://localhost:11434/api/tags" -UseBasicParsing -TimeoutSec 5 -ErrorAction SilentlyContinue
     Write-Host "[✓] Ollama is running" -ForegroundColor Green
+    $ollamaRunning = $true
 } catch {
-    Write-Host "[!] Ollama not detected" -ForegroundColor Yellow
-    Write-Host ""
-    Write-Host "Ollama is REQUIRED for this system (local AI brain)." -ForegroundColor Yellow
-    Write-Host "Please install Ollama first:" -ForegroundColor Yellow
-    Write-Host "  1. Download from: https://ollama.com/download" -ForegroundColor White
-    Write-Host "  2. Install Ollama" -ForegroundColor White
-    Write-Host "  3. Run: ollama pull llama3.2" -ForegroundColor White
-    Write-Host "  4. Run this script again" -ForegroundColor White
-    Write-Host ""
-    $continue = Read-Host "Continue anyway? (not recommended) [y/N]"
-    if ($continue -ne 'y' -and $continue -ne 'Y') {
-        exit 1
+    Write-Host "[!] Ollama not running" -ForegroundColor Yellow
+
+    # Check if Ollama is installed
+    $ollamaInstalled = Get-Command ollama -ErrorAction SilentlyContinue
+
+    if (-not $ollamaInstalled) {
+        Write-Host ""
+        Write-Host "=========================================="
+        Write-Host "  Ollama Not Installed"
+        Write-Host "=========================================="
+        Write-Host ""
+        Write-Host "Ollama provides FREE local AI (no API costs)." -ForegroundColor Cyan
+        Write-Host ""
+        Write-Host "Options:" -ForegroundColor Yellow
+        Write-Host "  [1] Auto-install Ollama (Recommended)" -ForegroundColor White
+        Write-Host "  [2] I'll install manually later" -ForegroundColor White
+        Write-Host "  [3] Skip Ollama, use OpenAI only (need API key)" -ForegroundColor White
+        Write-Host ""
+
+        $choice = Read-Host "Choose option [1/2/3]"
+
+        if ($choice -eq "1") {
+            Write-Host ""
+            Write-Host "[*] Downloading Ollama installer..." -ForegroundColor Cyan
+
+            $installerPath = "$env:TEMP\OllamaSetup.exe"
+            $downloadUrl = "https://ollama.com/download/OllamaSetup.exe"
+
+            try {
+                Invoke-WebRequest -Uri $downloadUrl -OutFile $installerPath -UseBasicParsing
+                Write-Host "[✓] Downloaded" -ForegroundColor Green
+
+                Write-Host "[*] Installing Ollama..." -ForegroundColor Cyan
+                Write-Host "    (Installation window will appear)" -ForegroundColor Gray
+
+                Start-Process -FilePath $installerPath -Wait
+
+                Write-Host "[✓] Ollama installed!" -ForegroundColor Green
+                Write-Host ""
+                Write-Host "[*] Starting Ollama service..." -ForegroundColor Cyan
+
+                # Wait for Ollama to start
+                Start-Sleep -Seconds 5
+
+                # Download model
+                Write-Host "[*] Downloading AI model (llama3.2)..." -ForegroundColor Cyan
+                Write-Host "    This may take 5-10 minutes..." -ForegroundColor Gray
+
+                $process = Start-Process -FilePath "ollama" -ArgumentList "pull llama3.2" -NoNewWindow -PassThru -Wait
+
+                if ($process.ExitCode -eq 0) {
+                    Write-Host "[✓] Model downloaded!" -ForegroundColor Green
+                    $ollamaRunning = $true
+                } else {
+                    Write-Host "[!] Model download may have issues, but continuing..." -ForegroundColor Yellow
+                }
+
+            } catch {
+                Write-Host "[✗] Auto-install failed: $($_.Exception.Message)" -ForegroundColor Red
+                Write-Host ""
+                Write-Host "Please install manually:" -ForegroundColor Yellow
+                Write-Host "  1. Visit: https://ollama.com/download" -ForegroundColor White
+                Write-Host "  2. Download and install" -ForegroundColor White
+                Write-Host "  3. Run: ollama pull llama3.2" -ForegroundColor White
+                Write-Host "  4. Run this script again" -ForegroundColor White
+                exit 1
+            }
+
+        } elseif ($choice -eq "2") {
+            Write-Host ""
+            Write-Host "Please install Ollama manually:" -ForegroundColor Yellow
+            Write-Host "  1. Visit: https://ollama.com/download" -ForegroundColor White
+            Write-Host "  2. Download and install" -ForegroundColor White
+            Write-Host "  3. Run: ollama pull llama3.2" -ForegroundColor White
+            Write-Host "  4. Run this script again" -ForegroundColor White
+            exit 1
+
+        } elseif ($choice -eq "3") {
+            Write-Host ""
+            Write-Host "[!] Skipping Ollama - will use OpenAI only" -ForegroundColor Yellow
+            Write-Host "    (You'll need to provide OpenAI API key)" -ForegroundColor Gray
+            $ollamaRunning = $false
+        }
+
+    } else {
+        # Ollama installed but not running
+        Write-Host ""
+        Write-Host "[*] Ollama is installed but not running" -ForegroundColor Cyan
+        Write-Host "[*] Starting Ollama..." -ForegroundColor Cyan
+
+        try {
+            # Try to start Ollama service
+            Start-Process -FilePath "ollama" -ArgumentList "serve" -NoNewWindow
+            Start-Sleep -Seconds 5
+
+            # Check if running now
+            try {
+                $ollamaCheck = Invoke-WebRequest -Uri "http://localhost:11434/api/tags" -UseBasicParsing -TimeoutSec 5 -ErrorAction SilentlyContinue
+                Write-Host "[✓] Ollama started successfully!" -ForegroundColor Green
+                $ollamaRunning = $true
+            } catch {
+                Write-Host "[!] Ollama may not have started properly" -ForegroundColor Yellow
+            }
+
+        } catch {
+            Write-Host "[!] Could not auto-start Ollama" -ForegroundColor Yellow
+            Write-Host "    Please run: ollama serve" -ForegroundColor Gray
+        }
     }
 }
 
@@ -108,14 +206,31 @@ if ($needConfig) {
     Write-Host ""
     $chatId = Read-Host "Enter TELEGRAM_CHAT_ID"
 
-    # Ask about OpenAI (optional)
+    # Ask about OpenAI
     Write-Host ""
-    Write-Host "OpenAI API Key (OPTIONAL):" -ForegroundColor Cyan
-    Write-Host "  - Used ONLY when Ollama is uncertain AND you approve" -ForegroundColor White
-    Write-Host "  - Expected cost: ~NT$30-60/month" -ForegroundColor White
-    Write-Host "  - Press Enter to skip (you can add it later)" -ForegroundColor White
-    Write-Host ""
-    $openaiKey = Read-Host "Enter OPENAI_API_KEY (or press Enter to skip)"
+    if (-not $ollamaRunning) {
+        Write-Host "OpenAI API Key (REQUIRED - Ollama not available):" -ForegroundColor Yellow
+        Write-Host "  - Will be used as primary AI" -ForegroundColor White
+        Write-Host "  - Get key from: https://platform.openai.com/api-keys" -ForegroundColor White
+        Write-Host "  - Expected cost: ~$2-5/month for moderate use" -ForegroundColor White
+        Write-Host ""
+        $openaiKey = Read-Host "Enter OPENAI_API_KEY (required)"
+
+        if ([string]::IsNullOrWhiteSpace($openaiKey)) {
+            Write-Host ""
+            Write-Host "[✗] OpenAI key required when Ollama not available" -ForegroundColor Red
+            Write-Host "    Please install Ollama OR provide OpenAI key" -ForegroundColor Yellow
+            exit 1
+        }
+    } else {
+        Write-Host "OpenAI API Key (OPTIONAL):" -ForegroundColor Cyan
+        Write-Host "  - Used ONLY when Ollama uncertain AND you approve" -ForegroundColor White
+        Write-Host "  - Expected cost: ~$1-3/month (rarely needed)" -ForegroundColor White
+        Write-Host "  - Get key from: https://platform.openai.com/api-keys" -ForegroundColor White
+        Write-Host "  - Press Enter to skip (you can add it later)" -ForegroundColor White
+        Write-Host ""
+        $openaiKey = Read-Host "Enter OPENAI_API_KEY (or press Enter to skip)"
+    }
 
     # Create .env file
     $envContent = @"
