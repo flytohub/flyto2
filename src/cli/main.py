@@ -10,7 +10,17 @@ import os
 from pathlib import Path
 
 # Add project root to sys.path to enable 'import src.xxx'
+# Try multiple methods to ensure it works across different execution contexts
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+
+# Method 1: Add from PYTHONPATH environment variable (most reliable)
+pythonpath_from_env = os.environ.get('PYTHONPATH')
+if pythonpath_from_env:
+    for path in pythonpath_from_env.split(os.pathsep):
+        if path and path not in sys.path:
+            sys.path.insert(0, path)
+
+# Method 2: Add calculated PROJECT_ROOT
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 

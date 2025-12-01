@@ -243,13 +243,15 @@ async def run_module_quality_tests(provided_tokens: Optional[Dict[str, str]] = N
                     print(f"[DEBUG] Python: {sys.executable}")
                     print(f"[DEBUG] PYTHONPATH: {test_env.get('PYTHONPATH', 'Not set')}")
 
+                # Execute CLI script directly with PYTHONPATH set
+                # PYTHONPATH is the most reliable way across platforms
                 result = subprocess.run(
                     [sys.executable, str(cli_script), str(test_file)],
                     capture_output=True,
                     text=True,
                     timeout=30,
                     cwd=str(PROJECT_ROOT),
-                    env=test_env  # Pass environment with tokens and PYTHONPATH
+                    env=test_env  # test_env already has PYTHONPATH set
                 )
 
                 # Extract which modules were tested from the workflow
