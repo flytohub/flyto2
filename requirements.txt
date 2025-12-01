@@ -13,6 +13,13 @@ firebase-admin>=6.2.0
 
 # Other dependencies
 python-dotenv>=1.0.0
+requests>=2.31.0
+
+# ============================================
+# Telegram Bot Dependencies
+# ============================================
+python-telegram-bot>=20.0
+openai>=1.0.0          # For /gpt commands
 
 # ============================================
 # Optional Third-party Integrations
@@ -20,6 +27,5 @@ python-dotenv>=1.0.0
 # Install only the integrations you need:
 
 # AI Integrations (optional)
-# openai>=1.0.0          # For OpenAI integration
 # anthropic>=0.7.0       # For Anthropic/Claude integration (coming soon)
 # google-generativeai    # For Google Gemini integration (coming soon)
