@@ -38,11 +38,15 @@ from telegram.ext import (
 
 load_dotenv()
 
+# Add project root to sys.path BEFORE any imports from src
+PROJECT_ROOT = Path(__file__).parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
 TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 TELEGRAM_ALLOWED_USERS = os.getenv('TELEGRAM_ALLOWED_USERS', '').split(',')
 OLLAMA_URL = os.getenv('OLLAMA_URL', 'http://localhost:11434')
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
-PROJECT_ROOT = Path(__file__).parent.parent
 
 
 class EvolutionState:
