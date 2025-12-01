@@ -17,6 +17,7 @@ Features:
 - Full audit trail
 """
 import os
+import sys
 import json
 import asyncio
 import subprocess
@@ -231,8 +232,10 @@ async def run_module_quality_tests(provided_tokens: Optional[Dict[str, str]] = N
 
             try:
                 # Execute the test workflow with environment variables
+                # Note: Use absolute path to avoid module import issues
+                cli_script = PROJECT_ROOT / "src" / "cli" / "main.py"
                 result = subprocess.run(
-                    ["python", "-m", "src.cli.main", str(test_file)],
+                    [sys.executable, str(cli_script), str(test_file)],
                     capture_output=True,
                     text=True,
                     timeout=30,
