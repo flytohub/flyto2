@@ -306,6 +306,19 @@ async def run_module_quality_tests(provided_tokens: Optional[Dict[str, str]] = N
         modules_tested = len(tested_modules)
         coverage_rate = modules_tested / total_registered if total_registered > 0 else 0
 
+        # Add debug info if any tests failed
+        debug_info = {}
+        if failed > 0:
+            cli_script = PROJECT_ROOT / "src" / "cli" / "main.py"
+            debug_info = {
+                "cli_script": str(cli_script),
+                "cli_exists": cli_script.exists(),
+                "project_root": str(PROJECT_ROOT),
+                "python_executable": sys.executable,
+                "pythonpath": test_env.get('PYTHONPATH', 'Not set'),
+                "first_error": results[list(results.keys())[0]]["error"] if results else None
+            }
+
         return {
             "total_tests": total_tests,
             "total_registered_modules": total_registered,
@@ -317,11 +330,18 @@ async def run_module_quality_tests(provided_tokens: Optional[Dict[str, str]] = N
             "pass_rate": passed / total_tests if total_tests > 0 else 0,
             "tested_module_ids": sorted(list(tested_modules)),
             "modules": results,
-            "source": "real_execution"
+            "source": "real_execution",
+            "debug_info": debug_info if debug_info else None
         }
 
     except Exception as e:
-        return {"error": f"Test execution failed: {str(e)}"}
+        import traceback
+        return {
+            "error": f"Test execution failed: {str(e)}",
+            "traceback": traceback.format_exc(),
+            "project_root": str(PROJECT_ROOT),
+            "python": sys.executable
+        }
 
 
 async def analyze_test_results(results: Dict) -> Dict:
@@ -525,7 +545,15 @@ async def execute_tests_and_show_results(query_or_message, provided_tokens: Opti
     state.module_quality_data = results
 
     if "error" in results:
-        await message_obj.reply_text(f"❌ Test failed:\n{results['error']}")
+        error_msg = f"❌ Test failed:\n{results['error']}"
+
+        # Add debug info if available
+        if "traceback" in results:
+            error_msg += f"\n\n**Debug Info:**\n"
+            error_msg += f"Project Root: {results.get('project_root', 'N/A')}\n"
+            error_msg += f"Python: {results.get('python', 'N/A')}\n"
+
+        await message_obj.reply_text(error_msg, parse_mode="Markdown")
         return
 
     # Show test coverage first
@@ -551,6 +579,20 @@ async def execute_tests_and_show_results(query_or_message, provided_tokens: Opti
     )
 
     await message_obj.reply_text(coverage_msg, parse_mode="Markdown")
+
+    # Show debug info if tests failed
+    debug_info = results.get("debug_info")
+    if debug_info and failed > 0:
+        debug_msg = (
+            f"🐛 **Debug Info** (for failed tests):\n\n"
+            f"CLI Script: `{debug_info.get('cli_script', 'N/A')}`\n"
+            f"CLI Exists: {debug_info.get('cli_exists', 'N/A')}\n"
+            f"Project Root: `{debug_info.get('project_root', 'N/A')}`\n"
+            f"Python: `{debug_info.get('python_executable', 'N/A')}`\n"
+            f"PYTHONPATH: `{debug_info.get('pythonpath', 'N/A')}`\n"
+            f"First Error: {debug_info.get('first_error', 'N/A')[:150]}"
+        )
+        await message_obj.reply_text(debug_msg, parse_mode="Markdown")
 
     # Analyze results
     await message_obj.reply_text("🤔 Analyzing results...")
