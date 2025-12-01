@@ -195,10 +195,17 @@ async def run_module_quality_tests() -> Dict:
         if not test_files:
             return {"error": "No test files found"}
 
+        # Get total registered modules for coverage calculation
+        from src.core.modules.registry import ModuleRegistry
+        registry = ModuleRegistry()
+        all_modules = registry.get_all_metadata()
+        total_registered = len(all_modules)
+
         # Run each test workflow
         results = {}
         passed = 0
         failed = 0
+        tested_modules = set()
 
         for test_file in test_files:
             module_name = test_file.stem.replace("test_", "")
@@ -212,6 +219,17 @@ async def run_module_quality_tests() -> Dict:
                     timeout=30,
                     cwd=PROJECT_ROOT
                 )
+
+                # Extract which modules were tested from the workflow
+                # Parse the YAML to see what modules were used
+                import yaml
+                with open(test_file, 'r') as f:
+                    workflow = yaml.safe_load(f)
+                    for step in workflow.get('steps', []):
+                        # Check both 'module' and 'module_id' fields
+                        module_id = step.get('module_id') or step.get('module')
+                        if module_id:
+                            tested_modules.add(module_id)
 
                 if result.returncode == 0:
                     results[module_name] = {
@@ -242,13 +260,20 @@ async def run_module_quality_tests() -> Dict:
                 }
                 failed += 1
 
-        total = passed + failed
+        total_tests = passed + failed
+        modules_tested = len(tested_modules)
+        coverage_rate = modules_tested / total_registered if total_registered > 0 else 0
 
         return {
-            "total_modules": total,
+            "total_tests": total_tests,
+            "total_registered_modules": total_registered,
+            "modules_tested": modules_tested,
+            "modules_untested": total_registered - modules_tested,
+            "coverage_rate": coverage_rate,
             "passed": passed,
             "failed": failed,
-            "pass_rate": passed / total if total > 0 else 0,
+            "pass_rate": passed / total_tests if total_tests > 0 else 0,
+            "tested_module_ids": sorted(list(tested_modules)),
             "modules": results,
             "source": "real_execution"
         }
@@ -261,54 +286,63 @@ async def analyze_test_results(results: Dict) -> Dict:
     """Use Ollama to analyze test results and suggest improvements"""
 
     # Simple analysis without AI if results are straightforward
-    total = results.get("total_modules", 0)
+    total_tests = results.get("total_tests", 0)
+    modules_tested = results.get("modules_tested", 0)
+    modules_untested = results.get("modules_untested", 0)
+    coverage_rate = results.get("coverage_rate", 0)
     passed = results.get("passed", 0)
     failed = results.get("failed", 0)
     pass_rate = results.get("pass_rate", 0)
 
-    if total == 0:
+    if total_tests == 0:
         return {
-            "summary": "No modules tested",
+            "summary": "No tests executed",
             "issues": []
         }
 
-    # Create simple summary
-    summary = f"Tested {total} modules: {passed} passed, {failed} failed ({pass_rate:.1%} success rate)"
+    # Create detailed summary
+    summary = f"**Coverage:** {coverage_rate:.1%} ({modules_tested}/{modules_tested + modules_untested} modules)\n"
+    summary += f"**Test Success:** {pass_rate:.1%} ({passed}/{total_tests} tests passed)"
+
+    if modules_untested > 0:
+        summary += f"\n\n⚠️ **{modules_untested} modules have no tests** (need API keys or mocks)"
 
     # Identify failing modules
     issues = []
     modules = results.get("modules", {})
     for module_id, data in modules.items():
         if isinstance(data, dict) and data.get("status") == "fail":
+            error_msg = data.get("error", "Unknown error")
             issues.append({
                 "module_id": module_id,
                 "current_pass_rate": data.get("pass_rate", 0.0),
-                "issue": "Module validation failed",
+                "issue": error_msg[:100],
                 "suggestion": "Check module implementation and tests",
                 "priority": "high"
             })
 
     # If Ollama available, try to get AI insights
-    if failed > 0 and OLLAMA_URL:
+    if (failed > 0 or coverage_rate < 0.5) and OLLAMA_URL:
         try:
-            system_prompt = """Briefly analyze these module test failures and suggest fixes.
+            system_prompt = """Briefly analyze these test results and suggest improvements.
 Keep response under 200 words, plain text format."""
 
-            prompt = f"Test results: {passed}/{total} passed, {failed} failed.\nFailing modules: {[m['module_id'] for m in issues]}\n\nSuggest improvements:"
+            prompt = f"Test coverage: {coverage_rate:.1%} ({modules_tested}/{modules_tested + modules_untested})\n"
+            prompt += f"Test results: {passed}/{total_tests} passed, {failed} failed.\n"
+            if issues:
+                prompt += f"Failing tests: {[m['module_id'] for m in issues[:3]]}\n"
+            prompt += "\nSuggest improvements:"
 
             response, confidence = await ask_ollama(prompt, system_prompt)
 
             if response and "error" not in response.lower():
-                summary += f"\n\nAI insights: {response[:300]}"
+                summary += f"\n\n💡 AI Insight: {response[:300]}"
         except:
             pass  # Fallback to simple analysis
 
     return {
         "summary": summary,
-        "issues": issues,
-        "total_modules": total,
-        "passed": passed,
-        "failed": failed
+        "issues": issues
     }
 
 
@@ -416,8 +450,32 @@ async def run_tests_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"❌ Test failed:\n{results['error']}")
         return
 
+    # Show test coverage first
+    total_tests = results.get("total_tests", 0)
+    total_registered = results.get("total_registered_modules", 0)
+    modules_tested = results.get("modules_tested", 0)
+    modules_untested = results.get("modules_untested", 0)
+    coverage_rate = results.get("coverage_rate", 0)
+    passed = results.get("passed", 0)
+    failed = results.get("failed", 0)
+    pass_rate = results.get("pass_rate", 0)
+
+    coverage_msg = (
+        f"📊 **Test Coverage Report**\n\n"
+        f"**Registered Modules:** {total_registered}\n"
+        f"**Modules Tested:** {modules_tested} ({coverage_rate:.1%})\n"
+        f"**Modules Untested:** {modules_untested}\n\n"
+        f"**Test Results:**\n"
+        f"• Tests run: {total_tests}\n"
+        f"• Passed: {passed} ✅\n"
+        f"• Failed: {failed} ❌\n"
+        f"• Pass rate: {pass_rate:.1%}\n"
+    )
+
+    await update.message.reply_text(coverage_msg, parse_mode="Markdown")
+
     # Analyze results with Ollama
-    await update.message.reply_text("🤔 Analyzing results with local AI...")
+    await update.message.reply_text("🤔 Analyzing results...")
     analysis = await analyze_test_results(results)
 
     if "error" in analysis:
@@ -428,7 +486,7 @@ async def run_tests_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     summary = analysis.get("summary", "No summary")
     issues = analysis.get("issues", [])
 
-    message = f"📊 **Test Results**\n\n{summary}\n\n"
+    message = f"📋 **Analysis**\n\n{summary}\n\n"
 
     if issues:
         message += f"**Found {len(issues)} issues:**\n\n"
@@ -440,7 +498,7 @@ async def run_tests_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if len(issues) > 5:
             message += f"...and {len(issues) - 5} more\n"
     else:
-        message += "✅ All modules looking good!"
+        message += "✅ All tested modules passed!"
 
     await update.message.reply_text(message, parse_mode="Markdown")
 
