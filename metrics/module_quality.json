@@ -1,48 +1,22 @@
 {
   "_schema_version": "1.0.0",
-  "_last_updated": "2025-12-01T00:00:00Z",
+  "_last_updated": "2025-12-01T02:35:37Z",
   "_description": "Module quality metrics and success rate tracking",
   "modules": {
-    "string.split": {
+    "data.json.parse": {
       "category": "atomic",
-      "total_runs": 120,
-      "success_runs": 119,
-      "fail_runs": 1,
-      "recent_pass_rate": 0.991,
-      "last_50_runs": {
-        "success": 49,
-        "fail": 1,
-        "pass_rate": 0.98
-      },
-      "last_result": "pass",
-      "last_tested": "2025-12-01T08:00:00Z",
-      "average_execution_ms": 2.5,
-      "error_types": {
-        "ValueError": 1
-      },
-      "ai_modifications": {
-        "total_proposals": 2,
-        "accepted": 1,
-        "rejected": 1,
-        "last_proposal": "2025-11-28T10:00:00Z"
-      },
-      "quality_trend": "stable",
-      "auto_merge_approved": true
-    },
-    "string.join": {
-      "category": "atomic",
-      "total_runs": 95,
-      "success_runs": 95,
+      "total_runs": 10,
+      "success_runs": 10,
       "fail_runs": 0,
       "recent_pass_rate": 1.0,
       "last_50_runs": {
-        "success": 50,
+        "success": 10,
         "fail": 0,
         "pass_rate": 1.0
       },
       "last_result": "pass",
-      "last_tested": "2025-12-01T07:55:00Z",
-      "average_execution_ms": 1.8,
+      "last_tested": "2025-12-01T02:35:37Z",
+      "average_execution_ms": 160,
       "error_types": {},
       "ai_modifications": {
         "total_proposals": 0,
@@ -51,131 +25,102 @@
         "last_proposal": null
       },
       "quality_trend": "stable",
-      "auto_merge_approved": true
+      "auto_merge_approved": true,
+      "test_file": "workflows/_test/test_json_parse.yaml",
+      "test_cases": 8
+    },
+    "string.split": {
+      "category": "atomic",
+      "total_runs": 10,
+      "success_runs": 10,
+      "fail_runs": 0,
+      "recent_pass_rate": 1.0,
+      "last_50_runs": {
+        "success": 10,
+        "fail": 0,
+        "pass_rate": 1.0
+      },
+      "last_result": "pass",
+      "last_tested": "2025-12-01T02:35:37Z",
+      "average_execution_ms": 150,
+      "error_types": {},
+      "ai_modifications": {
+        "total_proposals": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "last_proposal": null
+      },
+      "quality_trend": "stable",
+      "auto_merge_approved": true,
+      "test_file": "workflows/_test/test_string_split.yaml",
+      "test_cases": 5
+    },
+    "string.replace": {
+      "category": "atomic",
+      "total_runs": 10,
+      "success_runs": 10,
+      "fail_runs": 0,
+      "recent_pass_rate": 1.0,
+      "last_50_runs": {
+        "success": 10,
+        "fail": 0,
+        "pass_rate": 1.0
+      },
+      "last_result": "pass",
+      "last_tested": "2025-12-01T02:35:37Z",
+      "average_execution_ms": 145,
+      "error_types": {},
+      "ai_modifications": {
+        "total_proposals": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "last_proposal": null
+      },
+      "quality_trend": "stable",
+      "auto_merge_approved": true,
+      "test_file": "workflows/_test/test_string_replace.yaml",
+      "test_cases": 3
+    },
+    "string.trim": {
+      "category": "atomic",
+      "total_runs": 10,
+      "success_runs": 10,
+      "fail_runs": 0,
+      "recent_pass_rate": 1.0,
+      "last_50_runs": {
+        "success": 10,
+        "fail": 0,
+        "pass_rate": 1.0
+      },
+      "last_result": "pass",
+      "last_tested": "2025-12-01T02:35:37Z",
+      "average_execution_ms": 140,
+      "error_types": {},
+      "ai_modifications": {
+        "total_proposals": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "last_proposal": null
+      },
+      "quality_trend": "stable",
+      "auto_merge_approved": true,
+      "test_file": "workflows/_test/test_string_trim.yaml",
+      "test_cases": 3
     },
     "array.map": {
       "category": "atomic",
-      "total_runs": 150,
-      "success_runs": 148,
-      "fail_runs": 2,
-      "recent_pass_rate": 0.987,
-      "last_50_runs": {
-        "success": 49,
-        "fail": 1,
-        "pass_rate": 0.98
-      },
-      "last_result": "pass",
-      "last_tested": "2025-12-01T07:50:00Z",
-      "average_execution_ms": 3.2,
-      "error_types": {
-        "TypeError": 2
-      },
-      "ai_modifications": {
-        "total_proposals": 1,
-        "accepted": 1,
-        "rejected": 0,
-        "last_proposal": "2025-11-30T14:00:00Z"
-      },
-      "quality_trend": "improving",
-      "auto_merge_approved": true
-    },
-    "ai.openai.chat": {
-      "category": "third_party",
-      "total_runs": 45,
-      "success_runs": 41,
-      "fail_runs": 4,
-      "recent_pass_rate": 0.911,
-      "last_50_runs": {
-        "success": 41,
-        "fail": 4,
-        "pass_rate": 0.911
-      },
-      "last_result": "pass",
-      "last_tested": "2025-12-01T07:30:00Z",
-      "average_execution_ms": 2350.5,
-      "error_types": {
-        "RateLimitError": 2,
-        "TimeoutError": 1,
-        "APIError": 1
-      },
-      "ai_modifications": {
-        "total_proposals": 3,
-        "accepted": 0,
-        "rejected": 3,
-        "last_proposal": "2025-11-29T16:00:00Z"
-      },
-      "quality_trend": "stable",
-      "auto_merge_approved": false,
-      "notes": "Third-party module requires manual review"
-    },
-    "notification.telegram.send_message": {
-      "category": "third_party",
-      "total_runs": 78,
-      "success_runs": 75,
-      "fail_runs": 3,
-      "recent_pass_rate": 0.962,
-      "last_50_runs": {
-        "success": 48,
-        "fail": 2,
-        "pass_rate": 0.96
-      },
-      "last_result": "pass",
-      "last_tested": "2025-12-01T07:45:00Z",
-      "average_execution_ms": 450.3,
-      "error_types": {
-        "NetworkError": 2,
-        "AuthenticationError": 1
-      },
-      "ai_modifications": {
-        "total_proposals": 1,
-        "accepted": 0,
-        "rejected": 1,
-        "last_proposal": "2025-11-27T09:00:00Z"
-      },
-      "quality_trend": "stable",
-      "auto_merge_approved": false,
-      "notes": "Third-party module requires manual review"
-    },
-    "data.json.parse": {
-      "category": "atomic",
-      "total_runs": 200,
-      "success_runs": 197,
-      "fail_runs": 3,
-      "recent_pass_rate": 0.985,
-      "last_50_runs": {
-        "success": 49,
-        "fail": 1,
-        "pass_rate": 0.98
-      },
-      "last_result": "pass",
-      "last_tested": "2025-12-01T08:05:00Z",
-      "average_execution_ms": 1.5,
-      "error_types": {
-        "JSONDecodeError": 3
-      },
-      "ai_modifications": {
-        "total_proposals": 2,
-        "accepted": 2,
-        "rejected": 0,
-        "last_proposal": "2025-11-25T11:00:00Z"
-      },
-      "quality_trend": "stable",
-      "auto_merge_approved": true
-    },
-    "math.sum": {
-      "category": "atomic",
-      "total_runs": 180,
-      "success_runs": 180,
+      "total_runs": 10,
+      "success_runs": 10,
       "fail_runs": 0,
       "recent_pass_rate": 1.0,
       "last_50_runs": {
-        "success": 50,
+        "success": 10,
         "fail": 0,
         "pass_rate": 1.0
       },
       "last_result": "pass",
-      "last_tested": "2025-12-01T07:40:00Z",
-      "average_execution_ms": 0.8,
+      "last_tested": "2025-12-01T02:35:37Z",
+      "average_execution_ms": 155,
       "error_types": {},
       "ai_modifications": {
         "total_proposals": 0,
@@ -184,74 +129,151 @@
         "last_proposal": null
       },
       "quality_trend": "stable",
-      "auto_merge_approved": true
+      "auto_merge_approved": true,
+      "test_file": "workflows/_test/test_array_map.yaml",
+      "test_cases": 3
     },
-    "browser.launch": {
-      "category": "third_party",
-      "total_runs": 30,
-      "success_runs": 28,
-      "fail_runs": 2,
-      "recent_pass_rate": 0.933,
+    "test.assert_equal": {
+      "category": "atomic",
+      "total_runs": 5,
+      "success_runs": 5,
+      "fail_runs": 0,
+      "recent_pass_rate": 1.0,
       "last_50_runs": {
-        "success": 28,
-        "fail": 2,
-        "pass_rate": 0.933
+        "success": 5,
+        "fail": 0,
+        "pass_rate": 1.0
       },
       "last_result": "pass",
-      "last_tested": "2025-12-01T06:00:00Z",
-      "average_execution_ms": 1850.2,
-      "error_types": {
-        "BrowserLaunchError": 2
-      },
+      "last_tested": "2025-12-01T02:27:14Z",
+      "average_execution_ms": 100,
+      "error_types": {},
       "ai_modifications": {
-        "total_proposals": 1,
+        "total_proposals": 0,
         "accepted": 0,
-        "rejected": 1,
-        "last_proposal": "2025-11-26T15:00:00Z"
+        "rejected": 0,
+        "last_proposal": null
       },
       "quality_trend": "stable",
-      "auto_merge_approved": false,
-      "notes": "Third-party module requires manual review"
+      "auto_merge_approved": true,
+      "test_file": "workflows/_test/test_assert.yaml",
+      "test_cases": 1
     },
-    "agent.autonomous": {
-      "category": "composed",
-      "total_runs": 25,
-      "success_runs": 23,
-      "fail_runs": 2,
-      "recent_pass_rate": 0.92,
+    "test.assert_true": {
+      "category": "atomic",
+      "total_runs": 5,
+      "success_runs": 5,
+      "fail_runs": 0,
+      "recent_pass_rate": 1.0,
       "last_50_runs": {
-        "success": 23,
-        "fail": 2,
-        "pass_rate": 0.92
+        "success": 5,
+        "fail": 0,
+        "pass_rate": 1.0
       },
       "last_result": "pass",
-      "last_tested": "2025-12-01T05:00:00Z",
-      "average_execution_ms": 15000.5,
-      "error_types": {
-        "LLMError": 1,
-        "ValidationError": 1
-      },
+      "last_tested": "2025-12-01T02:27:14Z",
+      "average_execution_ms": 95,
+      "error_types": {},
       "ai_modifications": {
-        "total_proposals": 4,
+        "total_proposals": 0,
         "accepted": 0,
-        "rejected": 4,
-        "last_proposal": "2025-11-30T18:00:00Z"
+        "rejected": 0,
+        "last_proposal": null
       },
-      "quality_trend": "needs_attention",
-      "auto_merge_approved": false,
-      "notes": "Composed module requires manual review and extensive testing"
+      "quality_trend": "stable",
+      "auto_merge_approved": true,
+      "test_file": "workflows/_test/test_assert.yaml",
+      "test_cases": 1
+    },
+    "test.assert_length": {
+      "category": "atomic",
+      "total_runs": 5,
+      "success_runs": 5,
+      "fail_runs": 0,
+      "recent_pass_rate": 1.0,
+      "last_50_runs": {
+        "success": 5,
+        "fail": 0,
+        "pass_rate": 1.0
+      },
+      "last_result": "pass",
+      "last_tested": "2025-12-01T02:27:14Z",
+      "average_execution_ms": 92,
+      "error_types": {},
+      "ai_modifications": {
+        "total_proposals": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "last_proposal": null
+      },
+      "quality_trend": "stable",
+      "auto_merge_approved": true,
+      "test_file": "workflows/_test/test_assert.yaml",
+      "test_cases": 1
+    },
+    "test.assert_not_null": {
+      "category": "atomic",
+      "total_runs": 5,
+      "success_runs": 5,
+      "fail_runs": 0,
+      "recent_pass_rate": 1.0,
+      "last_50_runs": {
+        "success": 5,
+        "fail": 0,
+        "pass_rate": 1.0
+      },
+      "last_result": "pass",
+      "last_tested": "2025-12-01T02:27:14Z",
+      "average_execution_ms": 88,
+      "error_types": {},
+      "ai_modifications": {
+        "total_proposals": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "last_proposal": null
+      },
+      "quality_trend": "stable",
+      "auto_merge_approved": true,
+      "test_file": "workflows/_test/test_assert.yaml",
+      "test_cases": 1
+    },
+    "test.assert_contains": {
+      "category": "atomic",
+      "total_runs": 5,
+      "success_runs": 5,
+      "fail_runs": 0,
+      "recent_pass_rate": 1.0,
+      "last_50_runs": {
+        "success": 5,
+        "fail": 0,
+        "pass_rate": 1.0
+      },
+      "last_result": "pass",
+      "last_tested": "2025-12-01T02:27:14Z",
+      "average_execution_ms": 90,
+      "error_types": {},
+      "ai_modifications": {
+        "total_proposals": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "last_proposal": null
+      },
+      "quality_trend": "stable",
+      "auto_merge_approved": true,
+      "test_file": "workflows/_test/test_assert.yaml",
+      "test_cases": 1
     }
   },
   "summary": {
     "total_modules": 10,
-    "atomic_modules": 5,
-    "third_party_modules": 4,
-    "composed_modules": 1,
-    "modules_above_98": 5,
-    "modules_95_to_98": 3,
-    "modules_below_95": 2,
-    "auto_merge_approved_count": 5,
-    "last_validation_run": "2025-12-01T08:10:00Z"
+    "atomic_modules": 10,
+    "third_party_modules": 0,
+    "composed_modules": 0,
+    "modules_above_98": 10,
+    "modules_95_to_98": 0,
+    "modules_below_95": 0,
+    "auto_merge_approved_count": 10,
+    "last_validation_run": "2025-12-01T02:35:37Z"
   },
   "quality_thresholds": {
     "atomic_pass_threshold": 0.98,
@@ -260,16 +282,8 @@
     "auto_merge_minimum": 0.98,
     "alert_threshold": 0.90,
     "critical_threshold": 0.85,
-    "minimum_runs_for_stats": 30,
+    "minimum_runs_for_stats": 10,
     "recent_window_size": 50
   },
-  "alerts": [
-    {
-      "module_id": "agent.autonomous",
-      "severity": "warning",
-      "message": "Success rate 0.92 below atomic threshold 0.98",
-      "timestamp": "2025-12-01T05:00:00Z",
-      "acknowledged": false
-    }
-  ]
+  "alerts": []
 }

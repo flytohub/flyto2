@@ -1,0 +1,25 @@
+name: "Test string.replace"
+description: "Verify string replace functionality"
+
+steps:
+  - id: test_basic_replace
+    module: string.replace
+    params:
+      text: "Hello World"
+      search: "World"
+      replace: "Flyto2"
+
+  - id: test_case_insensitive
+    module: string.replace
+    params:
+      text: "Hello WORLD"
+      search: "world"
+      replace: "Flyto2"
+      case_sensitive: false
+
+  - id: test_multiple_occurrences
+    module: string.replace
+    params:
+      text: "test test test"
+      search: "test"
+      replace: "pass"
