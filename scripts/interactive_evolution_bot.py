@@ -247,43 +247,57 @@ async def run_module_quality_tests() -> Dict:
 
 async def analyze_test_results(results: Dict) -> Dict:
     """Use Ollama to analyze test results and suggest improvements"""
-    system_prompt = """You are analyzing Flyto2 module quality test results.
 
-Your task:
-1. Identify modules with quality issues (pass_rate < 98%)
-2. Suggest specific improvements for each
-3. Prioritize by impact (high = critical, medium = important, low = nice-to-have)
-4. Ensure all suggestions maintain zero coupling
+    # Simple analysis without AI if results are straightforward
+    total = results.get("total_modules", 0)
+    passed = results.get("passed", 0)
+    failed = results.get("failed", 0)
+    pass_rate = results.get("pass_rate", 0)
 
-Return JSON:
-{
-  "summary": "brief overview",
-  "issues": [
-    {
-      "module_id": "string.split",
-      "current_pass_rate": 0.95,
-      "issue": "edge case handling",
-      "suggestion": "specific improvement",
-      "priority": "high|medium|low"
+    if total == 0:
+        return {
+            "summary": "No modules tested",
+            "issues": []
+        }
+
+    # Create simple summary
+    summary = f"Tested {total} modules: {passed} passed, {failed} failed ({pass_rate:.1%} success rate)"
+
+    # Identify failing modules
+    issues = []
+    modules = results.get("modules", {})
+    for module_id, data in modules.items():
+        if isinstance(data, dict) and data.get("status") == "fail":
+            issues.append({
+                "module_id": module_id,
+                "current_pass_rate": data.get("pass_rate", 0.0),
+                "issue": "Module validation failed",
+                "suggestion": "Check module implementation and tests",
+                "priority": "high"
+            })
+
+    # If Ollama available, try to get AI insights
+    if failed > 0 and OLLAMA_URL:
+        try:
+            system_prompt = """Briefly analyze these module test failures and suggest fixes.
+Keep response under 200 words, plain text format."""
+
+            prompt = f"Test results: {passed}/{total} passed, {failed} failed.\nFailing modules: {[m['module_id'] for m in issues]}\n\nSuggest improvements:"
+
+            response, confidence = await ask_ollama(prompt, system_prompt)
+
+            if response and "error" not in response.lower():
+                summary += f"\n\nAI insights: {response[:300]}"
+        except:
+            pass  # Fallback to simple analysis
+
+    return {
+        "summary": summary,
+        "issues": issues,
+        "total_modules": total,
+        "passed": passed,
+        "failed": failed
     }
-  ]
-}
-"""
-
-    prompt = f"Analyze these test results:\n\n{json.dumps(results, indent=2)}"
-
-    response, confidence = await ask_ollama(prompt, system_prompt)
-
-    try:
-        # Extract JSON from response
-        import re
-        json_match = re.search(r'\{.*\}', response, re.DOTALL)
-        if json_match:
-            return json.loads(json_match.group(0))
-    except:
-        pass
-
-    return {"error": "Failed to parse analysis", "raw_response": response}
 
 
 # ============================================
