@@ -182,81 +182,77 @@ async def ask_openai(prompt: str, system_prompt: str = None) -> str:
 # ============================================
 
 async def run_module_quality_tests() -> Dict:
-    """Run quality tests on all modules"""
+    """Run REAL quality tests by executing test workflows"""
     try:
-        # Try to import and count modules directly
-        import sys
-        sys.path.insert(0, str(PROJECT_ROOT / "src"))
+        # Find all test workflows
+        test_dir = PROJECT_ROOT / "workflows" / "_test"
 
-        try:
-            from core.modules.registry import ModuleRegistry
-            registry = ModuleRegistry()
-            all_metadata = registry.get_all_metadata()
+        if not test_dir.exists():
+            return {"error": "No test directory found"}
 
-            # Create simple report
-            modules = {}
-            for module_id, metadata in all_metadata.items():
-                # Assume all registered modules pass basic validation
-                modules[module_id] = {
-                    "status": "pass",
-                    "pass_rate": 1.0,
-                    "category": metadata.get("category", "unknown")
-                }
+        test_files = list(test_dir.glob("test_*.yaml"))
 
-            return {
-                "total_modules": len(modules),
-                "passed": len(modules),
-                "failed": 0,
-                "pass_rate": 1.0,
-                "modules": modules,
-                "source": "direct_registry"
-            }
+        if not test_files:
+            return {"error": "No test files found"}
 
-        except ImportError:
-            # Fallback: run validation script
-            result = subprocess.run(
-                ["python", "scripts/validate_all_modules.py"],
-                capture_output=True,
-                text=True,
-                timeout=300,
-                cwd=PROJECT_ROOT
-            )
+        # Run each test workflow
+        results = {}
+        passed = 0
+        failed = 0
 
-            # Parse stdout for results
-            output = result.stdout if result.stdout else result.stderr
+        for test_file in test_files:
+            module_name = test_file.stem.replace("test_", "")
 
-            # Create simple metrics from output
-            lines = output.split('\n')
-            passed = 0
-            failed = 0
-            modules = {}
+            try:
+                # Execute the test workflow
+                result = subprocess.run(
+                    ["python", "-m", "src.cli.main", str(test_file)],
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
+                    cwd=PROJECT_ROOT
+                )
 
-            for line in lines:
-                if line.startswith('✓'):
+                if result.returncode == 0:
+                    results[module_name] = {
+                        "status": "pass",
+                        "pass_rate": 1.0
+                    }
                     passed += 1
-                    module_id = line.replace('✓', '').strip()
-                    if module_id:
-                        modules[module_id] = {"status": "pass", "pass_rate": 1.0}
-                elif line.startswith('✗'):
+                else:
+                    results[module_name] = {
+                        "status": "fail",
+                        "pass_rate": 0.0,
+                        "error": result.stderr[:200] if result.stderr else "Unknown error"
+                    }
                     failed += 1
-                    module_id = line.replace('✗', '').strip()
-                    if module_id:
-                        modules[module_id] = {"status": "fail", "pass_rate": 0.0}
 
-            total = passed + failed
+            except subprocess.TimeoutExpired:
+                results[module_name] = {
+                    "status": "fail",
+                    "pass_rate": 0.0,
+                    "error": "Test timeout (>30s)"
+                }
+                failed += 1
+            except Exception as e:
+                results[module_name] = {
+                    "status": "fail",
+                    "pass_rate": 0.0,
+                    "error": str(e)[:200]
+                }
+                failed += 1
 
-            return {
-                "total_modules": total,
-                "passed": passed,
-                "failed": failed,
-                "pass_rate": passed / total if total > 0 else 0,
-                "modules": modules,
-                "raw_output": output,
-                "source": "validation_script"
-            }
+        total = passed + failed
 
-    except subprocess.TimeoutExpired:
-        return {"error": "Test timeout (>5 minutes)", "timeout": True}
+        return {
+            "total_modules": total,
+            "passed": passed,
+            "failed": failed,
+            "pass_rate": passed / total if total > 0 else 0,
+            "modules": results,
+            "source": "real_execution"
+        }
+
     except Exception as e:
         return {"error": f"Test execution failed: {str(e)}"}
 
