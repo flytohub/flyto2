@@ -53,6 +53,8 @@ class EvolutionState:
         self.last_test_run = None
         self.module_quality_data = {}
         self.pending_proposals = []  # AI proposals waiting for your review
+        self.api_tokens: Dict[str, str] = {}  # User-provided API tokens for testing
+        self.pending_test_token_collection = False  # Flag for token collection flow
 
     def get_session(self, user_id: int) -> Dict:
         if user_id not in self.sessions:
@@ -181,8 +183,13 @@ async def ask_openai(prompt: str, system_prompt: str = None) -> str:
 # Module Testing
 # ============================================
 
-async def run_module_quality_tests() -> Dict:
-    """Run REAL quality tests by executing test workflows"""
+async def run_module_quality_tests(provided_tokens: Optional[Dict[str, str]] = None) -> Dict:
+    """Run REAL quality tests by executing test workflows
+
+    Args:
+        provided_tokens: Optional dict of API tokens for testing integrations
+                        e.g., {'OPENAI_API_KEY': 'sk-...', 'SLACK_WEBHOOK_URL': '...'}
+    """
     try:
         # Find all test workflows
         test_dir = PROJECT_ROOT / "workflows" / "_test"
@@ -201,6 +208,11 @@ async def run_module_quality_tests() -> Dict:
         all_modules = registry.get_all_metadata()
         total_registered = len(all_modules)
 
+        # Prepare environment with provided tokens
+        test_env = os.environ.copy()
+        if provided_tokens:
+            test_env.update(provided_tokens)
+
         # Run each test workflow
         results = {}
         passed = 0
@@ -211,13 +223,14 @@ async def run_module_quality_tests() -> Dict:
             module_name = test_file.stem.replace("test_", "")
 
             try:
-                # Execute the test workflow
+                # Execute the test workflow with environment variables
                 result = subprocess.run(
                     ["python", "-m", "src.cli.main", str(test_file)],
                     capture_output=True,
                     text=True,
                     timeout=30,
-                    cwd=PROJECT_ROOT
+                    cwd=PROJECT_ROOT,
+                    env=test_env  # Pass environment with tokens
                 )
 
                 # Extract which modules were tested from the workflow
@@ -440,14 +453,50 @@ async def run_tests_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_authorized(update):
         return
 
-    await update.message.reply_text("🧪 Running quality tests on all modules...\n\nThis may take a few minutes.")
+    # Ask if user wants to provide API tokens for more comprehensive testing
+    keyboard = [
+        [InlineKeyboardButton("🔑 Provide API tokens (test more modules)", callback_data="test_with_tokens")],
+        [InlineKeyboardButton("⏩ Skip tokens (basic tests only)", callback_data="test_without_tokens")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
 
-    results = await run_module_quality_tests()
+    await update.message.reply_text(
+        "🧪 **Module Testing Options**\n\n"
+        "**Current coverage:** ~21/111 modules (18.9%)\n\n"
+        "Would you like to provide API tokens to test more modules?\n\n"
+        "**With tokens**, we can test:\n"
+        "• OpenAI/Anthropic/Gemini integrations\n"
+        "• Slack/Telegram/Email notifications\n"
+        "• Database connectors (if running locally)\n"
+        "• Cloud storage (AWS, GCS, Azure)\n\n"
+        "**Without tokens**, we test:\n"
+        "• String, array, math, object operations\n"
+        "• File operations, datetime, utilities\n"
+        "• Basic data transformations",
+        reply_markup=reply_markup,
+        parse_mode="Markdown"
+    )
+
+
+async def execute_tests_and_show_results(query_or_message, provided_tokens: Optional[Dict[str, str]] = None):
+    """Execute tests and show results (called from callback or directly)"""
+
+    # Send initial message
+    if hasattr(query_or_message, 'message'):
+        # CallbackQuery
+        await query_or_message.message.reply_text("🧪 Running quality tests...\n\nThis may take a few minutes.")
+        message_obj = query_or_message.message
+    else:
+        # Direct message
+        await query_or_message.reply_text("🧪 Running quality tests...\n\nThis may take a few minutes.")
+        message_obj = query_or_message
+
+    results = await run_module_quality_tests(provided_tokens)
     state.last_test_run = datetime.now(timezone.utc)
     state.module_quality_data = results
 
     if "error" in results:
-        await update.message.reply_text(f"❌ Test failed:\n{results['error']}")
+        await message_obj.reply_text(f"❌ Test failed:\n{results['error']}")
         return
 
     # Show test coverage first
@@ -472,14 +521,14 @@ async def run_tests_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"• Pass rate: {pass_rate:.1%}\n"
     )
 
-    await update.message.reply_text(coverage_msg, parse_mode="Markdown")
+    await message_obj.reply_text(coverage_msg, parse_mode="Markdown")
 
-    # Analyze results with Ollama
-    await update.message.reply_text("🤔 Analyzing results...")
+    # Analyze results
+    await message_obj.reply_text("🤔 Analyzing results...")
     analysis = await analyze_test_results(results)
 
     if "error" in analysis:
-        await update.message.reply_text(f"⚠️ Analysis failed:\n{analysis['error']}")
+        await message_obj.reply_text(f"⚠️ Analysis failed:\n{analysis['error']}")
         return
 
     # Format response
@@ -500,7 +549,7 @@ async def run_tests_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         message += "✅ All tested modules passed!"
 
-    await update.message.reply_text(message, parse_mode="Markdown")
+    await message_obj.reply_text(message, parse_mode="Markdown")
 
     # Ask if user wants to auto-fix
     if issues:
@@ -510,7 +559,7 @@ async def run_tests_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("❌ Not now", callback_data="dismiss")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        await update.message.reply_text(
+        await message_obj.reply_text(
             "Would you like me to attempt automatic fixes?",
             reply_markup=reply_markup
         )
@@ -617,6 +666,37 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     session = state.get_session(user_id)
     message_text = update.message.text
 
+    # Handle token collection flow
+    if state.pending_test_token_collection:
+        if message_text == "/done":
+            state.pending_test_token_collection = False
+            if state.api_tokens:
+                await update.message.reply_text(f"✅ Collected {len(state.api_tokens)} token(s). Starting tests with API integrations...")
+                await execute_tests_and_show_results(update.message, provided_tokens=state.api_tokens)
+            else:
+                await update.message.reply_text("No tokens provided. Running basic tests...")
+                await execute_tests_and_show_results(update.message, provided_tokens=None)
+            return
+
+        if message_text == "/skip":
+            state.pending_test_token_collection = False
+            await update.message.reply_text("Skipped token collection. Running basic tests...")
+            await execute_tests_and_show_results(update.message, provided_tokens=None)
+            return
+
+        # Parse token input
+        if "=" in message_text:
+            parts = message_text.split("=", 1)
+            if len(parts) == 2:
+                token_name = parts[0].strip()
+                token_value = parts[1].strip()
+                state.api_tokens[token_name] = token_value
+                await update.message.reply_text(f"✅ Added `{token_name}`\n\nSend more tokens or `/done` to continue.", parse_mode="Markdown")
+                return
+
+        await update.message.reply_text("❌ Invalid format. Use: `TOKEN_NAME=value`\nOr send `/done` to finish.", parse_mode="Markdown")
+        return
+
     # Quick replies
     if message_text == "🧪 Run Tests":
         await run_tests_command(update, context)
@@ -682,6 +762,19 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     user_id = query.from_user.id
     session = state.get_session(user_id)
+
+    # Test with tokens flow
+    if query.data == "test_with_tokens":
+        await query.edit_message_text("🔑 **Provide API Tokens**\n\nPlease provide tokens one by one.\nSend in format: `TOKEN_NAME=value`\n\nExample:\n`OPENAI_API_KEY=sk-xxx`\n\nSend `/done` when finished, or `/skip` to skip remaining.", parse_mode="Markdown")
+        state.pending_test_token_collection = True
+        state.api_tokens = {}
+        return
+
+    # Test without tokens flow
+    if query.data == "test_without_tokens":
+        await query.edit_message_text("⏩ Running basic tests (no API tokens)...")
+        await execute_tests_and_show_results(query, provided_tokens=None)
+        return
 
     if query.data == "escalate_openai":
         await query.edit_message_text("🚀 Escalating to OpenAI...")
