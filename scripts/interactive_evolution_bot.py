@@ -344,12 +344,22 @@ async def run_module_quality_tests(provided_tokens: Optional[Dict[str, str]] = N
 
     except Exception as e:
         import traceback
-        return {
+        full_traceback = traceback.format_exc()
+
+        # Get more context
+        error_context = {
             "error": f"Test execution failed: {str(e)}",
-            "traceback": traceback.format_exc(),
+            "error_type": type(e).__name__,
+            "traceback": full_traceback,
             "project_root": str(PROJECT_ROOT),
-            "python": sys.executable
+            "python": sys.executable,
+            "test_dir_exists": (PROJECT_ROOT / "workflows" / "_test").exists(),
+            "cli_exists": (PROJECT_ROOT / "src" / "cli" / "main.py").exists(),
+            "src_exists": (PROJECT_ROOT / "src").exists(),
+            "pythonpath_set": str(PROJECT_ROOT) if 'PYTHONPATH' in os.environ else "Not in env"
         }
+
+        return error_context
 
 
 async def analyze_test_results(results: Dict) -> Dict:
@@ -558,8 +568,18 @@ async def execute_tests_and_show_results(query_or_message, provided_tokens: Opti
         # Add debug info if available
         if "traceback" in results:
             error_msg += f"\n\n**Debug Info:**\n"
-            error_msg += f"Project Root: {results.get('project_root', 'N/A')}\n"
-            error_msg += f"Python: {results.get('python', 'N/A')}\n"
+            error_msg += f"Error Type: {results.get('error_type', 'N/A')}\n"
+            error_msg += f"Project Root: `{results.get('project_root', 'N/A')}`\n"
+            error_msg += f"Python: `{results.get('python', 'N/A')}`\n"
+            error_msg += f"Test Dir Exists: {results.get('test_dir_exists', 'N/A')}\n"
+            error_msg += f"CLI Exists: {results.get('cli_exists', 'N/A')}\n"
+            error_msg += f"Src Dir Exists: {results.get('src_exists', 'N/A')}\n"
+            error_msg += f"PYTHONPATH: {results.get('pythonpath_set', 'N/A')}\n\n"
+
+            # Show traceback (first 500 chars)
+            tb = results.get('traceback', '')
+            if tb:
+                error_msg += f"**Traceback:**\n```\n{tb[:500]}\n```"
 
         await message_obj.reply_text(error_msg, parse_mode="Markdown")
         return
