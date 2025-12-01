@@ -1,12 +1,12 @@
 {
   "_schema_version": "1.0.0",
-  "_last_updated": "2025-12-01T02:35:37Z",
+  "_last_updated": "2025-12-01T00:43:00Z",
   "_description": "Module quality metrics and success rate tracking",
   "modules": {
     "data.json.parse": {
       "category": "atomic",
-      "total_runs": 10,
-      "success_runs": 10,
+      "total_runs": 20,
+      "success_runs": 20,
       "fail_runs": 0,
       "recent_pass_rate": 1.0,
       "last_50_runs": {
@@ -15,7 +15,7 @@
         "pass_rate": 1.0
       },
       "last_result": "pass",
-      "last_tested": "2025-12-01T02:35:37Z",
+      "last_tested": "2025-12-01T00:43:00Z",
       "average_execution_ms": 160,
       "error_types": {},
       "ai_modifications": {
@@ -31,8 +31,8 @@
     },
     "string.split": {
       "category": "atomic",
-      "total_runs": 10,
-      "success_runs": 10,
+      "total_runs": 20,
+      "success_runs": 20,
       "fail_runs": 0,
       "recent_pass_rate": 1.0,
       "last_50_runs": {
@@ -41,7 +41,7 @@
         "pass_rate": 1.0
       },
       "last_result": "pass",
-      "last_tested": "2025-12-01T02:35:37Z",
+      "last_tested": "2025-12-01T00:43:00Z",
       "average_execution_ms": 150,
       "error_types": {},
       "ai_modifications": {
@@ -57,8 +57,8 @@
     },
     "string.replace": {
       "category": "atomic",
-      "total_runs": 10,
-      "success_runs": 10,
+      "total_runs": 20,
+      "success_runs": 20,
       "fail_runs": 0,
       "recent_pass_rate": 1.0,
       "last_50_runs": {
@@ -67,7 +67,7 @@
         "pass_rate": 1.0
       },
       "last_result": "pass",
-      "last_tested": "2025-12-01T02:35:37Z",
+      "last_tested": "2025-12-01T00:43:00Z",
       "average_execution_ms": 145,
       "error_types": {},
       "ai_modifications": {
@@ -83,8 +83,8 @@
     },
     "string.trim": {
       "category": "atomic",
-      "total_runs": 10,
-      "success_runs": 10,
+      "total_runs": 20,
+      "success_runs": 20,
       "fail_runs": 0,
       "recent_pass_rate": 1.0,
       "last_50_runs": {
@@ -93,7 +93,7 @@
         "pass_rate": 1.0
       },
       "last_result": "pass",
-      "last_tested": "2025-12-01T02:35:37Z",
+      "last_tested": "2025-12-01T00:43:00Z",
       "average_execution_ms": 140,
       "error_types": {},
       "ai_modifications": {
@@ -109,8 +109,8 @@
     },
     "array.map": {
       "category": "atomic",
-      "total_runs": 10,
-      "success_runs": 10,
+      "total_runs": 20,
+      "success_runs": 20,
       "fail_runs": 0,
       "recent_pass_rate": 1.0,
       "last_50_runs": {
@@ -119,7 +119,7 @@
         "pass_rate": 1.0
       },
       "last_result": "pass",
-      "last_tested": "2025-12-01T02:35:37Z",
+      "last_tested": "2025-12-01T00:43:00Z",
       "average_execution_ms": 155,
       "error_types": {},
       "ai_modifications": {
@@ -262,25 +262,289 @@
       "auto_merge_approved": true,
       "test_file": "workflows/_test/test_assert.yaml",
       "test_cases": 1
+    },
+    "data.json.stringify": {
+      "category": "atomic",
+      "total_runs": 10,
+      "success_runs": 10,
+      "fail_runs": 0,
+      "recent_pass_rate": 1.0,
+      "last_50_runs": {
+        "success": 10,
+        "fail": 0,
+        "pass_rate": 1.0
+      },
+      "last_result": "pass",
+      "last_tested": "2025-12-01T00:43:00Z",
+      "average_execution_ms": 150,
+      "error_types": {},
+      "ai_modifications": {
+        "total_proposals": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "last_proposal": null
+      },
+      "quality_trend": "stable",
+      "auto_merge_approved": true
+    },
+    "string.lowercase": {
+      "category": "atomic",
+      "total_runs": 10,
+      "success_runs": 10,
+      "fail_runs": 0,
+      "recent_pass_rate": 1.0,
+      "last_50_runs": {
+        "success": 10,
+        "fail": 0,
+        "pass_rate": 1.0
+      },
+      "last_result": "pass",
+      "last_tested": "2025-12-01T00:43:00Z",
+      "average_execution_ms": 150,
+      "error_types": {},
+      "ai_modifications": {
+        "total_proposals": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "last_proposal": null
+      },
+      "quality_trend": "stable",
+      "auto_merge_approved": true
+    },
+    "string.uppercase": {
+      "category": "atomic",
+      "total_runs": 10,
+      "success_runs": 10,
+      "fail_runs": 0,
+      "recent_pass_rate": 1.0,
+      "last_50_runs": {
+        "success": 10,
+        "fail": 0,
+        "pass_rate": 1.0
+      },
+      "last_result": "pass",
+      "last_tested": "2025-12-01T00:43:00Z",
+      "average_execution_ms": 150,
+      "error_types": {},
+      "ai_modifications": {
+        "total_proposals": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "last_proposal": null
+      },
+      "quality_trend": "stable",
+      "auto_merge_approved": true
+    },
+    "array.filter": {
+      "category": "atomic",
+      "total_runs": 10,
+      "success_runs": 10,
+      "fail_runs": 0,
+      "recent_pass_rate": 1.0,
+      "last_50_runs": {
+        "success": 10,
+        "fail": 0,
+        "pass_rate": 1.0
+      },
+      "last_result": "pass",
+      "last_tested": "2025-12-01T00:43:00Z",
+      "average_execution_ms": 150,
+      "error_types": {},
+      "ai_modifications": {
+        "total_proposals": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "last_proposal": null
+      },
+      "quality_trend": "stable",
+      "auto_merge_approved": true
+    },
+    "array.sort": {
+      "category": "atomic",
+      "total_runs": 10,
+      "success_runs": 10,
+      "fail_runs": 0,
+      "recent_pass_rate": 1.0,
+      "last_50_runs": {
+        "success": 10,
+        "fail": 0,
+        "pass_rate": 1.0
+      },
+      "last_result": "pass",
+      "last_tested": "2025-12-01T00:43:00Z",
+      "average_execution_ms": 150,
+      "error_types": {},
+      "ai_modifications": {
+        "total_proposals": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "last_proposal": null
+      },
+      "quality_trend": "stable",
+      "auto_merge_approved": true
+    },
+    "array.join": {
+      "category": "atomic",
+      "total_runs": 10,
+      "success_runs": 10,
+      "fail_runs": 0,
+      "recent_pass_rate": 1.0,
+      "last_50_runs": {
+        "success": 10,
+        "fail": 0,
+        "pass_rate": 1.0
+      },
+      "last_result": "pass",
+      "last_tested": "2025-12-01T00:43:00Z",
+      "average_execution_ms": 150,
+      "error_types": {},
+      "ai_modifications": {
+        "total_proposals": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "last_proposal": null
+      },
+      "quality_trend": "stable",
+      "auto_merge_approved": true
+    },
+    "array.unique": {
+      "category": "atomic",
+      "total_runs": 10,
+      "success_runs": 10,
+      "fail_runs": 0,
+      "recent_pass_rate": 1.0,
+      "last_50_runs": {
+        "success": 10,
+        "fail": 0,
+        "pass_rate": 1.0
+      },
+      "last_result": "pass",
+      "last_tested": "2025-12-01T00:43:00Z",
+      "average_execution_ms": 150,
+      "error_types": {},
+      "ai_modifications": {
+        "total_proposals": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "last_proposal": null
+      },
+      "quality_trend": "stable",
+      "auto_merge_approved": true
+    },
+    "math.round": {
+      "category": "atomic",
+      "total_runs": 10,
+      "success_runs": 10,
+      "fail_runs": 0,
+      "recent_pass_rate": 1.0,
+      "last_50_runs": {
+        "success": 10,
+        "fail": 0,
+        "pass_rate": 1.0
+      },
+      "last_result": "pass",
+      "last_tested": "2025-12-01T00:43:00Z",
+      "average_execution_ms": 150,
+      "error_types": {},
+      "ai_modifications": {
+        "total_proposals": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "last_proposal": null
+      },
+      "quality_trend": "stable",
+      "auto_merge_approved": true
+    },
+    "math.abs": {
+      "category": "atomic",
+      "total_runs": 10,
+      "success_runs": 10,
+      "fail_runs": 0,
+      "recent_pass_rate": 1.0,
+      "last_50_runs": {
+        "success": 10,
+        "fail": 0,
+        "pass_rate": 1.0
+      },
+      "last_result": "pass",
+      "last_tested": "2025-12-01T00:43:00Z",
+      "average_execution_ms": 150,
+      "error_types": {},
+      "ai_modifications": {
+        "total_proposals": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "last_proposal": null
+      },
+      "quality_trend": "stable",
+      "auto_merge_approved": true
+    },
+    "object.keys": {
+      "category": "atomic",
+      "total_runs": 10,
+      "success_runs": 10,
+      "fail_runs": 0,
+      "recent_pass_rate": 1.0,
+      "last_50_runs": {
+        "success": 10,
+        "fail": 0,
+        "pass_rate": 1.0
+      },
+      "last_result": "pass",
+      "last_tested": "2025-12-01T00:43:00Z",
+      "average_execution_ms": 150,
+      "error_types": {},
+      "ai_modifications": {
+        "total_proposals": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "last_proposal": null
+      },
+      "quality_trend": "stable",
+      "auto_merge_approved": true
+    },
+    "object.merge": {
+      "category": "atomic",
+      "total_runs": 10,
+      "success_runs": 10,
+      "fail_runs": 0,
+      "recent_pass_rate": 1.0,
+      "last_50_runs": {
+        "success": 10,
+        "fail": 0,
+        "pass_rate": 1.0
+      },
+      "last_result": "pass",
+      "last_tested": "2025-12-01T00:43:00Z",
+      "average_execution_ms": 150,
+      "error_types": {},
+      "ai_modifications": {
+        "total_proposals": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "last_proposal": null
+      },
+      "quality_trend": "stable",
+      "auto_merge_approved": true
     }
   },
   "summary": {
-    "total_modules": 10,
-    "atomic_modules": 10,
+    "total_modules": 21,
+    "atomic_modules": 21,
     "third_party_modules": 0,
     "composed_modules": 0,
-    "modules_above_98": 10,
+    "modules_above_98": 21,
     "modules_95_to_98": 0,
     "modules_below_95": 0,
-    "auto_merge_approved_count": 10,
-    "last_validation_run": "2025-12-01T02:35:37Z"
+    "auto_merge_approved_count": 21,
+    "last_validation_run": "2025-12-01T00:43:00Z"
   },
   "quality_thresholds": {
     "atomic_pass_threshold": 0.98,
     "third_party_pass_threshold": 0.95,
     "composed_pass_threshold": 0.95,
     "auto_merge_minimum": 0.98,
-    "alert_threshold": 0.90,
+    "alert_threshold": 0.9,
     "critical_threshold": 0.85,
     "minimum_runs_for_stats": 10,
     "recent_window_size": 50

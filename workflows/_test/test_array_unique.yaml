@@ -1,0 +1,18 @@
+name: "Test array.unique"
+description: "Verify array unique functionality"
+
+steps:
+  - id: test_duplicates
+    module: array.unique
+    params:
+      array: [1, 2, 2, 3, 3, 3, 4]
+
+  - id: test_already_unique
+    module: array.unique
+    params:
+      array: [1, 2, 3, 4, 5]
+
+  - id: test_all_same
+    module: array.unique
+    params:
+      array: [1, 1, 1, 1]

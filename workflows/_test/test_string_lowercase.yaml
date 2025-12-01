@@ -1,0 +1,18 @@
+name: "Test string.lowercase"
+description: "Verify string lowercase conversion"
+
+steps:
+  - id: test_basic
+    module: string.lowercase
+    params:
+      text: "HELLO WORLD"
+
+  - id: test_mixed_case
+    module: string.lowercase
+    params:
+      text: "HeLLo WoRLd"
+
+  - id: test_already_lower
+    module: string.lowercase
+    params:
+      text: "hello world"

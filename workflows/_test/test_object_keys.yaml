@@ -1,0 +1,25 @@
+name: "Test object.keys"
+description: "Verify object keys extraction"
+
+steps:
+  - id: test_simple_object
+    module: object.keys
+    params:
+      object:
+        name: "Alice"
+        age: 30
+        city: "NYC"
+
+  - id: test_nested_object
+    module: object.keys
+    params:
+      object:
+        user:
+          name: "Bob"
+        settings:
+          theme: "dark"
+
+  - id: test_empty_object
+    module: object.keys
+    params:
+      object: {}

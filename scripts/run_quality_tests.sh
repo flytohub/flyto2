@@ -10,10 +10,21 @@ echo ""
 # Test configurations
 TESTS=(
     "data.json.parse:workflows/_test/test_json_parse.yaml"
+    "data.json.stringify:workflows/_test/test_data_json_stringify.yaml"
     "string.split:workflows/_test/test_string_split.yaml"
     "string.replace:workflows/_test/test_string_replace.yaml"
     "string.trim:workflows/_test/test_string_trim.yaml"
+    "string.lowercase:workflows/_test/test_string_lowercase.yaml"
+    "string.uppercase:workflows/_test/test_string_uppercase.yaml"
     "array.map:workflows/_test/test_array_map.yaml"
+    "array.filter:workflows/_test/test_array_filter.yaml"
+    "array.sort:workflows/_test/test_array_sort.yaml"
+    "array.join:workflows/_test/test_array_join.yaml"
+    "array.unique:workflows/_test/test_array_unique.yaml"
+    "math.round:workflows/_test/test_math_round.yaml"
+    "math.abs:workflows/_test/test_math_abs.yaml"
+    "object.keys:workflows/_test/test_object_keys.yaml"
+    "object.merge:workflows/_test/test_object_merge.yaml"
 )
 
 RUNS=10

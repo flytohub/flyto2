@@ -1,0 +1,21 @@
+name: "Test math.round"
+description: "Verify math rounding functionality"
+
+steps:
+  - id: test_round_up
+    module: math.round
+    params:
+      number: 3.7
+      decimals: 0
+
+  - id: test_round_down
+    module: math.round
+    params:
+      number: 3.2
+      decimals: 0
+
+  - id: test_round_decimals
+    module: math.round
+    params:
+      number: 3.14159
+      decimals: 2
