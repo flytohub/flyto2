@@ -1,59 +1,92 @@
-param(
-    [string]$ProjectPath = (Split-Path $PSScriptRoot -Parent)
-)
+# =========================================
+#   Flyto2 Telegram Bot Launcher (Fixed)
+#   Two-phase Boot: Safe, Non-Blocking UX
+# =========================================
 
-Write-Host "Starting Flyto2 Telegram Bot..."
+param()
+
+Write-Host "======================================"
+Write-Host "      Flyto2 Telegram Bot Launcher     "
+Write-Host "======================================"
 Write-Host ""
 
+# Detect project root
+$ProjectPath = Split-Path $PSScriptRoot -Parent
 Set-Location $ProjectPath
 
-# ----- Step 1: Check Python -----
-Write-Host "Checking Python..."
+
+# ======================================
+# Step 1: Ensure .env exists
+# ======================================
+$envFile = Join-Path $ProjectPath ".env"
+$needConfig = $false
+
+if (-not (Test-Path $envFile)) {
+    Write-Host "[!] .env not found." -ForegroundColor Yellow
+    Write-Host "    We'll create it now." -ForegroundColor Yellow
+    $needConfig = $true
+}
+else {
+    Write-Host "[✓] Found .env" -ForegroundColor Green
+}
+
+if ($needConfig) {
+    Write-Host ""
+    Write-Host "----------------------------------------"
+    Write-Host " STEP 1 — Basic Setup Required"
+    Write-Host "----------------------------------------"
+    Write-Host ""
+
+    # 1. Ask Bot Token
+    $botToken = Read-Host "Enter TELEGRAM_BOT_TOKEN (from BotFather)"
+
+    # 2. Ask Chat ID
+    Write-Host ""
+    Write-Host "You need your Telegram Chat ID."
+    Write-Host "Open Telegram and send /start to: @userinfobot"
+    Write-Host "It will give you something like: 123456789"
+    Write-Host ""
+
+    $chatId = Read-Host "Enter TELEGRAM_CHAT_ID"
+
+    # Save config
+    @"
+# Telegram
+TELEGRAM_BOT_TOKEN=$botToken
+TELEGRAM_CHAT_ID=$chatId
+TELEGRAM_ALLOWED_USERS=$chatId
+
+# Local LLM
+OLLAMA_URL=http://localhost:11434
+
+# OpenAI (optional)
+OPENAI_API_KEY=
+"@ | Out-File -Encoding UTF8 -FilePath $envFile
+
+    Write-Host "[✓] .env created!" -ForegroundColor Green
+}
+
+# ======================================
+# Step 2: Load .env (silent)
+# ======================================
+Get-Content $envFile | ForEach-Object {
+    if ($_ -match '^([^=]+)=(.*)$') {
+        [Environment]::SetEnvironmentVariable($matches[1], $matches[2], "Process")
+    }
+}
+
+
+# ======================================
+# Step 3: Ensure Python & venv
+# ======================================
 try {
     $pythonVersion = python --version
-    Write-Host "Python OK: $pythonVersion"
+    Write-Host "[✓] Python detected: $pythonVersion" -ForegroundColor Green
 } catch {
-    Write-Host "Python not found. Install Python 3.8+ first."
+    Write-Host "[X] Python missing — install Python 3.8+ first" -ForegroundColor Red
     exit 1
 }
 
-# ----- Step 2: Check Ollama -----
-Write-Host "Checking Ollama..."
-$ollamaInstalled = $true
-try {
-    $ov = ollama --version
-    Write-Host "Ollama OK"
-} catch {
-    Write-Host "Ollama not found. Continuing without local AI."
-    $ollamaInstalled = $false
-}
-
-# ----- Step 3: Load .env -----
-$envFile = Join-Path $ProjectPath ".env"
-if (Test-Path $envFile) {
-    Write-Host ".env found. Loading..."
-
-    Get-Content $envFile | ForEach-Object {
-        if ($_ -match '^([^=]+)=(.*)$') {
-            $key   = $matches[1].Trim()
-            $value = $matches[2].Trim()
-            [Environment]::SetEnvironmentVariable($key, $value, "Process")
-        }
-    }
-} else {
-    Write-Host ".env not found. Creating..."
-
-    $botToken = Read-Host "Enter TELEGRAM_BOT_TOKEN"
-    $chatId   = Read-Host "Enter TELEGRAM_CHAT_ID"
-
-    @"
-TELEGRAM_BOT_TOKEN=$botToken
-TELEGRAM_CHAT_ID=$chatId
-OLLAMA_URL=http://localhost:11434
-"@ | Out-File -FilePath $envFile -Encoding utf8
-}
-
-# ----- Step 4: Virtual Environment -----
 $venvPath = Join-Path $ProjectPath "venv"
 $activate = Join-Path $venvPath "Scripts\Activate.ps1"
 
@@ -65,25 +98,24 @@ if (-not (Test-Path $venvPath)) {
 Write-Host "Activating venv..."
 & $activate
 
-Write-Host "Installing dependencies..."
+Write-Host "Installing required packages..."
 pip install python-telegram-bot requests openai -q
 
-# ----- Step 5: Ask which bot version to run -----
-Write-Host ""
-Write-Host "Select bot version:"
-Write-Host "1 = telegram_bot_v2.py (recommended)"
-Write-Host "2 = telegram_bot.py (classic)"
-$choice = Read-Host "Enter 1 or 2"
 
-if ($choice -eq "2") {
-    $botScript = "telegram_bot.py"
-} else {
-    $botScript = "telegram_bot_v2.py"
-}
-
+# ======================================
+# Step 4: Launch Bot
+# ======================================
 Write-Host ""
-Write-Host "Starting $botScript ..."
+Write-Host "----------------------------------------"
+Write-Host " STEP 4 — Launch Bot"
+Write-Host "----------------------------------------"
+Write-Host ""
+
+$botScript = "telegram_bot_v2.py"  # always use V2
+
+Write-Host "[✓] Starting bot..."
 python (Join-Path $ProjectPath "scripts\$botScript")
 
+Write-Host ""
 Write-Host "Bot stopped."
 Read-Host "Press Enter to exit."
