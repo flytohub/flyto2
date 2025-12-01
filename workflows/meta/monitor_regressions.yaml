@@ -1,0 +1,313 @@
+name: "Monitor Regressions (Report Only)"
+description: "Daily regression monitoring with Telegram reports - no auto-rollback"
+category: "meta"
+
+schedule:
+  cron: "0 9 * * *"  # Daily at 9 AM
+
+params:
+  modules_to_check:
+    type: array
+    description: "Module IDs to check (empty = check all atomic modules)"
+    default: []
+
+  send_report_if_healthy:
+    type: boolean
+    description: "Send report even if no regressions found"
+    default: true
+
+steps:
+  # Step 1: Load quality metrics
+  - id: load_metrics
+    module: file.read
+    params:
+      file_path: "metrics/module_quality.json"
+
+  - id: parse_metrics
+    module: data.json.parse
+    params:
+      json_string: "{{ steps.load_metrics.output }}"
+
+  # Step 2: Determine which modules to check
+  - id: select_modules_to_check
+    module: bash.execute
+    params:
+      command: |
+        python -c "
+        import json
+
+        metrics = {{ steps.parse_metrics.output | tojson }}
+        params_modules = {{ params.modules_to_check | tojson }}
+
+        if params_modules:
+          # Use provided list
+          modules_to_check = params_modules
+        else:
+          # Check all atomic modules with allow_auto_rollback=true
+          modules_to_check = [
+            module_id
+            for module_id, data in metrics['modules'].items()
+            if data.get('category') == 'atomic'
+            and data.get('allow_auto_rollback', False)
+          ]
+
+        print(json.dumps({'modules': modules_to_check, 'count': len(modules_to_check)}))
+        "
+
+  - id: parse_modules_list
+    module: data.json.parse
+    params:
+      json_string: "{{ steps.select_modules_to_check.output.stdout }}"
+
+  # Step 3: Run tests for each module
+  - id: test_all_modules
+    module: bash.execute
+    params:
+      command: |
+        RESULTS_FILE="metrics/test_results_regression_$(date +%Y%m%d_%H%M%S).txt"
+        echo "" > "$RESULTS_FILE"
+
+        MODULES='{{ steps.parse_modules_list.output.modules | tojson }}'
+
+        echo "$MODULES" | python -c "
+        import sys
+        import json
+        import subprocess
+
+        modules = json.load(sys.stdin)
+
+        for module_id in modules:
+          test_file = f'workflows/_test/test_{module_id.replace(\".\", \"_\")}.yaml'
+
+          print(f'\\nTesting {module_id}...')
+
+          success = 0
+          fail = 0
+          runs = 10
+
+          for i in range(runs):
+            try:
+              subprocess.run(
+                ['python', '-m', 'src.cli.main', test_file],
+                capture_output=True,
+                check=True,
+                timeout=30
+              )
+              success += 1
+              print('.', end='', flush=True)
+            except:
+              fail += 1
+              print('x', end='', flush=True)
+
+          pass_rate = success / runs if runs > 0 else 0
+          print(f' {success}/{runs} ({pass_rate:.3f})')
+
+          # Write to results file
+          with open('$RESULTS_FILE', 'a') as f:
+            f.write(f'{module_id},{success},{fail},{pass_rate:.3f}\\n')
+        "
+
+        echo ""
+        echo "Results saved to: $RESULTS_FILE"
+
+        # Output file path
+        python -c "print('{\"results_file\": \"$RESULTS_FILE\"}')"
+      timeout: 600000
+
+  - id: parse_test_output
+    module: data.json.parse
+    params:
+      json_string: "{{ steps.test_all_modules.output.stdout }}"
+
+  # Step 4: Analyze results and detect regressions
+  - id: analyze_regressions
+    module: bash.execute
+    params:
+      command: |
+        python -c "
+        import json
+
+        # Load current metrics
+        metrics = {{ steps.parse_metrics.output | tojson }}
+
+        # Load test results
+        results = {}
+        with open('{{ steps.parse_test_output.output.results_file }}') as f:
+          for line in f:
+            line = line.strip()
+            if not line:
+              continue
+            parts = line.split(',')
+            if len(parts) == 4:
+              module_id, success, fail, rate = parts
+              results[module_id] = {
+                'success': int(success),
+                'fail': int(fail),
+                'new_pass_rate': float(rate)
+              }
+
+        # Analyze each module
+        regressions = []
+        warnings = []
+        healthy = []
+
+        for module_id, result in results.items():
+          if module_id not in metrics['modules']:
+            continue
+
+          module = metrics['modules'][module_id]
+          baseline = module.get('last_stable', {}).get('baseline_pass_rate_at_merge', 1.0)
+          current = module.get('recent_pass_rate', 1.0)
+          new_rate = result['new_pass_rate']
+
+          status = {
+            'module_id': module_id,
+            'baseline_pass_rate': baseline,
+            'current_pass_rate': current,
+            'new_pass_rate': new_rate,
+            'failures': result['fail'],
+            'last_stable_commit': module.get('last_stable', {}).get('commit_sha'),
+            'last_stable_pr': module.get('last_stable', {}).get('pr_number')
+          }
+
+          # Regression criteria
+          if new_rate < 0.98:
+            status['issue'] = f'Below threshold: {new_rate:.3f} < 0.98'
+            regressions.append(status)
+          elif new_rate < baseline:
+            status['issue'] = f'Regression: {new_rate:.3f} < baseline {baseline:.3f}'
+            warnings.append(status)
+          elif result['fail'] > 0:
+            status['issue'] = f'{result[\"fail\"]} failures detected'
+            warnings.append(status)
+          else:
+            healthy.append(status)
+
+        report = {
+          'total_checked': len(results),
+          'regressions': regressions,
+          'warnings': warnings,
+          'healthy': healthy,
+          'regression_count': len(regressions),
+          'warning_count': len(warnings),
+          'healthy_count': len(healthy)
+        }
+
+        print(json.dumps(report, indent=2))
+        "
+
+  - id: parse_analysis
+    module: data.json.parse
+    params:
+      json_string: "{{ steps.analyze_regressions.output.stdout }}"
+
+  # Step 5: Generate report message
+  - id: format_report
+    module: bash.execute
+    params:
+      command: |
+        python -c "
+        import json
+        from datetime import datetime
+
+        analysis = {{ steps.parse_analysis.output | tojson }}
+
+        timestamp = datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')
+
+        # Determine status emoji
+        if analysis['regression_count'] > 0:
+          status_emoji = '🚨'
+          status_text = 'REGRESSIONS DETECTED'
+        elif analysis['warning_count'] > 0:
+          status_emoji = '⚠️'
+          status_text = 'WARNINGS'
+        else:
+          status_emoji = '✅'
+          status_text = 'ALL HEALTHY'
+
+        msg = f'''
+        {status_emoji} **Regression Monitoring Report**
+
+        **Status**: {status_text}
+        **Time**: {timestamp}
+
+        **Summary**:
+        • Total modules checked: {analysis['total_checked']}
+        • Regressions: {analysis['regression_count']} 🚨
+        • Warnings: {analysis['warning_count']} ⚠️
+        • Healthy: {analysis['healthy_count']} ✅
+        '''
+
+        # Add regression details
+        if analysis['regressions']:
+          msg += '\n\n**🚨 REGRESSIONS (Action Required)**:\n'
+          for reg in analysis['regressions']:
+            msg += f\"\"\"
+        • `{reg['module_id']}`
+          Issue: {reg['issue']}
+          Current: {reg['new_pass_rate']:.3f}
+          Baseline: {reg['baseline_pass_rate']:.3f}
+          Last stable: {reg['last_stable_commit']}\"\"\"
+            if reg['last_stable_pr']:
+              msg += f\" (PR #{reg['last_stable_pr']})\n\"
+            else:
+              msg += '\n'
+
+        # Add warning details
+        if analysis['warnings']:
+          msg += '\n\n**⚠️ WARNINGS (Monitor)**:\n'
+          for warn in analysis['warnings']:
+            msg += f\"\"\"
+        • `{warn['module_id']}`
+          Issue: {warn['issue']}
+          Current: {warn['new_pass_rate']:.3f}
+          Baseline: {warn['baseline_pass_rate']:.3f}
+        \"\"\"
+
+        # Add healthy summary
+        if analysis['healthy']:
+          msg += f\"\n\n**✅ Healthy modules**: {analysis['healthy_count']}\"
+
+        msg += '\n\n_Note: Auto-rollback is currently DISABLED. Manual intervention required for regressions._'
+
+        print(msg.strip())
+        "
+
+  # Step 6: Send report to Telegram
+  - id: should_send_report
+    module: bash.execute
+    params:
+      command: |
+        python -c "
+        import json
+
+        analysis = {{ steps.parse_analysis.output | tojson }}
+        send_if_healthy = {{ params.send_report_if_healthy | tojson }}
+
+        should_send = (
+          analysis['regression_count'] > 0 or
+          analysis['warning_count'] > 0 or
+          send_if_healthy
+        )
+
+        print(json.dumps({'should_send': should_send}))
+        "
+
+  - id: parse_should_send
+    module: data.json.parse
+    params:
+      json_string: "{{ steps.should_send_report.output.stdout }}"
+
+  - id: send_telegram_report
+    module: telegram.send_message
+    params:
+      chat_id: "{{ env.TELEGRAM_CHAT_ID }}"
+      message: "{{ steps.format_report.output.stdout }}"
+    when: "{{ steps.parse_should_send.output.should_send }}"
+
+output:
+  total_checked: "{{ steps.parse_analysis.output.total_checked }}"
+  regressions: "{{ steps.parse_analysis.output.regression_count }}"
+  warnings: "{{ steps.parse_analysis.output.warning_count }}"
+  healthy: "{{ steps.parse_analysis.output.healthy_count }}"
+  report_sent: "{{ steps.parse_should_send.output.should_send }}"

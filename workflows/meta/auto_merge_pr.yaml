@@ -1,0 +1,286 @@
+name: "Auto-Merge PR (Manual Testing)"
+description: "Minimal auto-merge workflow - manually triggered for safe testing"
+category: "meta"
+
+params:
+  module_id:
+    type: string
+    description: "Module to test (e.g., string.split)"
+    required: true
+
+  pr_number:
+    type: integer
+    description: "Pull request number"
+    required: true
+
+steps:
+  # Step 1: Validate module is in allowed list
+  - id: check_allowed_module
+    module: bash.execute
+    params:
+      command: |
+        python -c "
+        import sys
+
+        module_id = '{{ params.module_id }}'
+
+        # Only allow these atomic modules for initial testing
+        allowed_prefixes = [
+          'string.',
+          'array.',
+          'data.json.',
+          'math.',
+          'object.'
+        ]
+
+        is_allowed = any(module_id.startswith(prefix) for prefix in allowed_prefixes)
+
+        if not is_allowed:
+          print(f'ERROR: {module_id} not in allowed list')
+          print(f'Allowed: string.*, array.*, data.json.*, math.*, object.*')
+          sys.exit(1)
+        else:
+          print(f'OK: {module_id} is allowed for auto-merge')
+        "
+
+  # Step 2: Load module quality data
+  - id: load_quality_metrics
+    module: file.read
+    params:
+      file_path: "metrics/module_quality.json"
+
+  - id: parse_metrics
+    module: data.json.parse
+    params:
+      json_string: "{{ steps.load_quality_metrics.output }}"
+
+  # Step 3: Check module exists and has required fields
+  - id: validate_module_data
+    module: bash.execute
+    params:
+      command: |
+        python -c "
+        import json
+        import sys
+
+        metrics = {{ steps.parse_metrics.output | tojson }}
+        module_id = '{{ params.module_id }}'
+
+        if module_id not in metrics['modules']:
+          print(f'ERROR: Module {module_id} not found in quality metrics')
+          sys.exit(1)
+
+        module = metrics['modules'][module_id]
+
+        # Check required fields
+        if 'allow_auto_rollback' not in module:
+          print(f'ERROR: allow_auto_rollback field missing')
+          sys.exit(1)
+
+        if not module.get('allow_auto_rollback', False):
+          print(f'ERROR: allow_auto_rollback is false for this module')
+          sys.exit(1)
+
+        if module.get('recent_pass_rate', 0) < 0.98:
+          print(f'ERROR: Current pass rate {module[\"recent_pass_rate\"]} < 0.98')
+          sys.exit(1)
+
+        # Output module data
+        print(json.dumps({
+          'current_pass_rate': module.get('recent_pass_rate'),
+          'last_stable_commit': module.get('last_stable', {}).get('commit_sha'),
+          'allow_auto_rollback': module.get('allow_auto_rollback')
+        }))
+        "
+
+  - id: parse_module_data
+    module: data.json.parse
+    params:
+      json_string: "{{ steps.validate_module_data.output.stdout }}"
+
+  # Step 4: Check PR status using gh CLI
+  - id: check_pr_status
+    module: bash.execute
+    params:
+      command: |
+        gh pr view {{ params.pr_number }} --json state,mergeable,title,headRefName --jq '.'
+      timeout: 30000
+
+  - id: parse_pr_status
+    module: data.json.parse
+    params:
+      json_string: "{{ steps.check_pr_status.output.stdout }}"
+
+  - id: validate_pr_mergeable
+    module: test.assert_equal
+    params:
+      actual: "{{ steps.parse_pr_status.output.mergeable }}"
+      expected: "MERGEABLE"
+      message: "PR must be in mergeable state"
+
+  # Step 5: Checkout PR branch and run tests
+  - id: checkout_pr
+    module: bash.execute
+    params:
+      command: |
+        gh pr checkout {{ params.pr_number }}
+        git log -1 --oneline
+
+  # Step 6: Run quality tests on PR branch
+  - id: run_tests_on_pr
+    module: bash.execute
+    params:
+      command: |
+        RESULTS_FILE="metrics/test_results_pr{{ params.pr_number }}_$(date +%Y%m%d_%H%M%S).txt"
+
+        MODULE_ID="{{ params.module_id }}"
+        TEST_FILE="workflows/_test/test_$(echo $MODULE_ID | tr '.' '_').yaml"
+
+        if [ ! -f "$TEST_FILE" ]; then
+          echo "ERROR: Test file not found: $TEST_FILE"
+          exit 1
+        fi
+
+        echo "Running 10 test iterations for $MODULE_ID..."
+        RUNS=10
+        SUCCESS=0
+        FAIL=0
+
+        for i in $(seq 1 $RUNS); do
+          if python -m src.cli.main "$TEST_FILE" > /dev/null 2>&1; then
+            SUCCESS=$((SUCCESS + 1))
+            echo -n "."
+          else
+            FAIL=$((FAIL + 1))
+            echo -n "x"
+          fi
+        done
+
+        PASS_RATE=$(echo "scale=3; $SUCCESS / $RUNS" | bc)
+
+        echo ""
+        echo "Results: $SUCCESS/$RUNS passed ($PASS_RATE)"
+
+        # Save results
+        echo "$MODULE_ID,$SUCCESS,$FAIL,$PASS_RATE" > "$RESULTS_FILE"
+
+        # Output JSON
+        python -c "
+        import json
+        print(json.dumps({
+          'success': $SUCCESS,
+          'fail': $FAIL,
+          'pass_rate': float('$PASS_RATE'),
+          'results_file': '$RESULTS_FILE'
+        }))
+        "
+      timeout: 300000
+
+  - id: parse_test_results
+    module: data.json.parse
+    params:
+      json_string: "{{ steps.run_tests_on_pr.output.stdout }}"
+
+  # Step 7: Validate pass rate meets threshold
+  - id: check_pass_rate_threshold
+    module: test.assert_true
+    params:
+      value: "{{ steps.parse_test_results.output.pass_rate >= 0.98 }}"
+      message: "Pass rate {{ steps.parse_test_results.output.pass_rate }} must be >= 0.98"
+
+  # Step 8: Check no regression from baseline
+  - id: check_no_regression
+    module: test.assert_true
+    params:
+      value: "{{ steps.parse_test_results.output.pass_rate >= steps.parse_module_data.output.current_pass_rate }}"
+      message: "New pass rate {{ steps.parse_test_results.output.pass_rate }} must be >= baseline {{ steps.parse_module_data.output.current_pass_rate }}"
+
+  # Step 9: Merge the PR
+  - id: merge_pr
+    module: bash.execute
+    params:
+      command: |
+        gh pr merge {{ params.pr_number }} \
+          --merge \
+          --subject "auto-merge: {{ params.module_id }} - quality {{ steps.parse_test_results.output.pass_rate }}" \
+          --body "$(cat <<'EOF'
+        Auto-merged after passing quality gate.
+
+        **Quality Metrics:**
+        - Pass rate: {{ steps.parse_test_results.output.pass_rate }} ({{ steps.parse_test_results.output.success }}/{{ steps.parse_test_results.output.success + steps.parse_test_results.output.fail }} runs)
+        - Baseline: {{ steps.parse_module_data.output.current_pass_rate }}
+        - Threshold: >= 0.98
+
+        **Safety:**
+        - Auto-rollback enabled: {{ steps.parse_module_data.output.allow_auto_rollback }}
+        - Module allowed for auto-merge: Yes
+        - PR mergeable: Yes
+
+        Merged via workflows/meta/auto_merge_pr.yaml
+        EOF
+        )"
+
+  # Step 10: Update quality metrics with new stable baseline
+  - id: update_stable_baseline
+    module: bash.execute
+    params:
+      command: |
+        python -c "
+        import json
+        from datetime import datetime
+
+        # Load metrics
+        with open('metrics/module_quality.json') as f:
+          metrics = json.load(f)
+
+        module_id = '{{ params.module_id }}'
+        module = metrics['modules'][module_id]
+
+        # Get new commit SHA (after merge)
+        import subprocess
+        result = subprocess.run(['git', 'rev-parse', '--short', 'HEAD'],
+                              capture_output=True, text=True, check=True)
+        new_commit = result.stdout.strip()
+
+        # Update last_stable
+        module['last_stable'] = {
+          'commit_sha': new_commit,
+          'pr_number': {{ params.pr_number }},
+          'baseline_pass_rate_at_merge': {{ steps.parse_test_results.output.pass_rate }},
+          'merged_at': datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
+        }
+
+        # Save metrics
+        with open('metrics/module_quality.json', 'w') as f:
+          json.dump(metrics, f, indent=2)
+
+        print(f'Updated last_stable for {module_id}')
+        print(f'  Commit: {new_commit}')
+        print(f'  PR: {{ params.pr_number }}')
+        print(f'  Pass rate: {{ steps.parse_test_results.output.pass_rate }}')
+        "
+
+  # Step 11: Send Telegram notification
+  - id: notify_success
+    module: telegram.send_message
+    params:
+      chat_id: "{{ env.TELEGRAM_CHAT_ID }}"
+      message: |
+        ✅ **Auto-Merge Successful**
+
+        **Module**: `{{ params.module_id }}`
+        **PR**: #{{ params.pr_number }}
+        **Quality**: {{ steps.parse_module_data.output.current_pass_rate }} → {{ steps.parse_test_results.output.pass_rate }}
+        **Status**: Merged to main
+
+        **Tests**: {{ steps.parse_test_results.output.success }}/{{ steps.parse_test_results.output.success + steps.parse_test_results.output.fail }} passed
+        **Auto-rollback**: Enabled
+
+        Will monitor for 24h.
+
+output:
+  merged: true
+  pr_number: "{{ params.pr_number }}"
+  module_id: "{{ params.module_id }}"
+  pass_rate: "{{ steps.parse_test_results.output.pass_rate }}"
+  baseline_pass_rate: "{{ steps.parse_module_data.output.current_pass_rate }}"

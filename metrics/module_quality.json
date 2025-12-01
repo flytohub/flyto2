@@ -26,6 +26,13 @@
       },
       "quality_trend": "stable",
       "auto_merge_approved": true,
+      "allow_auto_rollback": true,
+      "last_stable": {
+        "commit_sha": "59a1029",
+        "pr_number": null,
+        "baseline_pass_rate_at_merge": 1.0,
+        "merged_at": "2025-12-01T00:43:00Z"
+      },
       "test_file": "workflows/_test/test_json_parse.yaml",
       "test_cases": 8
     },
@@ -53,7 +60,14 @@
       "quality_trend": "stable",
       "auto_merge_approved": true,
       "test_file": "workflows/_test/test_string_split.yaml",
-      "test_cases": 5
+      "test_cases": 5,
+      "allow_auto_rollback": true,
+      "last_stable": {
+        "commit_sha": "742ebf5",
+        "pr_number": null,
+        "baseline_pass_rate_at_merge": 1.0,
+        "merged_at": "2025-12-01T00:43:00Z"
+      }
     },
     "string.replace": {
       "category": "atomic",
@@ -79,7 +93,14 @@
       "quality_trend": "stable",
       "auto_merge_approved": true,
       "test_file": "workflows/_test/test_string_replace.yaml",
-      "test_cases": 3
+      "test_cases": 3,
+      "allow_auto_rollback": true,
+      "last_stable": {
+        "commit_sha": "742ebf5",
+        "pr_number": null,
+        "baseline_pass_rate_at_merge": 1.0,
+        "merged_at": "2025-12-01T00:43:00Z"
+      }
     },
     "string.trim": {
       "category": "atomic",
@@ -105,7 +126,14 @@
       "quality_trend": "stable",
       "auto_merge_approved": true,
       "test_file": "workflows/_test/test_string_trim.yaml",
-      "test_cases": 3
+      "test_cases": 3,
+      "allow_auto_rollback": true,
+      "last_stable": {
+        "commit_sha": "742ebf5",
+        "pr_number": null,
+        "baseline_pass_rate_at_merge": 1.0,
+        "merged_at": "2025-12-01T00:43:00Z"
+      }
     },
     "array.map": {
       "category": "atomic",
@@ -131,7 +159,14 @@
       "quality_trend": "stable",
       "auto_merge_approved": true,
       "test_file": "workflows/_test/test_array_map.yaml",
-      "test_cases": 3
+      "test_cases": 3,
+      "allow_auto_rollback": true,
+      "last_stable": {
+        "commit_sha": "742ebf5",
+        "pr_number": null,
+        "baseline_pass_rate_at_merge": 1.0,
+        "merged_at": "2025-12-01T00:43:00Z"
+      }
     },
     "test.assert_equal": {
       "category": "atomic",
@@ -157,7 +192,14 @@
       "quality_trend": "stable",
       "auto_merge_approved": true,
       "test_file": "workflows/_test/test_assert.yaml",
-      "test_cases": 1
+      "test_cases": 1,
+      "allow_auto_rollback": true,
+      "last_stable": {
+        "commit_sha": "742ebf5",
+        "pr_number": null,
+        "baseline_pass_rate_at_merge": 1.0,
+        "merged_at": "2025-12-01T02:27:14Z"
+      }
     },
     "test.assert_true": {
       "category": "atomic",
@@ -183,7 +225,14 @@
       "quality_trend": "stable",
       "auto_merge_approved": true,
       "test_file": "workflows/_test/test_assert.yaml",
-      "test_cases": 1
+      "test_cases": 1,
+      "allow_auto_rollback": true,
+      "last_stable": {
+        "commit_sha": "742ebf5",
+        "pr_number": null,
+        "baseline_pass_rate_at_merge": 1.0,
+        "merged_at": "2025-12-01T02:27:14Z"
+      }
     },
     "test.assert_length": {
       "category": "atomic",
@@ -209,7 +258,14 @@
       "quality_trend": "stable",
       "auto_merge_approved": true,
       "test_file": "workflows/_test/test_assert.yaml",
-      "test_cases": 1
+      "test_cases": 1,
+      "allow_auto_rollback": true,
+      "last_stable": {
+        "commit_sha": "742ebf5",
+        "pr_number": null,
+        "baseline_pass_rate_at_merge": 1.0,
+        "merged_at": "2025-12-01T02:27:14Z"
+      }
     },
     "test.assert_not_null": {
       "category": "atomic",
@@ -235,7 +291,14 @@
       "quality_trend": "stable",
       "auto_merge_approved": true,
       "test_file": "workflows/_test/test_assert.yaml",
-      "test_cases": 1
+      "test_cases": 1,
+      "allow_auto_rollback": true,
+      "last_stable": {
+        "commit_sha": "742ebf5",
+        "pr_number": null,
+        "baseline_pass_rate_at_merge": 1.0,
+        "merged_at": "2025-12-01T02:27:14Z"
+      }
     },
     "test.assert_contains": {
       "category": "atomic",
@@ -261,7 +324,14 @@
       "quality_trend": "stable",
       "auto_merge_approved": true,
       "test_file": "workflows/_test/test_assert.yaml",
-      "test_cases": 1
+      "test_cases": 1,
+      "allow_auto_rollback": true,
+      "last_stable": {
+        "commit_sha": "742ebf5",
+        "pr_number": null,
+        "baseline_pass_rate_at_merge": 1.0,
+        "merged_at": "2025-12-01T02:27:14Z"
+      }
     },
     "data.json.stringify": {
       "category": "atomic",
@@ -285,7 +355,14 @@
         "last_proposal": null
       },
       "quality_trend": "stable",
-      "auto_merge_approved": true
+      "auto_merge_approved": true,
+      "allow_auto_rollback": true,
+      "last_stable": {
+        "commit_sha": "742ebf5",
+        "pr_number": null,
+        "baseline_pass_rate_at_merge": 1.0,
+        "merged_at": "2025-12-01T00:43:00Z"
+      }
     },
     "string.lowercase": {
       "category": "atomic",
@@ -309,7 +386,14 @@
         "last_proposal": null
       },
       "quality_trend": "stable",
-      "auto_merge_approved": true
+      "auto_merge_approved": true,
+      "allow_auto_rollback": true,
+      "last_stable": {
+        "commit_sha": "742ebf5",
+        "pr_number": null,
+        "baseline_pass_rate_at_merge": 1.0,
+        "merged_at": "2025-12-01T00:43:00Z"
+      }
     },
     "string.uppercase": {
       "category": "atomic",
@@ -333,7 +417,14 @@
         "last_proposal": null
       },
       "quality_trend": "stable",
-      "auto_merge_approved": true
+      "auto_merge_approved": true,
+      "allow_auto_rollback": true,
+      "last_stable": {
+        "commit_sha": "742ebf5",
+        "pr_number": null,
+        "baseline_pass_rate_at_merge": 1.0,
+        "merged_at": "2025-12-01T00:43:00Z"
+      }
     },
     "array.filter": {
       "category": "atomic",
@@ -357,7 +448,14 @@
         "last_proposal": null
       },
       "quality_trend": "stable",
-      "auto_merge_approved": true
+      "auto_merge_approved": true,
+      "allow_auto_rollback": true,
+      "last_stable": {
+        "commit_sha": "742ebf5",
+        "pr_number": null,
+        "baseline_pass_rate_at_merge": 1.0,
+        "merged_at": "2025-12-01T00:43:00Z"
+      }
     },
     "array.sort": {
       "category": "atomic",
@@ -381,7 +479,14 @@
         "last_proposal": null
       },
       "quality_trend": "stable",
-      "auto_merge_approved": true
+      "auto_merge_approved": true,
+      "allow_auto_rollback": true,
+      "last_stable": {
+        "commit_sha": "742ebf5",
+        "pr_number": null,
+        "baseline_pass_rate_at_merge": 1.0,
+        "merged_at": "2025-12-01T00:43:00Z"
+      }
     },
     "array.join": {
       "category": "atomic",
@@ -405,7 +510,14 @@
         "last_proposal": null
       },
       "quality_trend": "stable",
-      "auto_merge_approved": true
+      "auto_merge_approved": true,
+      "allow_auto_rollback": true,
+      "last_stable": {
+        "commit_sha": "742ebf5",
+        "pr_number": null,
+        "baseline_pass_rate_at_merge": 1.0,
+        "merged_at": "2025-12-01T00:43:00Z"
+      }
     },
     "array.unique": {
       "category": "atomic",
@@ -429,7 +541,14 @@
         "last_proposal": null
       },
       "quality_trend": "stable",
-      "auto_merge_approved": true
+      "auto_merge_approved": true,
+      "allow_auto_rollback": true,
+      "last_stable": {
+        "commit_sha": "742ebf5",
+        "pr_number": null,
+        "baseline_pass_rate_at_merge": 1.0,
+        "merged_at": "2025-12-01T00:43:00Z"
+      }
     },
     "math.round": {
       "category": "atomic",
@@ -453,7 +572,14 @@
         "last_proposal": null
       },
       "quality_trend": "stable",
-      "auto_merge_approved": true
+      "auto_merge_approved": true,
+      "allow_auto_rollback": true,
+      "last_stable": {
+        "commit_sha": "742ebf5",
+        "pr_number": null,
+        "baseline_pass_rate_at_merge": 1.0,
+        "merged_at": "2025-12-01T00:43:00Z"
+      }
     },
     "math.abs": {
       "category": "atomic",
@@ -477,7 +603,14 @@
         "last_proposal": null
       },
       "quality_trend": "stable",
-      "auto_merge_approved": true
+      "auto_merge_approved": true,
+      "allow_auto_rollback": true,
+      "last_stable": {
+        "commit_sha": "742ebf5",
+        "pr_number": null,
+        "baseline_pass_rate_at_merge": 1.0,
+        "merged_at": "2025-12-01T00:43:00Z"
+      }
     },
     "object.keys": {
       "category": "atomic",
@@ -501,7 +634,14 @@
         "last_proposal": null
       },
       "quality_trend": "stable",
-      "auto_merge_approved": true
+      "auto_merge_approved": true,
+      "allow_auto_rollback": true,
+      "last_stable": {
+        "commit_sha": "742ebf5",
+        "pr_number": null,
+        "baseline_pass_rate_at_merge": 1.0,
+        "merged_at": "2025-12-01T00:43:00Z"
+      }
     },
     "object.merge": {
       "category": "atomic",
@@ -525,7 +665,14 @@
         "last_proposal": null
       },
       "quality_trend": "stable",
-      "auto_merge_approved": true
+      "auto_merge_approved": true,
+      "allow_auto_rollback": true,
+      "last_stable": {
+        "commit_sha": "742ebf5",
+        "pr_number": null,
+        "baseline_pass_rate_at_merge": 1.0,
+        "merged_at": "2025-12-01T00:43:00Z"
+      }
     }
   },
   "summary": {
