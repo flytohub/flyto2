@@ -1,0 +1,17 @@
+
+data.json.parse,10,0,1.000
+data.json.stringify,10,0,1.000
+string.split,10,0,1.000
+string.replace,10,0,1.000
+string.trim,10,0,1.000
+string.lowercase,10,0,1.000
+string.uppercase,10,0,1.000
+array.map,10,0,1.000
+array.filter,0,10,0
+array.sort,10,0,1.000
+array.join,10,0,1.000
+array.unique,10,0,1.000
+math.round,10,0,1.000
+math.abs,10,0,1.000
+object.keys,10,0,1.000
+object.merge,10,0,1.000
