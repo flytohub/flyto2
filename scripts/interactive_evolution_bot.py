@@ -272,20 +272,23 @@ async def run_module_quality_tests(provided_tokens: Optional[Dict[str, str]] = N
                     }
                     passed += 1
                 else:
-                    # Extract actual error from stderr
-                    error_msg = result.stderr if result.stderr else "Unknown error"
-                    # Look for the actual Python error
-                    if "Error occurred:" in error_msg:
-                        error_lines = error_msg.split('\n')
+                    # Keep full stderr for debugging
+                    full_stderr = result.stderr if result.stderr else "Unknown error"
+
+                    # Try to extract just the error message for display
+                    display_error = full_stderr
+                    if "Error occurred:" in full_stderr:
+                        error_lines = full_stderr.split('\n')
                         for line in error_lines:
                             if "Error occurred:" in line:
-                                error_msg = line.split("Error occurred:", 1)[1].strip()
+                                display_error = line.split("Error occurred:", 1)[1].strip()
                                 break
 
                     results[module_name] = {
                         "status": "fail",
                         "pass_rate": 0.0,
-                        "error": error_msg[:300]
+                        "error": display_error[:300],
+                        "full_stderr": full_stderr  # Keep full output for debug
                     }
                     failed += 1
 
@@ -312,13 +315,16 @@ async def run_module_quality_tests(provided_tokens: Optional[Dict[str, str]] = N
         debug_info = {}
         if failed > 0:
             cli_script = PROJECT_ROOT / "src" / "cli" / "main.py"
+            first_result = results[list(results.keys())[0]] if results else {}
             debug_info = {
                 "cli_script": str(cli_script),
                 "cli_exists": cli_script.exists(),
                 "project_root": str(PROJECT_ROOT),
                 "python_executable": sys.executable,
                 "pythonpath": test_env.get('PYTHONPATH', 'Not set'),
-                "first_error": results[list(results.keys())[0]]["error"] if results else None
+                "first_error": first_result.get("error", "N/A"),
+                "os_pathsep": os.pathsep,
+                "sample_full_stderr": first_result.get("full_stderr", first_result.get("error", "N/A"))[:800]
             }
 
         return {
@@ -592,7 +598,9 @@ async def execute_tests_and_show_results(query_or_message, provided_tokens: Opti
             f"Project Root: `{debug_info.get('project_root', 'N/A')}`\n"
             f"Python: `{debug_info.get('python_executable', 'N/A')}`\n"
             f"PYTHONPATH: `{debug_info.get('pythonpath', 'N/A')}`\n"
-            f"First Error: {debug_info.get('first_error', 'N/A')[:150]}"
+            f"OS Path Sep: `{debug_info.get('os_pathsep', 'N/A')}`\n\n"
+            f"**Full stderr from first test:**\n"
+            f"```\n{debug_info.get('sample_full_stderr', 'N/A')}\n```"
         )
         await message_obj.reply_text(debug_msg, parse_mode="Markdown")
 
