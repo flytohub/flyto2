@@ -185,7 +185,7 @@ async def run_module_quality_tests() -> Dict:
     """Run quality tests on all modules"""
     try:
         result = subprocess.run(
-            ["python", "scripts/validate_all_modules.py"],
+            ["python3", "scripts/validate_all_modules.py"],
             capture_output=True,
             text=True,
             timeout=300,
