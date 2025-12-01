@@ -213,6 +213,13 @@ async def run_module_quality_tests(provided_tokens: Optional[Dict[str, str]] = N
         if provided_tokens:
             test_env.update(provided_tokens)
 
+        # Ensure PYTHONPATH includes project root
+        pythonpath = str(PROJECT_ROOT)
+        if 'PYTHONPATH' in test_env:
+            test_env['PYTHONPATH'] = f"{pythonpath}:{test_env['PYTHONPATH']}"
+        else:
+            test_env['PYTHONPATH'] = pythonpath
+
         # Run each test workflow
         results = {}
         passed = 0
@@ -230,7 +237,7 @@ async def run_module_quality_tests(provided_tokens: Optional[Dict[str, str]] = N
                     text=True,
                     timeout=30,
                     cwd=PROJECT_ROOT,
-                    env=test_env  # Pass environment with tokens
+                    env=test_env  # Pass environment with tokens and PYTHONPATH
                 )
 
                 # Extract which modules were tested from the workflow
