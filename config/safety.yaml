@@ -1,0 +1,141 @@
+# Flyto2 Safety Configuration
+# Controls AI automation boundaries and safety mechanisms
+
+# ============================================
+# Kill Switch - Emergency shutdown
+# ============================================
+kill_switch:
+  # Master control - set to false to disable ALL AI automation
+  ai_automation_enabled: true
+
+  # Individual controls
+  auto_merge_enabled: true
+  auto_rollback_enabled: true
+  continuous_improvement_enabled: true
+
+  # Last updated
+  last_modified: null
+  modified_by: null
+
+# ============================================
+# Module Access Control
+# ============================================
+module_access:
+  # Strategy: "blacklist" (default allow, block listed) or "whitelist" (default block, allow listed)
+  strategy: "blacklist"
+
+  # Modules that AI can NEVER auto-merge (high-risk operations)
+  blacklist:
+    - "file.delete"           # File deletion
+    - "file.move"             # File moving
+    - "database.drop"         # Database drop
+    - "database.truncate"     # Database truncate
+    - "bash.execute"          # Shell execution (too dangerous)
+    - "system.*"              # System-level operations
+
+  # If strategy = "whitelist", only these can be auto-merged
+  allowlist:
+    - "string.*"              # String operations (safe)
+    - "array.*"               # Array operations (safe)
+    - "math.*"                # Math operations (safe)
+    - "data.json.*"           # JSON operations (safe)
+    - "object.*"              # Object operations (safe)
+
+  # Modules requiring human review even if tests pass
+  require_human_review:
+    - "api.http.*"            # External API calls
+    - "notification.*"        # Notifications (can spam users)
+    - "ai.*"                  # AI integrations (expensive)
+
+# ============================================
+# Rate Limiting
+# ============================================
+rate_limits:
+  # Maximum auto-merges per time period
+  max_auto_merges_per_hour: 3
+  max_auto_merges_per_day: 10
+  max_auto_merges_per_week: 30
+
+  # Maximum rollbacks per time period (if too many, something is wrong)
+  max_rollbacks_per_hour: 2
+  max_rollbacks_per_day: 5
+
+  # Cooldown after rollback (minutes)
+  rollback_cooldown_minutes: 30
+
+# ============================================
+# Quality Gates
+# ============================================
+quality_gates:
+  # Minimum pass rate for auto-merge
+  auto_merge_threshold: 0.98
+
+  # Minimum test runs required
+  min_test_runs: 10
+
+  # Maximum allowed performance degradation (%)
+  max_performance_degradation_percent: 10
+
+  # Rollback triggers
+  rollback_triggers:
+    pass_rate_drop_threshold: 0.05    # Rollback if pass rate drops > 5%
+    absolute_pass_rate_minimum: 0.95  # Rollback if pass rate < 95%
+    consecutive_failures: 3            # Rollback if 3 consecutive failures
+
+# ============================================
+# Monitoring Windows
+# ============================================
+monitoring:
+  # How long to monitor after deployment before marking stable
+  post_deploy_monitoring_hours: 24
+
+  # How often to check health during monitoring window
+  health_check_interval_minutes: 60
+
+  # Snapshot retention
+  snapshot_retention_days: 90
+
+# ============================================
+# Dry-run Mode
+# ============================================
+dry_run:
+  # Global dry-run mode (if true, all automation only reports, doesn't execute)
+  enabled: false
+
+  # What to do in dry-run mode
+  create_pr_instead_of_merge: true
+  send_proposals_to_telegram: true
+  log_all_actions: true
+
+# ============================================
+# Notification Settings
+# ============================================
+notifications:
+  # Always notify on these events
+  always_notify:
+    - "auto_merge_success"
+    - "auto_merge_failed"
+    - "rollback_triggered"
+    - "rollback_success"
+    - "rate_limit_exceeded"
+    - "kill_switch_activated"
+
+  # Only notify on these if they're important
+  notify_if_important:
+    - "quality_degradation_detected"
+    - "new_module_proposed"
+    - "test_failure"
+
+# ============================================
+# Audit Trail
+# ============================================
+audit:
+  # Log all AI actions
+  log_all_ai_actions: true
+  log_file: "metrics/ai_audit.log"
+
+  # Require justification for certain actions
+  require_justification:
+    - "rollback"
+    - "blacklist_override"
+    - "kill_switch_toggle"

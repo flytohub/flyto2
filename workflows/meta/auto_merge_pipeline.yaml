@@ -23,8 +23,13 @@ params:
     description: "Who deployed (ai_agent or human)"
     default: "ai_agent"
 
+  dry_run:
+    type: boolean
+    description: "If true, only simulate (don't actually merge)"
+    default: false
+
 steps:
-  # Step 1: Validate quality gate passed
+  # Step 1: Load and parse quality gate results
   - id: load_gate_results
     module: file.read
     params:
@@ -34,6 +39,29 @@ steps:
     module: data.json.parse
     params:
       json_string: "{{ steps.load_gate_results.output }}"
+
+  # Step 2: Safety validation (kill switch, blacklist, rate limits)
+  - id: safety_check
+    module: bash.execute
+    params:
+      command: |
+        python scripts/safety_manager.py validate \
+          --module "{{ params.module_id }}" \
+          --pass-rate {{ steps.parse_gate_results.output.new_pass_rate }} \
+          --test-runs {{ steps.parse_gate_results.output.test_runs }}
+    continue_on_error: true
+
+  - id: parse_safety_result
+    module: data.json.parse
+    params:
+      json_string: "{{ steps.safety_check.output.stdout }}"
+
+  - id: check_safety_approved
+    module: test.assert_true
+    params:
+      value: "{{ steps.parse_safety_result.output.allowed }}"
+      message: "Safety check failed: {{ steps.parse_safety_result.output.reason }}"
+    when: "{{ not params.dry_run }}"
 
   - id: check_gate_passed
     module: test.assert_equal
@@ -126,11 +154,12 @@ steps:
       expected: 0
       message: "Final verification tests must pass"
 
-  # Step 6: Git commit
+  # Step 6: Git commit (skip in dry-run mode)
   - id: git_add
     module: bash.execute
     params:
       command: git add "{{ steps.parse_file_path.output.file_path }}"
+    when: "{{ not params.dry_run }}"
 
   - id: git_commit
     module: bash.execute
@@ -147,8 +176,26 @@ steps:
         Snapshot: {{ steps.parse_snapshot.output.version }}_{{ steps.parse_snapshot.output.commit }}
         EOF
         )"
+    when: "{{ not params.dry_run }}"
 
-  # Step 7: Update deployment history with post-deploy status
+  # Step 7: Record action for rate limiting
+  - id: record_rate_limit
+    module: bash.execute
+    params:
+      command: |
+        python -c "
+        from scripts.safety_manager import SafetyManager
+        manager = SafetyManager()
+        manager.record_action('auto_merge', '{{ params.module_id }}', {
+          'pass_rate': {{ steps.parse_gate_results.output.new_pass_rate }},
+          'deployed_by': '{{ params.deployed_by }}',
+          'dry_run': {{ params.dry_run | lower }}
+        })
+        print('Recorded auto-merge action')
+        "
+    when: "{{ not params.dry_run }}"
+
+  # Step 8: Update deployment history with post-deploy status
   - id: update_deployment
     module: bash.execute
     params:
@@ -159,13 +206,24 @@ steps:
         manager.update_post_deploy_pass_rate('{{ params.module_id }}', {{ steps.parse_gate_results.output.new_pass_rate }})
         print('Updated post-deploy pass rate')
         "
+    when: "{{ not params.dry_run }}"
 
-  # Step 8: Send success notification
+  # Step 9: Send success notification
   - id: notify_success
     module: telegram.send_message
     params:
       chat_id: "{{ env.TELEGRAM_CHAT_ID }}"
       message: |
+        {% if params.dry_run %}
+        🔍 DRY-RUN: Auto-Merge Simulation
+
+        **Module**: `{{ params.module_id }}`
+        **Quality**: {{ steps.parse_gate_results.output.baseline_pass_rate }} → {{ steps.parse_gate_results.output.new_pass_rate }}
+        **Status**: Would have been auto-merged (dry-run mode)
+        **Safety check**: {{ steps.parse_safety_result.output.reason }}
+
+        ℹ️ No changes were actually committed (dry-run mode).
+        {% else %}
         ✅ Auto-Merge Successful
 
         **Module**: `{{ params.module_id }}`
@@ -177,6 +235,7 @@ steps:
 
         ⏱ Monitoring for 24h before marking stable.
         🔄 Rollback available if quality degrades.
+        {% endif %}
 
 output:
   deployment_record: "{{ steps.parse_snapshot.output }}"
