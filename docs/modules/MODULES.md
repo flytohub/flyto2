@@ -920,7 +920,11 @@ ollama serve
     max_iterations: 5
 ```
 
-**Documentation:** [Local AI Agent Guide](LOCAL_AI_AGENT.md)
+**Benefits of Local (Ollama) vs Cloud (OpenAI):**
+- ✅ 100% Privacy - Data never leaves your machine
+- ✅ Zero Cost - No API fees
+- ✅ Offline Capable - Works without internet
+- ✅ No Rate Limits - Unlimited requests
 
 ---
 
@@ -983,7 +987,11 @@ ollama serve
       - "Provide a code example: {previous}"
 ```
 
-**Documentation:** [Local AI Agent Guide](LOCAL_AI_AGENT.md)
+**Benefits of Local (Ollama) vs Cloud (OpenAI):**
+- ✅ 100% Privacy - Data never leaves your machine
+- ✅ Zero Cost - No API fees
+- ✅ Offline Capable - Works without internet
+- ✅ No Rate Limits - Unlimited requests
 
 ---
 

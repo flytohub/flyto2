@@ -76,3 +76,4 @@ build/
 # Browser data (from Playwright)
 browser_data/
 test-results/
+.claude/

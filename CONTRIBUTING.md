@@ -315,19 +315,19 @@ i18n/
 └── ...
 ```
 
-#### Example: i18n/zh.json
+#### Example: i18n/en.json
 
 ```json
 {
   "modules": {
     "browser": {
       "launch": {
-        "label": "啟動瀏覽器",
-        "description": "啟動新的瀏覽器實例",
+        "label": "Launch Browser",
+        "description": "Launch a new browser instance",
         "params": {
           "headless": {
-            "label": "無頭模式",
-            "description": "在無頭模式下運行瀏覽器（無界面）"
+            "label": "Headless Mode",
+            "description": "Run browser without UI (headless mode)"
           }
         }
       }
@@ -335,6 +335,8 @@ i18n/
   }
 }
 ```
+
+**Note:** While the example shows English, the i18n system supports multiple languages (zh, ja, etc.). Translation files are optional - the system falls back to English defaults in code.
 
 ### i18n Best Practices
 
@@ -705,6 +707,46 @@ git push origin module/{namespace}-{category}-{action}
 
 - **GitHub Issues**: [Report bugs or request features](https://github.com/flytohub/flyto2/issues)
 - **Discussions**: [Ask questions](https://github.com/flytohub/flyto2/discussions)
+
+---
+
+## Repository Maintenance (For Maintainers)
+
+### GitHub Repository Settings
+
+**Repository Description:**
+```
+Git-native workflow automation. Browser + AI + APIs in YAML. MIT open source engine with free visual builder.
+```
+
+**Recommended Topics (max 20):**
+```
+workflow-automation, workflow-engine, automation, playwright, yaml,
+git-native, browser-automation, python, ai-integration, openai,
+web-scraping, data-pipeline, devops, api-integration, n8n-alternative,
+zapier-alternative, airflow, asyncio, anthropic-claude, ci-cd
+```
+
+**Features to Enable:**
+- ✅ Wikis (for community documentation)
+- ✅ Issues (for bug reports and feature requests)
+- ✅ Discussions (for Q&A and community)
+- ✅ Projects (for roadmap tracking)
+
+### Social Media Card Text
+
+```
+Flyto2 - Git-Native Workflow Automation
+
+Write automation workflows in YAML. Version control with Git. Deploy anywhere.
+
+✅ Browser automation (Playwright)
+✅ AI integrations (OpenAI, Claude)
+✅ API connectors (Slack, GitHub, AWS)
+✅ MIT open source engine
+
+Like n8n, but Git-first.
+```
 
 ---
 

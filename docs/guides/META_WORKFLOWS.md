@@ -531,9 +531,8 @@ See [Case Study: Improving google_search.yaml](CASE_STUDY_META_WORKFLOW.md) for 
 
 - [DSL Specification](DSL.md)
 - [Module Registry](MODULES.md)
-- [Local AI Agent Guide](LOCAL_AI_AGENT.md)
+- [AI Agents](../modules/MODULES.md#ai-agents)
 - [Safety Guide](META_WORKFLOW_SAFETY.md)
-- [Case Study](CASE_STUDY_META_WORKFLOW.md)
 - [Example Workflows](../workflows/)
 
 ## Contributing

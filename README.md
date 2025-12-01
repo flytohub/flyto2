@@ -133,7 +133,7 @@ python -m src.cli.main workflows/meta/autonomous_improve.yaml \
 - Continuous quality improvement
 - Dynamic module registry (always knows current modules)
 
-[Meta-Workflow Guide](docs/META_WORKFLOWS.md) | [Safety Guide](docs/META_WORKFLOW_SAFETY.md) | [Case Study](docs/CASE_STUDY_META_WORKFLOW.md)
+[Meta-Workflow Guide](docs/guides/META_WORKFLOWS.md) | [Safety Guide](docs/guides/META_WORKFLOW_SAFETY.md)
 
 ---
 
@@ -173,7 +173,7 @@ ollama serve
 python -m src.cli.main workflows/local_autonomous_agent.yaml
 ```
 
-[📖 Full Local AI Agent Guide](docs/LOCAL_AI_AGENT.md) | [🎯 Example Workflows](workflows/)
+[📖 AI Agent Module Reference](docs/modules/MODULES.md#ai-agents) | [🎯 Example Workflows](workflows/)
 
 ---
 
@@ -299,11 +299,10 @@ steps:
 - [Parameter Best Practices](docs/PARAMETER_BEST_PRACTICES.md) - Design flexible, reusable workflows
 
 🤖 **AI & Meta-Workflows**
-- [Meta-Workflows](docs/META_WORKFLOWS.md) - Self-improving workflow system
-- [Local AI Agent Guide](docs/LOCAL_AI_AGENT.md) - Offline AI agents
-- [Dynamic Module Registry](docs/DYNAMIC_MODULE_REGISTRY.md) - Self-maintaining module list
-- [Meta-Workflow Safety](docs/META_WORKFLOW_SAFETY.md) - Safety protocols
-- [Case Study](docs/CASE_STUDY_META_WORKFLOW.md) - Real improvement example
+- [Meta-Workflows](docs/guides/META_WORKFLOWS.md) - Self-improving workflow system
+- [AI Agents](docs/modules/MODULES.md#ai-agents) - Autonomous & chain agents (OpenAI/Ollama)
+- [Dynamic Module Registry](docs/modules/DYNAMIC_MODULE_REGISTRY.md) - Self-maintaining module list
+- [Meta-Workflow Safety](docs/guides/META_WORKFLOW_SAFETY.md) - Safety protocols
 
 🛠️ **Module Development**
 - [Module Specification](docs/MODULE_SPECIFICATION.md) - Complete module specification
@@ -532,7 +531,7 @@ For complete licensing details, see the [License Model](#license-model) section 
 
 **If this project helps you, give it a ⭐!**
 
-[🌟 Star on GitHub](https://github.com/flytohub/flyto2) • [📖 Read Docs](docs/) • [💬 Discussions](https://github.com/flytohub/flyto2/discussions)
+[🌟 Star on GitHub](https://github.com/flytohub/flyto2) • [📖 Read Docs](docs/README.md) • [📑 Documentation Index](DOCUMENTATION_INDEX.md) • [🚀 Quick Start](QUICKSTART.md) • [💬 Discussions](https://github.com/flytohub/flyto2/discussions)
 
 **Flyto2: Git-Native Workflow Automation**
 

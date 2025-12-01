@@ -1,19 +1,29 @@
-# 🚀 Quickstart Guide for Contributors
+# 🚀 Quick Start Guide
 
-Welcome to Flyto2! This guide will get you up and running in **5 minutes**.
+Welcome to Flyto2! Choose your setup path below.
 
 ---
 
-## Prerequisites
+## Quick Links
+
+- **For Contributors** → [Developer Setup](#developer-setup-for-contributors)
+- **For Windows Users (Bot)** → [Windows Bot Setup](#windows-bot-setup-one-click)
+- **For Windows Users (Monitoring)** → [Windows Monitoring Setup](#windows-monitoring-setup)
+
+---
+
+## Developer Setup (For Contributors)
+
+Get started contributing to Flyto2 in **5 minutes**.
+
+### Prerequisites
 
 - Python 3.8+ installed
 - Git installed
 - Basic Python knowledge
 - (Optional) Playwright for browser automation
 
----
-
-## 1. Clone & Setup (2 minutes)
+### 1. Clone & Setup (2 minutes)
 
 ```bash
 # Clone the repository
@@ -32,9 +42,7 @@ pip install -r requirements-dev.txt  # For development
 playwright install chromium
 ```
 
----
-
-## 2. Run Your First Workflow (1 minute)
+### 2. Run Your First Workflow (1 minute)
 
 ```bash
 # Run a simple example workflow
@@ -43,11 +51,9 @@ python -m src.cli.main workflows/api_pipeline.yaml
 
 You should see output showing the workflow executing successfully! ✅
 
----
+### 3. Explore the Codebase (2 minutes)
 
-## 3. Explore the Codebase (2 minutes)
-
-### Project Structure
+**Project Structure:**
 
 ```
 flyto2/
@@ -65,179 +71,15 @@ flyto2/
 └── i18n/                    # Translations (en, zh, ja)
 ```
 
-### Key Files to Know
-
+**Key Files:**
 - **Module Registry**: `src/core/modules/registry.py`
 - **Module Base Class**: `src/core/modules/base.py`
 - **Workflow Engine**: `src/core/engine/workflow_engine.py`
 - **Module Specification**: `docs/MODULE_SPECIFICATION.md`
 
----
+### 4. Development Best Practices
 
-## 4. Your First Contribution
-
-### Option A: Add a Simple Module (Beginner)
-
-Let's add an `api.openai.chat` module:
-
-1. **Create the file**: `src/core/modules/third_party/ai/openai.py`
-
-```python
-from ...base import BaseModule
-from ...registry import register_module
-
-@register_module(
-    module_id='api.openai.chat',
-    version='1.0.0',
-    category='ai',
-    subcategory='ai',
-    label='OpenAI Chat',
-    description='Send a chat message to OpenAI GPT',
-    icon='MessageCircle',
-    color='#10A37F',
-
-    # Phase 2: Execution settings
-    timeout=60,
-    retryable=True,
-    max_retries=3,
-    concurrent_safe=True,
-
-    # Phase 2: Security settings
-    requires_credentials=True,
-    handles_sensitive_data=True,
-    required_permissions=['network.access', 'ai.api'],
-
-    params_schema={
-        'prompt': {
-            'type': 'string',
-            'label': 'Prompt',
-            'description': 'The message to send to GPT',
-            'required': True
-        },
-        'model': {
-            'type': 'string',
-            'label': 'Model',
-            'description': 'OpenAI model to use',
-            'default': 'gpt-4',
-            'required': False
-        }
-    },
-    output_schema={
-        'response': {'type': 'string'},
-        'usage': {'type': 'object'}
-    }
-)
-class OpenAIChatModule(BaseModule):
-    """OpenAI Chat Module"""
-
-    def validate_params(self):
-        self.prompt = self.params.get('prompt')
-        self.model = self.params.get('model', 'gpt-4')
-
-        import os
-        self.api_key = os.environ.get('OPENAI_API_KEY')
-        if not self.api_key:
-            raise ValueError("OPENAI_API_KEY environment variable required")
-
-    async def execute(self):
-        import openai
-        openai.api_key = self.api_key
-
-        response = await openai.ChatCompletion.acreate(
-            model=self.model,
-            messages=[{"role": "user", "content": self.prompt}]
-        )
-
-        return {
-            "response": response.choices[0].message.content,
-            "usage": response.usage
-        }
-```
-
-2. **Import in** `src/core/modules/third_party/ai/__init__.py`:
-
-```python
-from . import services  # Existing
-from . import openai    # Add this
-```
-
-3. **Test it**:
-
-```bash
-# Validate module
-python scripts/validate_all_modules.py
-
-# Run tests
-python -m pytest tests/test_phase2_features.py -v
-```
-
-4. **Create a test workflow** `test_openai.yaml`:
-
-```yaml
-name: "Test OpenAI"
-steps:
-  - id: chat
-    module: api.openai.chat
-    params:
-      prompt: "Say hello in 5 words"
-      model: "gpt-4"
-```
-
-5. **Submit PR**:
-
-```bash
-git checkout -b feature/add-openai-module
-git add .
-git commit -m "Add OpenAI GPT chat module"
-git push origin feature/add-openai-module
-```
-
-### Option B: Add an Example Workflow (Beginner)
-
-Create `workflows/github_stars_scraper.yaml`:
-
-```yaml
-name: "GitHub Stars Scraper"
-description: "Scrape GitHub repository stars and save to CSV"
-
-steps:
-  - id: fetch_repo
-    module: api.github.get_repo
-    params:
-      owner: "facebook"
-      repo: "react"
-      token: "${env.GITHUB_TOKEN}"
-
-  - id: fetch_stargazers
-    module: api.http_get
-    params:
-      url: "https://api.github.com/repos/facebook/react/stargazers"
-      headers:
-        Authorization: "token ${env.GITHUB_TOKEN}"
-
-  - id: save_csv
-    module: data.csv.write
-    params:
-      file_path: "react_stars.csv"
-      data: "${fetch_stargazers.data}"
-
-  - id: notify
-    module: notification.slack.send_message
-    params:
-      text: "✅ Scraped ${fetch_repo.data.stargazers_count} stars!"
-```
-
-### Option C: Improve Documentation (Beginner)
-
-- Add examples to `docs/MODULES.md`
-- Write tutorials in `docs/`
-- Translate to other languages in `i18n/`
-
----
-
-## 5. Development Best Practices
-
-### Before Submitting a PR
+**Before Submitting a PR:**
 
 ```bash
 # 1. Validate modules
@@ -253,21 +95,7 @@ python -m pytest tests/ -v
 python -m pytest tests/test_phase2_features.py -v
 ```
 
-### PR Checklist
-
-- [ ] Module follows atomic design (single responsibility)
-- [ ] Uses i18n keys (no hardcoded Chinese text in code)
-- [ ] Complete `params_schema` with descriptions
-- [ ] At least 2 examples in module metadata
-- [ ] Error handling implemented
-- [ ] Phase 2 execution settings configured
-- [ ] Phase 2 security settings declared
-- [ ] Validation passes: `python scripts/validate_all_modules.py`
-
----
-
-## 6. Getting Help
-
+**Getting Help:**
 - 📖 **Documentation**: Check `docs/` folder
 - 💬 **Discussions**: [GitHub Discussions](https://github.com/flytohub/flyto2/discussions)
 - 🐛 **Issues**: [Report bugs](https://github.com/flytohub/flyto2/issues)
@@ -275,42 +103,164 @@ python -m pytest tests/test_phase2_features.py -v
 
 ---
 
-## 7. What to Build Next
+## Windows Bot Setup (One-Click)
 
-### Easy Wins (Good First Issues)
-- ✅ Add `api.openai.chat` module
-- ✅ Add `api.http.delete` module
-- ✅ Add `db.redis.get/set` modules
-- ✅ Add more example workflows
-- ✅ Write tutorials
+Super easy Telegram bot launcher for Windows users.
 
-### Medium Difficulty
-- 🔧 Add parallel execution blocks to DSL
-- 🔧 Create observability dashboard
-- 🔧 Add GCS/Azure storage modules
+### Method 1: Double-Click (Easiest!)
 
-### Advanced
-- 🚀 Module marketplace
-- 🚀 Distributed execution engine
-- 🚀 Kubernetes operator
+1. **Double-click this file:**
+   ```
+   START_BOT.bat
+   ```
+
+2. **Follow on-screen prompts:**
+   - If no Ollama → asks if you want to install
+   - If no .env → interactive setup:
+     - Telegram Bot Token (from @BotFather)
+     - Your User ID (from @userinfobot)
+     - OpenAI Key (optional, press Enter to skip)
+
+3. **Done! Bot auto-starts**
+
+### Method 2: PowerShell (Advanced)
+
+```powershell
+.\scripts\start_bot_windows.ps1
+```
+
+### First Time? You'll Need These
+
+**1. Telegram Bot Token:**
+1. Open Telegram
+2. Search `@BotFather`
+3. Send `/newbot`
+4. Follow instructions to create bot
+5. Copy token (e.g., `7995397831:AAEVEF...`)
+
+**2. Your Telegram User ID:**
+1. Search `@userinfobot`
+2. Send `/start`
+3. Copy your ID (e.g., `123456789`)
+
+**3. OpenAI Key (Optional):**
+- If you want `/gpt` command: https://platform.openai.com/api-keys
+- Don't want to pay? Press Enter to skip and use free Ollama only!
+
+### What Happens After Launch?
+
+**Auto-completed tasks:**
+```
+✓ Check Python
+✓ Check/start Ollama
+✓ Download llama3.2 model (if needed)
+✓ Install Python packages
+✓ Start Bot
+```
+
+**Cost:**
+- **Ollama only** (no OpenAI key): NT$0/month 🎉
+- **Hybrid mode** (with OpenAI key): ~NT$30-90/month
+- **vs. Full OpenAI**: NT$2,430/month (save 96%!)
+
+**Start chatting:**
+```
+You: /start
+
+Bot: 🤖 Flyto2 AI Assistant V2
+     Ultra-Low-Cost Three-Tier Strategy
+
+     Commands:
+     • Just chat - I'll use Ollama
+     • /gpt <q> - Force OpenAI ($)
+     • /status - Quality status
+     • /stats - Usage statistics
+```
+
+**Next time:** Just double-click `START_BOT.bat` - all settings saved in `.env`!
 
 ---
 
-## 8. Community Guidelines
+## Windows Monitoring Setup
 
-- **Be respectful** - We're all learning together
-- **Ask questions** - No question is too small
-- **Share knowledge** - Help others when you can
-- **Start small** - Begin with simple contributions
-- **Have fun!** - Enjoy building automation tools 🎉
+Fast setup guide for running Flyto2 Level 4 monitoring on Windows.
+
+### Prerequisites Check
+
+```powershell
+# Check if installed
+python --version  # Need 3.8+
+git --version
+gh --version
+
+# If missing, download:
+# Python: https://www.python.org/downloads/
+# Git: https://git-scm.com/download/win
+# GitHub CLI: https://cli.github.com/
+```
+
+### Setup Steps
+
+```powershell
+# 1. Clone repository
+cd C:\Projects
+git clone <your-repo-url> flyto2
+cd flyto2
+
+# 2. Create virtual environment
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+
+# If execution policy error:
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+# 3. Install dependencies
+pip install -r requirements.txt
+```
+
+### Configure Environment
+
+```powershell
+# Create .env file
+@"
+TELEGRAM_BOT_TOKEN=your_bot_token
+TELEGRAM_CHAT_ID=your_chat_id
+OPENAI_API_KEY=your_openai_key
+GITHUB_TOKEN=your_github_token
+"@ | Out-File -FilePath .env -Encoding UTF8
+```
+
+**Get GitHub token:**
+```powershell
+gh auth login
+gh auth token
+```
+
+### Test & Run
+
+```powershell
+# Test a simple workflow
+python -m src.cli.main workflows/_test/test_string_split.yaml
+
+# Run manual monitoring test
+python -m src.cli.main workflows/meta/monitor_regressions.yaml
+
+# Schedule daily monitoring (Run as Administrator)
+.\scripts\setup_windows_tasks.ps1
+```
+
+**Done!** System will:
+- ✅ Monitor 21 modules every day at 9 AM
+- ✅ Send Telegram reports if regressions detected
+- ✅ Track quality metrics in `metrics/module_quality.json`
 
 ---
 
-## Quick Reference Commands
+## Common Commands Reference
 
 ```bash
 # Development
-python -m src.cli.main <workflow.yaml>          # Run workflow
+python -m src.cli.main <workflow.yaml>      # Run workflow
 python scripts/validate_all_modules.py      # Validate modules
 python scripts/lint_modules.py --strict     # Lint modules
 python -m pytest tests/ -v                  # Run all tests
@@ -324,6 +274,20 @@ git push origin feature/your-feature        # Push
 
 ---
 
-**Ready to contribute?** Pick a task from [Good First Issues](https://github.com/flytohub/flyto2/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) and get started! 🚀
+## Need More Help?
 
-**Questions?** Open a [Discussion](https://github.com/flytohub/flyto2/discussions) - we're here to help!
+### Documentation
+- **Bot Architecture**: `docs/TELEGRAM_BOT_ARCHITECTURE.md`
+- **Bot Setup**: `docs/TELEGRAM_BOT_SETUP.md`
+- **Windows Setup**: `docs/WINDOWS_SETUP.md`
+- **Module Writing**: `docs/WRITING_MODULES.md`
+- **CLI Guide**: `docs/CLI.md`
+
+### Community
+- 📖 **Full docs**: `docs/README.md`
+- 💬 **Discussions**: [GitHub Discussions](https://github.com/flytohub/flyto2/discussions)
+- 🐛 **Report issues**: [GitHub Issues](https://github.com/flytohub/flyto2/issues)
+
+---
+
+**Ready to contribute?** Pick a task from [Good First Issues](https://github.com/flytohub/flyto2/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) and get started! 🚀
