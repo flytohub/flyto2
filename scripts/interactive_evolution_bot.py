@@ -184,26 +184,65 @@ async def ask_openai(prompt: str, system_prompt: str = None) -> str:
 async def run_module_quality_tests() -> Dict:
     """Run quality tests on all modules"""
     try:
+        # Run validation script
         result = subprocess.run(
-            ["python3", "scripts/validate_all_modules.py"],
+            ["python", "scripts/validate_all_modules.py"],
             capture_output=True,
             text=True,
             timeout=300,
             cwd=PROJECT_ROOT
         )
 
-        # Parse results (assuming JSON output)
-        if result.returncode == 0:
-            # Try to load quality metrics
-            metrics_file = PROJECT_ROOT / "metrics" / "module_quality.json"
-            if metrics_file.exists():
+        # Parse stdout for results
+        output = result.stdout if result.stdout else result.stderr
+
+        # Create simple metrics from output
+        lines = output.split('\n')
+        passed = 0
+        failed = 0
+        modules = {}
+
+        for line in lines:
+            if line.startswith('✓'):
+                passed += 1
+                module_id = line.replace('✓', '').strip()
+                if module_id:
+                    modules[module_id] = {"status": "pass", "pass_rate": 1.0}
+            elif line.startswith('✗'):
+                failed += 1
+                module_id = line.replace('✗', '').strip()
+                if module_id:
+                    modules[module_id] = {"status": "fail", "pass_rate": 0.0}
+
+        total = passed + failed
+
+        # Try to load existing metrics file if available
+        metrics_file = PROJECT_ROOT / "metrics" / "module_quality.json"
+        if metrics_file.exists():
+            try:
                 with open(metrics_file) as f:
-                    return json.load(f)
+                    existing_metrics = json.load(f)
+                    # Merge with existing data
+                    if "modules" in existing_metrics:
+                        for mid, data in existing_metrics["modules"].items():
+                            if mid not in modules:
+                                modules[mid] = data
+            except:
+                pass
 
-        return {"error": "Test execution failed", "output": result.stderr}
+        return {
+            "total_modules": total,
+            "passed": passed,
+            "failed": failed,
+            "pass_rate": passed / total if total > 0 else 0,
+            "modules": modules,
+            "raw_output": output
+        }
 
+    except subprocess.TimeoutExpired:
+        return {"error": "Test timeout (>5 minutes)", "timeout": True}
     except Exception as e:
-        return {"error": str(e)}
+        return {"error": f"Test execution failed: {str(e)}"}
 
 
 async def analyze_test_results(results: Dict) -> Dict:
