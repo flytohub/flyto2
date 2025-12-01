@@ -234,12 +234,21 @@ async def run_module_quality_tests(provided_tokens: Optional[Dict[str, str]] = N
                 # Execute the test workflow with environment variables
                 # Note: Use absolute path to avoid module import issues
                 cli_script = PROJECT_ROOT / "src" / "cli" / "main.py"
+
+                # Debug: Print command for first test
+                if module_name == test_files[0].stem.replace("test_", ""):
+                    print(f"[DEBUG] CLI script: {cli_script}")
+                    print(f"[DEBUG] Test file: {test_file}")
+                    print(f"[DEBUG] CWD: {PROJECT_ROOT}")
+                    print(f"[DEBUG] Python: {sys.executable}")
+                    print(f"[DEBUG] PYTHONPATH: {test_env.get('PYTHONPATH', 'Not set')}")
+
                 result = subprocess.run(
                     [sys.executable, str(cli_script), str(test_file)],
                     capture_output=True,
                     text=True,
                     timeout=30,
-                    cwd=PROJECT_ROOT,
+                    cwd=str(PROJECT_ROOT),
                     env=test_env  # Pass environment with tokens and PYTHONPATH
                 )
 
@@ -261,10 +270,20 @@ async def run_module_quality_tests(provided_tokens: Optional[Dict[str, str]] = N
                     }
                     passed += 1
                 else:
+                    # Extract actual error from stderr
+                    error_msg = result.stderr if result.stderr else "Unknown error"
+                    # Look for the actual Python error
+                    if "Error occurred:" in error_msg:
+                        error_lines = error_msg.split('\n')
+                        for line in error_lines:
+                            if "Error occurred:" in line:
+                                error_msg = line.split("Error occurred:", 1)[1].strip()
+                                break
+
                     results[module_name] = {
                         "status": "fail",
                         "pass_rate": 0.0,
-                        "error": result.stderr[:200] if result.stderr else "Unknown error"
+                        "error": error_msg[:300]
                     }
                     failed += 1
 
@@ -279,7 +298,7 @@ async def run_module_quality_tests(provided_tokens: Optional[Dict[str, str]] = N
                 results[module_name] = {
                     "status": "fail",
                     "pass_rate": 0.0,
-                    "error": str(e)[:200]
+                    "error": f"Exception: {str(e)[:200]}"
                 }
                 failed += 1
 
