@@ -419,6 +419,42 @@ class ErrorCenter:
             )[:10]
         }
 
+    def get_errors_by_signature(
+        self,
+        error_signature: str,
+        limit: Optional[int] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Get all errors with specific signature
+
+        Args:
+            error_signature: Error signature to filter by
+            limit: Max number of errors to return
+
+        Returns:
+            List of error events with matching signature
+        """
+        if not self.error_log.exists():
+            return []
+
+        errors = []
+        with open(self.error_log, 'r', encoding='utf-8') as f:
+            for line in f:
+                try:
+                    error_event = json.loads(line.strip())
+                    if error_event.get('error_signature') == error_signature:
+                        errors.append(error_event)
+                except:
+                    continue
+
+        # Sort by timestamp (newest first)
+        errors.sort(key=lambda x: x['timestamp'], reverse=True)
+
+        if limit:
+            errors = errors[:limit]
+
+        return errors
+
     def _generate_error_signature(self, error: Exception, module_id: Optional[str]) -> str:
         """Generate unique error signature"""
         import hashlib
