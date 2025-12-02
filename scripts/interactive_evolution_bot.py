@@ -1322,6 +1322,191 @@ async def show_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(status_msg, parse_mode="Markdown")
 
 
+async def debug_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Generate system health analysis report"""
+    if not is_authorized(update):
+        return
+
+    await update.message.reply_text("🔍 Running system analysis...")
+
+    try:
+        from src.core.evolution import get_debug_engine
+
+        engine = get_debug_engine()
+
+        # Get hours parameter (default 24)
+        hours = 24
+        if context.args and context.args[0].isdigit():
+            hours = int(context.args[0])
+
+        report = await engine.analyze_system_health(hours=hours)
+
+        # Build text report
+        summary = report.get('summary', {})
+        message = f"🔍 **System Health Report** (last {hours}h)\n\n"
+        message += f"**Health Score**: {report.get('health_score', 0):.1f}/100\n\n"
+        message += f"**Summary**:\n"
+        message += f"• Total Errors: {summary.get('total_errors', 0)}\n"
+        message += f"• Unique Errors: {summary.get('unique_error_types', 0)}\n"
+        message += f"• Error Rate: {summary.get('error_rate', 0):.2f}/hour\n\n"
+
+        # Priority issues
+        priority_issues = report.get('priority_issues', [])
+        if priority_issues:
+            message += f"**Priority Issues** ({len(priority_issues)}):\n"
+            for issue in priority_issues[:3]:
+                message += f"• {issue.get('signature', 'unknown')[:30]}\n"
+                message += f"  Count: {issue.get('count', 0)}, Priority: {issue.get('priority', 'medium')}\n"
+            message += "\n"
+
+        # Recommendations
+        recommendations = report.get('recommendations', [])
+        if recommendations:
+            message += f"**Recommendations**:\n"
+            for rec in recommendations[:3]:
+                message += f"• {rec[:80]}\n"
+
+        # Add action buttons for top issues
+        keyboard = []
+        if priority_issues:
+            for i, issue in enumerate(priority_issues[:3]):
+                signature = issue.get('signature', '')
+                if signature:
+                    keyboard.append([
+                        InlineKeyboardButton(
+                            f"🔁 Fix: {signature[:25]}...",
+                            callback_data=f"evolve:{signature}"
+                        )
+                    ])
+
+        reply_markup = InlineKeyboardMarkup(keyboard) if keyboard else None
+        await update.message.reply_text(message, parse_mode="Markdown", reply_markup=reply_markup)
+
+    except Exception as e:
+        await update.message.reply_text(f"❌ Debug analysis failed: {str(e)}")
+
+
+async def modules_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Show module catalog statistics"""
+    if not is_authorized(update):
+        return
+
+    try:
+        from src.core.modules.registry import get_catalog_manager
+
+        catalog = get_catalog_manager()
+        stats = catalog.get_statistics()
+
+        message = f"📚 **Module Catalog**\n\n"
+        message += f"**Total Modules**: {stats.get('total_modules', 0)}\n\n"
+
+        # By category
+        by_category = stats.get('by_category', {})
+        if by_category:
+            message += f"**By Category**:\n"
+            for cat, count in sorted(by_category.items()):
+                message += f"• {cat}: {count}\n"
+            message += "\n"
+
+        # By status
+        by_status = stats.get('by_status', {})
+        if by_status:
+            message += f"**By Status**:\n"
+            for status, count in sorted(by_status.items()):
+                message += f"• {status}: {count}\n"
+            message += "\n"
+
+        # Last updated
+        last_updated = stats.get('last_updated', 'unknown')
+        message += f"Last updated: {last_updated}\n\n"
+
+        # Add search functionality
+        if context.args:
+            query = ' '.join(context.args)
+            results = catalog.search_modules(query, lang='en')
+
+            message += f"\n**Search Results** for '{query}':\n"
+            if results:
+                for result in results[:5]:
+                    module_id = result.get('id', 'unknown')
+                    name = result.get('name', {}).get('en', 'Unknown')
+                    message += f"• `{module_id}`: {name}\n"
+            else:
+                message += "No modules found.\n"
+
+        # Add search button
+        keyboard = [[
+            InlineKeyboardButton("🔍 Export Catalog", callback_data="modules:export")
+        ]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        await update.message.reply_text(message, parse_mode="Markdown", reply_markup=reply_markup)
+
+    except Exception as e:
+        await update.message.reply_text(f"❌ Modules command failed: {str(e)}")
+
+
+async def memory_search_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Search knowledge base (RAG)"""
+    if not is_authorized(update):
+        return
+
+    if not context.args:
+        await update.message.reply_text(
+            "❌ **Usage**: /memory_search <query>\n\n"
+            "Example: `/memory_search how to handle errors`"
+        )
+        return
+
+    query = ' '.join(context.args)
+    await update.message.reply_text(f"🔍 Searching knowledge base for: `{query}`...", parse_mode="Markdown")
+
+    try:
+        from src.core.utils.rag_retriever import get_rag_retriever
+
+        retriever = get_rag_retriever()
+
+        # Search with context
+        results = await retriever.search(
+            query=query,
+            limit=5,
+            min_score=0.7
+        )
+
+        if not results:
+            await update.message.reply_text(
+                "📭 No relevant documents found.\n\n"
+                "Try rephrasing your query or use broader terms."
+            )
+            return
+
+        message = f"🧠 **Knowledge Base Results** ({len(results)})\n\n"
+
+        for i, result in enumerate(results, 1):
+            score = result.get('score', 0)
+            content = result.get('content', '')
+            source = result.get('metadata', {}).get('source', 'unknown')
+
+            # Truncate content
+            content_preview = content[:200] if len(content) > 200 else content
+            if len(content) > 200:
+                content_preview += "..."
+
+            message += f"**[{i}]** Score: {score:.2f}\n"
+            message += f"Source: `{source}`\n"
+            message += f"{content_preview}\n\n"
+
+        await update.message.reply_text(message, parse_mode="Markdown")
+
+    except ImportError:
+        await update.message.reply_text(
+            "⚠️ Knowledge base not configured.\n\n"
+            "RAG system requires setup. Check documentation."
+        )
+    except Exception as e:
+        await update.message.reply_text(f"❌ Search failed: {str(e)}")
+
+
 async def evolve_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Manually trigger evolution cycle"""
     if not is_authorized(update):
@@ -1582,6 +1767,9 @@ def main():
     app.add_handler(CommandHandler("competition", competition_command))
     app.add_handler(CommandHandler("auto", toggle_auto_mode))
     app.add_handler(CommandHandler("status", show_status))
+    app.add_handler(CommandHandler("debug", debug_command))
+    app.add_handler(CommandHandler("modules", modules_command))
+    app.add_handler(CommandHandler("memory_search", memory_search_command))
     app.add_handler(CommandHandler("evolve", evolve_command))
     app.add_handler(CommandHandler("propose", propose_command))
     app.add_handler(CommandHandler("approve", approve_command))

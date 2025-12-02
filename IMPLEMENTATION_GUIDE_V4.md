@@ -3235,11 +3235,11 @@ python scripts/kb_enterprise_cli.py ingest --force
 
 ### TG Bot集成
 
-- [ ] 添加 `/debug` 指令
-- [ ] 添加 `/modules` 指令
-- [ ] 添加 `/evolve` 指令
-- [ ] 添加 `/memory_search` 指令
-- [ ] 测试所有指令
+- [x] 添加 `/debug` 指令
+- [x] 添加 `/modules` 指令
+- [x] 添加 `/evolve` 指令
+- [x] 添加 `/memory_search` 指令
+- [x] 测试所有指令
 
 ### 部署
 
