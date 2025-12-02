@@ -132,15 +132,17 @@ class AIErrorSolver:
         else:
             await notifier.notify("📭 No similar solutions found in vector DB")
 
-        # Step 2: Build prompt and ask AI for solution
-        await notifier.notify("🤖 Consulting AI for solution...")
+        # Step 2: Build prompt with RAG-enhanced context and ask AI for solution
+        await notifier.notify("🤖 Querying knowledge base for relevant context...")
 
-        prompt = PromptBuilderModule.build_error_resolution_prompt(
+        prompt = await PromptBuilderModule.build_error_resolution_prompt(
             error=error_str,
             error_type=error_type,
             context=context,
             similar_solutions=similar_solutions
         )
+
+        await notifier.notify("🤖 Consulting AI with enhanced context...")
 
         ai_solution = await AIConsulterModule.consult(
             prompt=prompt,

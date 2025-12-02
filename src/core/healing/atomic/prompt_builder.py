@@ -3,9 +3,12 @@ Prompt Builder Module - Build AI prompts with full context
 
 Atomic responsibility: Construct comprehensive AI prompts
 Extracted from: ai_error_solver.py lines 243-321
+
+Enhanced with RAG retriever integration for dynamic project knowledge.
 """
 
 import json
+import asyncio
 from typing import Any, Dict, List
 
 
@@ -17,7 +20,7 @@ class PromptBuilderModule:
     """
 
     @staticmethod
-    def build_error_resolution_prompt(
+    async def build_error_resolution_prompt(
         error: str,
         error_type: str,
         context: Dict[str, Any],
@@ -35,7 +38,7 @@ class PromptBuilderModule:
         Returns:
             Complete prompt string for AI
         """
-        project_context = PromptBuilderModule._get_project_context()
+        project_context = await PromptBuilderModule._get_project_context_with_rag(error, error_type)
 
         prompt = f"""{project_context}
 
@@ -81,8 +84,57 @@ Be specific and actionable. Provide exact commands to run.
         return prompt
 
     @staticmethod
-    def _get_project_context() -> str:
-        """Get Flyto2 project context description"""
+    async def _get_project_context_with_rag(error: str, error_type: str) -> str:
+        """
+        Get dynamic project context from RAG knowledge base
+
+        Queries the knowledge base for relevant information based on the error,
+        including pain points, architecture, modules, and best practices.
+
+        Falls back to static context if RAG is unavailable.
+        """
+        try:
+            from src.core.utils.rag_retriever import retrieve_knowledge
+
+            # Build search query from error
+            search_query = f"{error_type} {error}"
+
+            # Query knowledge base for relevant information
+            results = await retrieve_knowledge(
+                query=search_query,
+                top_k=5
+            )
+
+            if results["success"] and results["results"]:
+                # Build context from retrieved knowledge
+                context_parts = ["Flyto2 Project Context (from knowledge base):\n"]
+
+                for i, result in enumerate(results["results"], 1):
+                    content = result.get("content", "")
+                    metadata = result.get("metadata", {})
+                    category = metadata.get("category", "unknown")
+                    score = result.get("score", 0.0)
+
+                    if score > 0.3:  # Only include relevant results
+                        context_parts.append(
+                            f"\n[{category.upper()}] (relevance: {score:.0%}):\n{content}\n"
+                        )
+
+                # Add fallback static info if no relevant results
+                if len(context_parts) == 1:
+                    context_parts.append(PromptBuilderModule._get_static_context())
+
+                return "".join(context_parts)
+
+        except Exception:
+            pass  # Fall back to static context
+
+        # Fallback: Use static context
+        return PromptBuilderModule._get_static_context()
+
+    @staticmethod
+    def _get_static_context() -> str:
+        """Get static Flyto2 project context (fallback)"""
         return """Flyto2 Project Context:
 
 **Architecture**: Atomic module system
