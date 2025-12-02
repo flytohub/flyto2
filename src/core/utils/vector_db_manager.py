@@ -132,7 +132,7 @@ class VectorDBManager:
             collection_name: Collection name
         """
         store = await self.get_knowledge_store(collection_name)
-        store.add_entry(content=content, metadata=metadata)
+        store.store(content=content, metadata=metadata)
 
     async def close(self):
         """Close all connections"""
