@@ -511,14 +511,137 @@ This solution was AI-generated and successfully resolved the error.
 
         Calculate similarity and store for future matching
         """
-        # TODO: Implement similarity training
-        # This would:
-        # 1. Extract key points from AI response
-        # 2. Compare with actual executed commands
-        # 3. Calculate matching score
-        # 4. Update vector DB with similarity score
-
         await self._notify(notify_callback, "📊 Training similarity matching...")
+
+        try:
+            # Extract what AI predicted
+            ai_response = ai_solution.get("full_response", "")
+            ai_structured = ai_solution.get("structured", {})
+            ai_commands = ai_structured.get("commands", [])
+
+            # Extract what actually worked
+            executed_commands = result.get("commands_executed", 0)
+
+            # Extract key points from AI's response
+            ai_keywords = self._extract_keywords(ai_response)
+
+            # Extract key points from executed commands
+            cmd_keywords = self._extract_keywords(" ".join(ai_commands))
+
+            # Calculate similarity score
+            similarity_score = self._calculate_keyword_similarity(ai_keywords, cmd_keywords)
+
+            await self._notify(notify_callback, f"  Similarity score: {similarity_score:.2%}")
+
+            # Store training data to vector DB
+            await self._store_training_data(
+                error=error,
+                ai_prediction=ai_response[:500],
+                actual_solution=ai_commands,
+                similarity_score=similarity_score,
+                notify_callback=notify_callback
+            )
+
+            await self._notify(notify_callback, "✅ Similarity training completed")
+
+        except Exception as e:
+            await self._notify(notify_callback, f"⚠️ Similarity training error: {e}")
+
+    def _extract_keywords(self, text: str) -> set:
+        """Extract meaningful keywords from text"""
+        import re
+
+        # Convert to lowercase
+        text = text.lower()
+
+        # Remove special characters, keep alphanumeric and spaces
+        text = re.sub(r'[^a-z0-9\s-]', ' ', text)
+
+        # Split into words
+        words = text.split()
+
+        # Filter out common stop words and very short words
+        stop_words = {
+            'the', 'is', 'at', 'which', 'on', 'a', 'an', 'and', 'or', 'but',
+            'in', 'with', 'to', 'for', 'of', 'as', 'by', 'this', 'that',
+            'it', 'from', 'be', 'are', 'was', 'were', 'have', 'has', 'had'
+        }
+
+        keywords = {
+            word for word in words
+            if len(word) > 2 and word not in stop_words
+        }
+
+        return keywords
+
+    def _calculate_keyword_similarity(self, set1: set, set2: set) -> float:
+        """Calculate similarity between two keyword sets (Jaccard similarity)"""
+        if not set1 or not set2:
+            return 0.0
+
+        intersection = set1.intersection(set2)
+        union = set1.union(set2)
+
+        return len(intersection) / len(union) if union else 0.0
+
+    async def _store_training_data(
+        self,
+        error: str,
+        ai_prediction: str,
+        actual_solution: list,
+        similarity_score: float,
+        notify_callback=None
+    ):
+        """Store training data for future learning"""
+        try:
+            from src.core.modules.atomic.vector import VectorDBConnector, KnowledgeStore
+            from src.core.utils.translator import translate_to_english
+
+            # Translate to English
+            error_en = await translate_to_english(error, context="error")
+            prediction_en = await translate_to_english(ai_prediction, context="solution")
+
+            connector = VectorDBConnector(mode="local")
+            connector.connect()
+
+            store = KnowledgeStore(
+                connector=connector,
+                collection_name="flyto2_project_knowledge",
+                embedding_provider="local"
+            )
+
+            # Create training entry
+            content = f"""
+AI Training Data
+
+Error: {error_en}
+
+AI Prediction: {prediction_en}
+
+Actual Solution: {chr(10).join(f"  - {cmd}" for cmd in actual_solution)}
+
+Similarity Score: {similarity_score:.2%}
+
+This training data helps improve AI solution accuracy over time.
+""".strip()
+
+            store.add_entry(
+                content=content,
+                metadata={
+                    "source": "ai_error_solver_training",
+                    "category": "training_data",
+                    "similarity_score": similarity_score,
+                    "original_error": error,
+                    "timestamp": datetime.now().isoformat()
+                }
+            )
+
+            connector.disconnect()
+
+            await self._notify(notify_callback, "  💾 Training data stored to vector DB")
+
+        except Exception as e:
+            await self._notify(notify_callback, f"  ⚠️ Failed to store training data: {e}")
 
     async def _save_error_record(self, error_record: Dict[str, Any]):
         """Save error record to log file"""
