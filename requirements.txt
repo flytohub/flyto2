@@ -2,6 +2,8 @@
 pyyaml>=6.0
 playwright>=1.40.0
 aiohttp>=3.9.0
+beautifulsoup4>=4.12.0
+lxml>=4.9.0
 
 # API dependencies (for web UI)
 fastapi>=0.104.0
@@ -14,6 +16,10 @@ firebase-admin>=6.2.0
 # Other dependencies
 python-dotenv>=1.0.0
 requests>=2.31.0
+
+# Vector Database (for long-term memory)
+qdrant-client>=1.7.0
+sentence-transformers>=2.2.0  # For local embeddings
 
 # ============================================
 # Telegram Bot Dependencies
