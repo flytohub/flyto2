@@ -97,13 +97,124 @@ async def test_workflow_engine():
     result = await engine.execute()
 
     print(f"Status: {result['status']}")
-    print(f"Result: {result['steps']['uppercase']['result']}")
+
+    # Find the uppercase step result (step IDs are auto-generated)
+    step_result = None
+    for step_id, step_data in result.get('steps', {}).items():
+        if isinstance(step_data, dict) and 'result' in step_data:
+            step_result = step_data['result']
+            break
+        elif isinstance(step_data, str):  # Direct result value
+            step_result = step_data
+            break
+
+    if step_result:
+        print(f"Result: {step_result}")
 
     if result['status'] == 'completed':
         print("✅ Workflow 引擎工作正常")
         return True
     else:
         print("❌ Workflow 引擎失敗")
+        return False
+
+async def test_browser_modules():
+    """測試瀏覽器模組 - 完整端到端測試"""
+    print("\n" + "=" * 60)
+    print("測試瀏覽器模組")
+    print("=" * 60)
+
+    try:
+        from src.core.engine.workflow_engine import WorkflowEngine
+        import os
+
+        # Check if Playwright is installed
+        try:
+            import playwright
+            print("✓ Playwright installed")
+        except ImportError:
+            print("❌ Playwright not installed")
+            print("   Install with: playwright install chromium")
+            return False
+
+        # Create a comprehensive browser workflow
+        workflow = {
+            "workflow_name": "browser_test",
+            "steps": [
+                {
+                    "step_id": "launch",
+                    "module": "core.browser.launch",
+                    "params": {
+                        "headless": True,
+                        "browser_type": "chromium"
+                    }
+                },
+                {
+                    "step_id": "goto",
+                    "module": "core.browser.goto",
+                    "params": {
+                        "url": "https://example.com"
+                    }
+                },
+                {
+                    "step_id": "extract",
+                    "module": "core.browser.extract",
+                    "params": {
+                        "selector": "body",
+                        "limit": 1,
+                        "fields": {
+                            "title": {
+                                "selector": "h1",
+                                "type": "text"
+                            },
+                            "paragraph": {
+                                "selector": "p",
+                                "type": "text"
+                            }
+                        }
+                    }
+                }
+            ]
+        }
+
+        # Create screenshots directory if needed
+        os.makedirs("screenshots", exist_ok=True)
+
+        print("\n1. Launching browser...")
+        engine = WorkflowEngine(workflow)
+        result = await engine.execute()
+
+        print(f"\n2. Execution status: {result['status']}")
+
+        if result['status'] == 'completed':
+            print("\n3. Extraction results:")
+            # Find extract step result (step IDs are auto-generated)
+            extract_result = None
+            for step_id, step_result in result['steps'].items():
+                if isinstance(step_result, dict) and step_result.get('data'):
+                    extract_result = step_result
+                    break
+
+            if extract_result and extract_result.get('data'):
+                # Get first item from extracted data
+                first_item = extract_result['data'][0] if extract_result['data'] else {}
+                print(f"   Count: {extract_result.get('count', len(extract_result['data']))}")
+                print(f"   Title: {first_item.get('title', 'N/A')[:50]}")
+                print(f"   Paragraph: {first_item.get('paragraph', 'N/A')[:50]}")
+                print("\n✅ 瀏覽器模組測試通過")
+                return True
+            else:
+                print("⚠️ No extraction results")
+                return False
+        else:
+            print("\n❌ 瀏覽器模組測試失敗")
+            print(f"Error: {result.get('error', 'Unknown error')}")
+            return False
+
+    except Exception as e:
+        print(f"\n❌ 瀏覽器模組測試異常: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
 async def main():
@@ -127,7 +238,16 @@ async def main():
         print(f"❌ Workflow engine failed: {e}")
         results['workflow'] = False
 
-    # Test 3: Full crawl (may fail if Playwright not installed)
+    # Test 3: Browser Modules (comprehensive end-to-end)
+    try:
+        results['browser'] = await test_browser_modules()
+    except Exception as e:
+        print(f"❌ Browser test failed: {e}")
+        import traceback
+        traceback.print_exc()
+        results['browser'] = False
+
+    # Test 4: Full crawl (may fail if Playwright not installed)
     try:
         results['crawl'] = await test_simple_crawl()
     except Exception as e:

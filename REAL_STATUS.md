@@ -549,9 +549,15 @@ src/core/evolution/
   - ✅ /debug, /modules, /evolve, /memory_search commands
 - [x] Deployment & Monitoring ✅ COMPLETED (2025-12-02)
   - ✅ Scheduled tasks, system monitoring
-- [ ] Ollama 健康檢查機制
-- [ ] WorkflowEngine 狀態標準化
-- [ ] 端到端 Browser 測試
+- [x] Ollama 健康檢查機制 ✅ COMPLETED (2025-12-02)
+  - ✅ Integrated into monitor_system.py
+  - ✅ Health check with model listing
+- [x] WorkflowEngine 狀態標準化 ✅ COMPLETED (2025-12-02)
+  - ✅ Changed status from 'success' to 'completed'
+  - ✅ Fixed output collection order
+- [x] 端到端 Browser 測試 ✅ COMPLETED (2025-12-02)
+  - ✅ Added comprehensive browser test to test_end_to_end.py
+  - ✅ Tests browser.launch, browser.goto, browser.extract
 
 ### 中優先級
 - [ ] 錯誤處理改進（友好的錯誤訊息）
@@ -885,9 +891,9 @@ Documentation: 9/10 ⭐⭐⭐⭐⭐⭐⭐⭐⭐☆ (Excellent)
 ### Remaining Work
 
 **High Priority**:
-- [ ] Ollama health check mechanism
-- [ ] WorkflowEngine status standardization
-- [ ] End-to-end browser testing
+- [x] Ollama health check mechanism ✅ COMPLETED (2025-12-02)
+- [x] WorkflowEngine status standardization ✅ COMPLETED (2025-12-02)
+- [x] End-to-end browser testing ✅ COMPLETED (2025-12-02)
 
 **Medium Priority**:
 - [ ] Error message improvements

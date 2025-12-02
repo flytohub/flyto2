@@ -116,13 +116,14 @@ class WorkflowEngine:
             # Execute steps
             await self._execute_steps(steps)
 
-            # Collect output
-            output = self._collect_output()
-
-            self.status = 'success'
+            # Update status before collecting output
+            self.status = 'completed'
             self.end_time = time.time()
 
             logger.info(f"Workflow completed successfully in {self.end_time - self.start_time:.2f}s")
+
+            # Collect output (after status is set)
+            output = self._collect_output()
 
             return output
 

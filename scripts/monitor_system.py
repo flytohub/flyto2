@@ -94,18 +94,65 @@ class SystemMonitor:
 
     def _get_system_metrics(self) -> Dict[str, Any]:
         """Get system-level metrics"""
+        metrics = {}
+
+        # Try to get psutil metrics
         try:
             import psutil
-
-            return {
-                "cpu_percent": psutil.cpu_percent(interval=1),
-                "memory_percent": psutil.virtual_memory().percent,
-                "disk_percent": psutil.disk_usage('/').percent
-            }
+            metrics["cpu_percent"] = psutil.cpu_percent(interval=1)
+            metrics["memory_percent"] = psutil.virtual_memory().percent
+            metrics["disk_percent"] = psutil.disk_usage('/').percent
         except ImportError:
-            return {"status": "psutil not installed"}
+            metrics["psutil_status"] = "not installed"
         except Exception as e:
-            return {"error": str(e)}
+            metrics["psutil_error"] = str(e)
+
+        # Always check Ollama health (independent of psutil)
+        metrics["ollama_status"] = self._check_ollama_health()
+
+        return metrics
+
+    def _check_ollama_health(self) -> Dict[str, Any]:
+        """Check Ollama service health"""
+        try:
+            from src.core.utils.http_client import HTTPClient
+            import requests
+            import os
+
+            # Force fresh check
+            HTTPClient.reset_ollama_check()
+            is_available = HTTPClient.check_ollama_available()
+
+            if is_available:
+                # Get more detailed info
+                ollama_url = os.getenv("OLLAMA_URL", "http://localhost:11434")
+                try:
+                    response = requests.get(f"{ollama_url}/api/tags", timeout=2)
+                    models = response.json().get('models', [])
+                    return {
+                        "status": "healthy",
+                        "url": ollama_url,
+                        "models_count": len(models),
+                        "models": [m.get('name', 'unknown') for m in models[:3]]
+                    }
+                except Exception as e:
+                    return {
+                        "status": "available_but_error",
+                        "url": ollama_url,
+                        "error": str(e)
+                    }
+            else:
+                ollama_url = os.getenv("OLLAMA_URL", "http://localhost:11434")
+                return {
+                    "status": "unavailable",
+                    "url": ollama_url,
+                    "message": "Ollama service not running or unreachable"
+                }
+        except Exception as e:
+            return {
+                "status": "error",
+                "error": str(e)
+            }
 
     def print_summary(self):
         """Print metrics summary"""
@@ -167,11 +214,30 @@ class SystemMonitor:
 
         # System
         system = self.metrics.get('system', {})
-        if 'error' not in system and 'status' not in system:
-            print("SYSTEM RESOURCES")
+        print("SYSTEM RESOURCES")
+
+        # CPU, Memory, Disk (if psutil available)
+        if 'cpu_percent' in system:
             print(f"  CPU: {system.get('cpu_percent', 0):.1f}%")
             print(f"  Memory: {system.get('memory_percent', 0):.1f}%")
             print(f"  Disk: {system.get('disk_percent', 0):.1f}%")
+        elif 'psutil_status' in system:
+            print(f"  psutil: {system['psutil_status']}")
+
+        # Ollama status (always show)
+        ollama = system.get('ollama_status', {})
+        if ollama:
+            status = ollama.get('status', 'unknown')
+            if status == 'healthy':
+                print(f"  Ollama: OK ({ollama.get('models_count', 0)} models)")
+                if ollama.get('models'):
+                    print(f"    Models: {', '.join(ollama['models'])}")
+            elif status == 'unavailable':
+                print("  Ollama: NOT RUNNING")
+            else:
+                print(f"  Ollama: {status}")
+                if 'error' in ollama:
+                    print(f"    Error: {ollama['error']}")
         print()
 
         print("=" * 60)
