@@ -44,9 +44,11 @@ class BotState:
         if user_id not in self.sessions:
             self.sessions[user_id] = {
                 "conversation": [],
-                "pending_question": None,  # Question waiting for guidance
-                "ollama_attempt": None,     # Last Ollama response
-                "language": "zh-TW",        # Default: Traditional Chinese
+                "conversation_history": [],  # Full conversation history with context
+                "last_task_result": None,    # Result of last executed task
+                "pending_question": None,    # Question waiting for guidance
+                "ollama_attempt": None,      # Last Ollama response
+                "language": "zh-TW",         # Default: Traditional Chinese
                 "stats": {
                     "ollama_queries": 0,
                     "human_guided": 0,
@@ -55,6 +57,19 @@ class BotState:
                 }
             }
         return self.sessions[user_id]
+
+    def add_to_history(self, user_id: int, role: str, content: str):
+        """Add message to conversation history"""
+        session = self.get_session(user_id)
+        session["conversation_history"].append({
+            "role": role,
+            "content": content,
+            "timestamp": datetime.now().isoformat()
+        })
+
+        # Keep last 20 messages for context
+        if len(session["conversation_history"]) > 20:
+            session["conversation_history"] = session["conversation_history"][-20:]
 
     def set_pending(self, user_id: int, question: str, ollama_response: str):
         """Store question that needs human guidance"""
@@ -155,7 +170,7 @@ async def store_conversation_to_vector_db(question: str, answer: str, source: st
         traceback.print_exc()
 
 
-async def ask_ollama(prompt: str, system_prompt: str = None, language: str = "zh-TW") -> tuple[str, float]:
+async def ask_ollama(prompt: str, system_prompt: str = None, language: str = "zh-TW", conversation_history: list = None) -> tuple[str, float]:
     """
     Ask Ollama and return (response, confidence)
     Confidence: 0.0-1.0 estimate based on response analysis
@@ -179,6 +194,12 @@ async def ask_ollama(prompt: str, system_prompt: str = None, language: str = "zh
 
         messages = []
         messages.append({"role": "system", "content": full_system_prompt})
+
+        # Add conversation history for context
+        if conversation_history:
+            for msg in conversation_history[-10:]:  # Last 10 messages
+                messages.append({"role": msg["role"], "content": msg["content"]})
+
         messages.append({"role": "user", "content": prompt})
 
         response = requests.post(
@@ -334,15 +355,32 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         action="typing"
     )
 
+    # Add user message to history
+    state.add_to_history(user_id, "user", message)
+
     # Check if this is guidance for a pending question
     if session["pending_question"]:
         # User is providing guidance
         await handle_guidance(update, context, message)
         return
 
-    # Tier 1: Try Ollama first (with user's language preference)
-    answer, confidence = await ask_ollama(message, language=language)
+    # Prepare context for Ollama
+    system_prompt = "You are a helpful AI assistant."
+    if session.get("last_task_result"):
+        # Add task result to context
+        system_prompt += f"\n\nPrevious task result: {session['last_task_result']}"
+
+    # Tier 1: Try Ollama first (with conversation history)
+    answer, confidence = await ask_ollama(
+        message,
+        system_prompt=system_prompt,
+        language=language,
+        conversation_history=session["conversation_history"]
+    )
     session['stats']['ollama_queries'] += 1
+
+    # Add bot response to history
+    state.add_to_history(user_id, "assistant", answer)
 
     # Store to vector DB (async, don't wait)
     import asyncio

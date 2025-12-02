@@ -353,6 +353,22 @@ async def main():
             # Execute task with RAG and self-healing
             result = await executor.execute_task(task_desc, notify_callback=notify)
 
+            # Store task result in session for context
+            user_id = update.effective_user.id
+            session = bot_v2.state.get_session(user_id)
+
+            # Format result for context
+            if result.get("final_result"):
+                result_summary = f"Task: {task_desc}\n"
+                result_summary += f"Status: {result['status']}\n"
+                if result.get("final_result", {}).get("outputs"):
+                    result_summary += f"Results: {str(result['final_result']['outputs'])[:500]}"
+                session["last_task_result"] = result_summary
+
+            # Add task execution to conversation history
+            bot_v2.state.add_to_history(user_id, "user", message)
+            bot_v2.state.add_to_history(user_id, "assistant", f"Executed task: {task_desc}\nResult: {result['status']}")
+
             # Send final summary
             if result["status"] == "success":
                 summary = f"✅ **Task Completed**\n\n"
