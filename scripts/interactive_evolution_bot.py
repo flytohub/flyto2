@@ -496,7 +496,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         ["🧪 Run Tests", "🏋️ Practice", "🏁 Competition"],
         ["📊 Show Status", "📚 Analyze Docs"],
-        ["🤖 Toggle Auto Mode", "⚙️ Settings"]
+        ["🤖 Toggle Auto Mode", "🔄 Evolve Now"],
+        ["📋 View Proposals", "⚙️ Settings"]
     ]
     reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
@@ -510,11 +511,23 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "• Analyze docs to find missing features\n"
         "• Discuss new module ideas with you\n"
         "• Auto-improve modules (when approved)\n"
+        "• Manual evolution control (/evolve, /propose)\n"
         "• Escalate to OpenAI when needed\n\n"
         "**Three-tier strategy:**\n"
         "1️⃣ Ollama (local, free) - first attempt\n"
         "2️⃣ You (human guidance) - if Ollama unsure\n"
         "3️⃣ OpenAI (paid) - only when both agree\n\n"
+        "**Available commands:**\n"
+        "/test - Run all module tests\n"
+        "/docs - Analyze documentation\n"
+        "/practice - Daily practice challenges\n"
+        "/competition - Speed race competitions\n"
+        "/auto - Toggle autonomous evolution\n"
+        "/evolve - Manually trigger evolution\n"
+        "/propose - View AI proposals\n"
+        "/approve <id> - Approve proposal\n"
+        "/reject <id> - Reject proposal\n"
+        "/status - Show system status\n\n"
         "Choose an action below:",
         reply_markup=reply_markup,
         parse_mode="Markdown"
@@ -1066,6 +1079,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif message_text == "📊 Show Status":
         await show_status(update, context)
         return
+    elif message_text == "🔄 Evolve Now":
+        await evolve_command(update, context)
+        return
+    elif message_text == "📋 View Proposals":
+        await propose_command(update, context)
+        return
 
     # General conversation with Ollama
     await update.message.reply_text("🤔 Thinking...")
@@ -1224,6 +1243,178 @@ async def show_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(status_msg, parse_mode="Markdown")
 
 
+async def evolve_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Manually trigger evolution cycle"""
+    if not is_authorized(update):
+        return
+
+    await update.message.reply_text("🔄 Triggering manual evolution cycle...")
+
+    try:
+        result = subprocess.run(
+            [
+                "python", "-m", "src.cli.main",
+                "workflows/meta/continuous_improvement_agent.yaml",
+                "--param", "max_improvements=3",
+                "--param", "dry_run=false"
+            ],
+            capture_output=True,
+            text=True,
+            timeout=3600,
+            cwd=PROJECT_ROOT
+        )
+
+        if result.returncode == 0:
+            await update.message.reply_text(
+                "✅ **Evolution cycle completed**\n\n"
+                f"Output:\n```\n{result.stdout[-500:] if len(result.stdout) > 500 else result.stdout}\n```",
+                parse_mode="Markdown"
+            )
+        else:
+            await update.message.reply_text(
+                f"❌ **Evolution cycle failed**\n\n```\n{result.stderr[-500:]}\n```",
+                parse_mode="Markdown"
+            )
+    except subprocess.TimeoutExpired:
+        await update.message.reply_text("⏱️ Evolution cycle timed out (1 hour limit)")
+    except Exception as e:
+        await update.message.reply_text(f"❌ Error: {str(e)}")
+
+
+async def propose_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """View pending AI proposals"""
+    if not is_authorized(update):
+        return
+
+    if not state.pending_proposals:
+        await update.message.reply_text(
+            "📭 **No pending proposals**\n\n"
+            "Run /evolve or /docs to generate new improvement suggestions."
+        )
+        return
+
+    message = f"📋 **Pending Proposals** ({len(state.pending_proposals)})\n\n"
+
+    for idx, proposal in enumerate(state.pending_proposals):
+        status_icon = "⏳" if proposal.get('status') == 'pending' else "✅"
+        message += f"{status_icon} **[{idx}]** {proposal.get('module_id', 'Unknown')}\n"
+        message += f"   {proposal.get('description', 'No description')}\n"
+        message += f"   Priority: {proposal.get('priority', 'unknown')}\n"
+        message += f"   Source: {proposal.get('found_in', 'unknown')}\n\n"
+
+    message += "\nUse `/approve <id>` or `/reject <id>` to respond."
+
+    await update.message.reply_text(message, parse_mode="Markdown")
+
+
+async def approve_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Approve a specific proposal"""
+    if not is_authorized(update):
+        return
+
+    if not context.args:
+        await update.message.reply_text(
+            "❌ **Usage**: /approve <id>\n\n"
+            "Use /propose to see proposal IDs."
+        )
+        return
+
+    try:
+        proposal_id = int(context.args[0])
+    except ValueError:
+        await update.message.reply_text("❌ Invalid proposal ID. Must be a number.")
+        return
+
+    if proposal_id < 0 or proposal_id >= len(state.pending_proposals):
+        await update.message.reply_text(
+            f"❌ Proposal ID {proposal_id} not found.\n\n"
+            f"Valid range: 0-{len(state.pending_proposals) - 1}"
+        )
+        return
+
+    proposal = state.pending_proposals[proposal_id]
+    proposal['status'] = 'approved'
+    proposal['approved_at'] = datetime.now(timezone.utc).isoformat()
+
+    # Log to evolution reporter
+    try:
+        from src.core.evolution import get_reporter
+        reporter = get_reporter()
+        reporter.log_evolution_event(
+            event_type="proposal_accepted",
+            description=f"Approved proposal for {proposal.get('module_id')}",
+            details={
+                "proposal_id": proposal_id,
+                "module_id": proposal.get('module_id'),
+                "priority": proposal.get('priority')
+            },
+            impact="high"
+        )
+    except Exception as e:
+        print(f"Warning: Could not log to evolution reporter: {e}")
+
+    await update.message.reply_text(
+        f"✅ **Proposal [{proposal_id}] APPROVED**\n\n"
+        f"Module: {proposal.get('module_id')}\n"
+        f"Description: {proposal.get('description')}\n\n"
+        f"This proposal is now ready for implementation."
+    )
+
+
+async def reject_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Reject a specific proposal"""
+    if not is_authorized(update):
+        return
+
+    if not context.args:
+        await update.message.reply_text(
+            "❌ **Usage**: /reject <id>\n\n"
+            "Use /propose to see proposal IDs."
+        )
+        return
+
+    try:
+        proposal_id = int(context.args[0])
+    except ValueError:
+        await update.message.reply_text("❌ Invalid proposal ID. Must be a number.")
+        return
+
+    if proposal_id < 0 or proposal_id >= len(state.pending_proposals):
+        await update.message.reply_text(
+            f"❌ Proposal ID {proposal_id} not found.\n\n"
+            f"Valid range: 0-{len(state.pending_proposals) - 1}"
+        )
+        return
+
+    proposal = state.pending_proposals[proposal_id]
+    proposal['status'] = 'rejected'
+    proposal['rejected_at'] = datetime.now(timezone.utc).isoformat()
+
+    # Log to evolution reporter
+    try:
+        from src.core.evolution import get_reporter
+        reporter = get_reporter()
+        reporter.log_evolution_event(
+            event_type="proposal_rejected",
+            description=f"Rejected proposal for {proposal.get('module_id')}",
+            details={
+                "proposal_id": proposal_id,
+                "module_id": proposal.get('module_id'),
+                "priority": proposal.get('priority')
+            },
+            impact="low"
+        )
+    except Exception as e:
+        print(f"Warning: Could not log to evolution reporter: {e}")
+
+    await update.message.reply_text(
+        f"❌ **Proposal [{proposal_id}] REJECTED**\n\n"
+        f"Module: {proposal.get('module_id')}\n"
+        f"Description: {proposal.get('description')}\n\n"
+        f"This proposal will not be implemented."
+    )
+
+
 # ============================================
 # Main
 # ============================================
@@ -1249,6 +1440,10 @@ def main():
     app.add_handler(CommandHandler("competition", competition_command))
     app.add_handler(CommandHandler("auto", toggle_auto_mode))
     app.add_handler(CommandHandler("status", show_status))
+    app.add_handler(CommandHandler("evolve", evolve_command))
+    app.add_handler(CommandHandler("propose", propose_command))
+    app.add_handler(CommandHandler("approve", approve_command))
+    app.add_handler(CommandHandler("reject", reject_command))
 
     # Message handlers
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))

@@ -821,24 +821,28 @@ def test_module_generator():
 **快捷按鈕**: 🏋️ Practice, 🏁 Competition
 **狀態**: ✅ PASS (2/3 完成)
 
-### ⏳ 3.3 進化控制
-- [x] /auto - 啟動/關閉自主進化模式
-- [ ] /evolve - 手動觸發進化
-- [ ] /propose - 查看 AI 提案
-- [ ] /approve <id> - 批准提案
-- [ ] /reject <id> - 拒絕提案
+### ✅ 3.3 Evolution Control
+- [x] /auto - Toggle autonomous evolution mode
+- [x] /evolve - Manual evolution trigger
+- [x] /propose - View AI proposals
+- [x] /approve <id> - Approve proposal
+- [x] /reject <id> - Reject proposal
 
-**已實作**:
-- `/auto` 指令切換自主進化模式
-- `autonomous_evolution_loop()` 每小時執行持續改進
-- 執行 `workflows/meta/continuous_improvement_agent.yaml`
-- 自動分析品質指標、生成提案、測試、合併
+**Implementation**:
+- `/auto` command toggles autonomous mode
+- `autonomous_evolution_loop()` runs continuous improvement hourly
+- `/evolve` manually triggers continuous_improvement_agent.yaml
+- `/propose` lists pending proposals with IDs
+- `/approve <id>` marks proposal as approved, logs to evolution reporter
+- `/reject <id>` marks proposal as rejected, logs to evolution reporter
+- Keyboard buttons: "Evolve Now", "View Proposals"
+- Integration with evolution reporter for audit trail
 
-**檔案**:
-- `scripts/interactive_evolution_bot.py` - `toggle_auto_mode()`, `autonomous_evolution_loop()` (lines 705-764)
-- `workflows/meta/continuous_improvement_agent.yaml` - 完整自動化流程
+**Files**:
+- `scripts/interactive_evolution_bot.py` - All evolution commands (lines 705-1397)
+- `workflows/meta/continuous_improvement_agent.yaml` - Full automation workflow
 
-**狀態**: ⏳ PARTIAL (20% - 僅自動模式，缺手動控制)
+**Status**: ✅ COMPLETE
 
 ### ✅ 3.4 排行榜
 - [x] /leaderboard - 查看排名
