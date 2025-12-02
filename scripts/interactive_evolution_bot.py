@@ -1342,21 +1342,27 @@ async def debug_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         report = await engine.analyze_system_health(hours=hours)
 
         # Build text report
-        summary = report.get('summary', {})
+        summary_text = report.get('summary', 'No summary available')
+        stats = engine.error_center.get_error_statistics(hours=hours)
+
         message = f"🔍 **System Health Report** (last {hours}h)\n\n"
         message += f"**Health Score**: {report.get('health_score', 0):.1f}/100\n\n"
-        message += f"**Summary**:\n"
-        message += f"• Total Errors: {summary.get('total_errors', 0)}\n"
-        message += f"• Unique Errors: {summary.get('unique_error_types', 0)}\n"
-        message += f"• Error Rate: {summary.get('error_rate', 0):.2f}/hour\n\n"
+        message += f"**Summary**: {summary_text}\n\n"
+        message += f"**Statistics**:\n"
+        message += f"• Total Errors: {stats.get('total_errors', 0)}\n"
+        message += f"• Unique Errors: {len(stats.get('error_by_signature', {}))}\n"
+        message += f"• Error Rate: {stats.get('total_errors', 0) / hours:.2f}/hour\n\n"
 
         # Priority issues
         priority_issues = report.get('priority_issues', [])
         if priority_issues:
             message += f"**Priority Issues** ({len(priority_issues)}):\n"
             for issue in priority_issues[:3]:
-                message += f"• {issue.get('signature', 'unknown')[:30]}\n"
-                message += f"  Count: {issue.get('count', 0)}, Priority: {issue.get('priority', 'medium')}\n"
+                sig = issue.get('signature') or 'unknown'
+                count = issue.get('count') or 'N/A'
+                priority = issue.get('priority', 'medium')
+                message += f"• {sig[:30]}\n"
+                message += f"  Count: {count}, Priority: {priority}\n"
             message += "\n"
 
         # Recommendations
@@ -1370,8 +1376,8 @@ async def debug_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         keyboard = []
         if priority_issues:
             for i, issue in enumerate(priority_issues[:3]):
-                signature = issue.get('signature', '')
-                if signature:
+                signature = issue.get('signature')
+                if signature:  # Only add button if signature exists
                     keyboard.append([
                         InlineKeyboardButton(
                             f"🔁 Fix: {signature[:25]}...",
