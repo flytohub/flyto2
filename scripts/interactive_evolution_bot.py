@@ -1288,8 +1288,48 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await propose_command(update, context)
         return
 
+    # Check if user is requesting a new tool/module
+    from scripts.auto_tool_creator import AutoToolCreator
+
+    tool_creator = AutoToolCreator(PROJECT_ROOT)
+    tool_request = tool_creator.detect_tool_request(message_text)
+
+    if tool_request:
+        await update.message.reply_text(
+            f"🤖 **Detected new tool request!**\n\n"
+            f"Description: {tool_request['description']}\n\n"
+            f"I'll automatically create this module for you using Ollama...\n\n"
+            f"This may take 1-2 minutes ⏳"
+        )
+
+        # Create tool automatically
+        creation_result = await tool_creator.create_tool_from_description(tool_request['description'])
+
+        if creation_result['success']:
+            response = f"✅ **Module created successfully!**\n\n"
+            response += f"📦 **Module**: `{creation_result['module_id']}`\n"
+            response += f"🌿 **Branch**: `{creation_result['branch']}`\n"
+            response += f"📊 **Quality**: {creation_result['code_quality']}\n\n"
+
+            if creation_result['pr_url']:
+                response += f"🔗 **PR**: {creation_result['pr_url']}\n\n"
+
+            response += f"The new tool is now available! You can start using `{creation_result['module_id']}` in your workflows."
+
+            await update.message.reply_text(response, parse_mode="Markdown")
+            return  # Successfully created tool, done!
+        else:
+            await update.message.reply_text(
+                f"❌ **Failed to create module**\n\n"
+                f"Error: {creation_result['error']}\n\n"
+                f"I'll respond with guidance instead...",
+                parse_mode="Markdown"
+            )
+            # Fall through to normal Ollama conversation
+
     # General conversation with Ollama
-    await update.message.reply_text("🤔 Thinking...")
+    if not tool_request or not creation_result.get('success'):
+        await update.message.reply_text("🤔 Thinking...")
 
     system_prompt = """You are an AI assistant for the Flyto2 workflow automation project.
 
