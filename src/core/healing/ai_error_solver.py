@@ -1,5 +1,5 @@
 """
-AI Error Solver - Universal error resolution using AI
+AI Error Solver - Universal error resolution using AI (Refactored)
 
 Core principle:
 - NO hardcoded error handling
@@ -19,16 +19,25 @@ Flow:
 7. If success → store to vector DB
 8. Train: compare AI response vs actual working solution
 9. Update similarity score
+
+REFACTORED: Now uses atomic modules for each concern
+- Reduced from 670 lines to ~150 lines
+- Each responsibility is in its own atomic module
 """
 
-import asyncio
-import json
-import subprocess
-import re
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
-import os
+from typing import Any, Dict, Optional
+
+from src.core.healing.atomic import (
+    VectorQueryModule,
+    PromptBuilderModule,
+    AIConsulterModule,
+    SolutionExecutorModule,
+    SimilarityTrainerModule,
+    SolutionArchiverModule
+)
+from src.core.utils.notifier import Notifier
 
 
 class AIErrorSolver:
@@ -44,8 +53,6 @@ class AIErrorSolver:
 
     def __init__(self, project_root: Optional[Path] = None):
         self.project_root = project_root or Path(__file__).parent.parent.parent.parent
-        self.solution_log = self.project_root / "metrics" / "ai_solutions.json"
-        self.solution_log.parent.mkdir(exist_ok=True)
 
     async def solve_error(
         self,
@@ -64,11 +71,14 @@ class AIErrorSolver:
         Returns:
             Solution result with success status
         """
+        # Initialize notifier
+        notifier = Notifier(callback=notify_callback)
+
         error_str = str(error)
         error_type = type(error).__name__
 
-        await self._notify(notify_callback, f"❌ Error: {error_type}")
-        await self._notify(notify_callback, f"📝 Recording error context...")
+        await notifier.notify(f"❌ Error: {error_type}")
+        await notifier.notify(f"📝 Recording error context...")
 
         # Build error record
         error_record = {
@@ -80,22 +90,32 @@ class AIErrorSolver:
         }
 
         # Step 1: Query vector DB for similar solutions
-        await self._notify(notify_callback, "🔍 Searching vector DB for similar solutions...")
-        similar_solutions = await self._query_similar_solutions(error_str, error_type)
+        await notifier.notify("🔍 Searching vector DB for similar solutions...")
+
+        similar_solutions = await VectorQueryModule.query_similar_solutions(
+            error=error_str,
+            error_type=error_type,
+            min_score=0.5,
+            top_k=5
+        )
 
         if similar_solutions:
-            await self._notify(notify_callback, f"📚 Found {len(similar_solutions)} similar past solutions")
+            await notifier.notify(f"📚 Found {len(similar_solutions)} similar past solutions")
 
             # Check if any has high similarity
             best_match = similar_solutions[0]
             similarity = best_match.get("similarity", 0.0)
 
             if similarity > 0.8:
-                await self._notify(notify_callback, f"✨ High similarity ({similarity:.0%}) - using proven solution")
+                await notifier.notify(f"✨ High similarity ({similarity:.0%}) - using proven solution")
 
                 # Use proven solution directly
                 solution = best_match.get("solution_data", {})
-                result = await self._execute_solution(solution, context, notify_callback)
+                result = await SolutionExecutorModule.execute(
+                    solution=solution,
+                    project_root=self.project_root,
+                    notify_callback=notify_callback
+                )
 
                 error_record["attempts"].append({
                     "source": "vector_db",
@@ -105,34 +125,39 @@ class AIErrorSolver:
                 })
 
                 if result["success"]:
-                    await self._notify(notify_callback, "✅ Proven solution worked!")
+                    await notifier.notify("✅ Proven solution worked!")
                     return result
 
-                await self._notify(notify_callback, "⚠️ Proven solution failed, asking AI...")
+                await notifier.notify("⚠️ Proven solution failed, asking AI...")
         else:
-            await self._notify(notify_callback, "📭 No similar solutions found in vector DB")
+            await notifier.notify("📭 No similar solutions found in vector DB")
 
-        # Step 2: Ask AI for solution
-        await self._notify(notify_callback, "🤖 Consulting AI for solution...")
-        ai_solution = await self._ask_ai_for_solution(
-            error_str,
-            error_type,
-            context,
-            similar_solutions,
-            notify_callback
+        # Step 2: Build prompt and ask AI for solution
+        await notifier.notify("🤖 Consulting AI for solution...")
+
+        prompt = PromptBuilderModule.build_error_resolution_prompt(
+            error=error_str,
+            error_type=error_type,
+            context=context,
+            similar_solutions=similar_solutions
+        )
+
+        ai_solution = await AIConsulterModule.consult(
+            prompt=prompt,
+            notify_callback=notify_callback
         )
 
         if not ai_solution["success"]:
-            await self._notify(notify_callback, "❌ AI consultation failed")
+            await notifier.notify("❌ AI consultation failed")
             return {"success": False, "error": "AI consultation failed"}
 
-        await self._notify(notify_callback, f"💡 AI provided solution: {ai_solution['summary']}")
+        await notifier.notify(f"💡 AI provided solution: {ai_solution['summary']}")
 
         # Step 3: Execute AI's solution
-        result = await self._execute_solution(
-            ai_solution["structured"],
-            context,
-            notify_callback
+        result = await SolutionExecutorModule.execute(
+            solution=ai_solution["structured"],
+            project_root=self.project_root,
+            notify_callback=notify_callback
         )
 
         error_record["attempts"].append({
@@ -142,529 +167,28 @@ class AIErrorSolver:
             "result": "success" if result["success"] else "failed"
         })
 
-        # Step 4: If successful, store and train
+        # Step 4: If successful, archive and train
         if result["success"]:
-            await self._notify(notify_callback, "✅ AI solution worked!")
-
-            # Store successful solution
-            await self._store_successful_solution(
-                error_str,
-                error_type,
-                error_record,
-                ai_solution,
-                notify_callback
-            )
-
-            # Train similarity
-            await self._train_similarity(
-                error_str,
-                ai_solution,
-                result,
-                notify_callback
-            )
-        else:
-            await self._notify(notify_callback, "❌ AI solution failed")
-
-        # Save error record
-        await self._save_error_record(error_record)
-
-        return result
-
-    async def _query_similar_solutions(
-        self,
-        error: str,
-        error_type: str
-    ) -> List[Dict[str, Any]]:
-        """Query vector DB for similar past successful solutions"""
-        try:
-            from src.core.modules.atomic.vector import VectorDBConnector, KnowledgeStore, KnowledgeSearch
-
-            connector = VectorDBConnector(mode="local")
-            connector.connect()
-
-            store = KnowledgeStore(
-                connector=connector,
-                collection_name="flyto2_project_knowledge",
-                embedding_provider="local"
-            )
-
-            search = KnowledgeSearch(knowledge_store=store)
-
-            # Search for similar errors and their solutions
-            results = search.search_with_score_threshold(
-                query=f"error: {error_type} {error}",
-                min_score=0.5,
-                top_k=5
-            )
-
-            connector.disconnect()
-
-            # Filter for successful solutions only
-            solutions = []
-            for result in results:
-                metadata = result.get("metadata", {})
-                if metadata.get("solution_success"):
-                    solutions.append({
-                        "similarity": result.get("score", 0.0),
-                        "content": result.get("content", ""),
-                        "solution_data": metadata.get("solution_data", {}),
-                        "timestamp": metadata.get("timestamp")
-                    })
-
-            return solutions
-
-        except Exception as e:
-            print(f"⚠️ Vector DB query error: {e}")
-            return []
-
-    async def _ask_ai_for_solution(
-        self,
-        error: str,
-        error_type: str,
-        context: Dict[str, Any],
-        similar_solutions: List[Dict[str, Any]],
-        notify_callback=None
-    ) -> Dict[str, Any]:
-        """Ask AI to provide solution with full context"""
-
-        # Build comprehensive prompt
-        prompt = self._build_ai_prompt(error, error_type, context, similar_solutions)
-
-        # Try Ollama
-        result = await self._ask_ollama(prompt, notify_callback)
-
-        if result["success"]:
-            return result
-
-        # TODO: Fallback to OpenAI/Claude if configured
-
-        return {"success": False}
-
-    def _build_ai_prompt(
-        self,
-        error: str,
-        error_type: str,
-        context: Dict[str, Any],
-        similar_solutions: List[Dict[str, Any]]
-    ) -> str:
-        """Build comprehensive prompt for AI"""
-
-        project_context = """
-Flyto2 Project Context:
-
-**Architecture**: Atomic module system
-- Location: src/core/modules/atomic/
-- Categories: browser, string, array, math, object, file, datetime, data, utility
-- Modules are small, reusable Python classes
-- Workflows are YAML-based
-
-**Technology Stack**:
-- Python 3.x with asyncio
-- Playwright for browser automation
-- YAML workflows
-- Vector database (Qdrant/ChromaDB)
-- Ollama for AI
-
-**Philosophy**:
-- Never give up on errors
-- Self-healing and auto-recovery
-- Learn from every solution
-- Generate missing modules when needed
-
-**Common Commands**:
-- playwright install [browser]
-- pip install [package]
-- python -m [module]
-"""
-
-        prompt = f"""{project_context}
-
-**Current Error**:
-Type: {error_type}
-Message: {error}
-
-**Context**:
-{json.dumps(context, indent=2)[:1000]}
-
-**Similar Past Solutions**:
-"""
-
-        if similar_solutions:
-            for i, sol in enumerate(similar_solutions[:3], 1):
-                content = sol.get("content", "")[:300]
-                similarity = sol.get("similarity", 0.0)
-                prompt += f"\n{i}. (Similarity: {similarity:.0%})\n{content}\n"
-        else:
-            prompt += "\nNo similar solutions found in knowledge base.\n"
-
-        prompt += """
-
-**Your Task**:
-Analyze this error and provide a practical solution.
-
-Return your response as JSON:
-{
-  "error_analysis": "What caused this error",
-  "solution_type": "command/code_change/configuration/install",
-  "solution_summary": "Brief description",
-  "commands": ["list", "of", "commands", "to", "run"],
-  "code_changes": {
-    "file": "path/to/file.py",
-    "description": "what to change"
-  },
-  "explanation": "Why this solution works"
-}
-
-Be specific and actionable. Provide exact commands to run.
-"""
-
-        return prompt
-
-    async def _ask_ollama(self, prompt: str, notify_callback=None) -> Dict[str, Any]:
-        """Ask Ollama for solution"""
-        try:
-            import requests
-
-            ollama_url = os.getenv("OLLAMA_URL", "http://localhost:11434")
-
-            response = requests.post(
-                f"{ollama_url}/api/chat",
-                json={
-                    "model": "llama3.2",
-                    "messages": [
-                        {
-                            "role": "system",
-                            "content": "You are an expert DevOps and Python engineer. Always respond with valid JSON."
-                        },
-                        {"role": "user", "content": prompt}
-                    ],
-                    "stream": False
-                },
-                timeout=120
-            )
-
-            if response.status_code == 200:
-                content = response.json()['message']['content']
-
-                # Extract JSON
-                json_match = re.search(r'\{[\s\S]*\}', content)
-                if json_match:
-                    structured = json.loads(json_match.group())
-
-                    # Validate required fields
-                    if "solution_summary" in structured:
-                        return {
-                            "success": True,
-                            "full_response": content,
-                            "structured": structured,
-                            "summary": structured.get("solution_summary", "")
-                        }
-
-            return {"success": False, "error": "Invalid response from Ollama"}
-
-        except Exception as e:
-            await self._notify(notify_callback, f"⚠️ Ollama error: {e}")
-            return {"success": False, "error": str(e)}
-
-    async def _execute_solution(
-        self,
-        solution: Dict[str, Any],
-        context: Dict[str, Any],
-        notify_callback=None
-    ) -> Dict[str, Any]:
-        """Execute the AI-provided solution"""
-
-        commands = solution.get("commands", [])
-
-        if not commands:
-            return {"success": False, "error": "No commands to execute"}
-
-        await self._notify(notify_callback, f"⚙️ Executing {len(commands)} commands...")
-
-        for cmd in commands:
-            if isinstance(cmd, str):
-                cmd_str = cmd
-                cmd_parts = cmd.split()
-            else:
-                cmd_parts = cmd
-                cmd_str = " ".join(cmd)
-
-            await self._notify(notify_callback, f"  $ {cmd_str}")
-
-            try:
-                result = subprocess.run(
-                    cmd_parts,
-                    cwd=self.project_root,
-                    capture_output=True,
-                    text=True,
-                    timeout=300
-                )
-
-                if result.returncode != 0:
-                    await self._notify(notify_callback, f"  ❌ Failed: {result.stderr[:200]}")
-                    return {
-                        "success": False,
-                        "error": f"Command failed: {cmd_str}",
-                        "stderr": result.stderr
-                    }
-
-                await self._notify(notify_callback, f"  ✅ Success")
-
-            except Exception as e:
-                await self._notify(notify_callback, f"  ❌ Error: {e}")
-                return {"success": False, "error": str(e)}
-
-        return {"success": True, "commands_executed": len(commands)}
-
-    async def _store_successful_solution(
-        self,
-        error: str,
-        error_type: str,
-        error_record: Dict[str, Any],
-        ai_solution: Dict[str, Any],
-        notify_callback=None
-    ):
-        """Store successful solution to vector DB (in English)"""
-        try:
-            from src.core.modules.atomic.vector import VectorDBConnector, KnowledgeStore
-            from src.core.utils.translator import translate_to_english
-
-            await self._notify(notify_callback, "🌐 Translating to English for vector DB...")
-
-            # Translate all content to English
-            error_en = await translate_to_english(error, context="error")
-            analysis_en = await translate_to_english(
-                ai_solution['structured'].get('error_analysis', 'N/A'),
-                context="error"
-            )
-            solution_summary_en = await translate_to_english(
-                ai_solution['structured'].get('solution_summary', 'N/A'),
-                context="solution"
-            )
-            explanation_en = await translate_to_english(
-                ai_solution['structured'].get('explanation', 'N/A'),
-                context="solution"
-            )
-
-            connector = VectorDBConnector(mode="local")
-            connector.connect()
-
-            store = KnowledgeStore(
-                connector=connector,
-                collection_name="flyto2_project_knowledge",
-                embedding_provider="local"
-            )
-
-            # Create comprehensive knowledge entry (ALL IN ENGLISH)
-            content = f"""
-AI Error Solution (SUCCESS)
-
-Error Type: {error_type}
-Error: {error_en}
-
-AI Analysis: {analysis_en}
-
-Solution Type: {ai_solution['structured'].get('solution_type', 'N/A')}
-Solution: {solution_summary_en}
-
-Commands Executed:
-{chr(10).join(f"  - {cmd}" for cmd in ai_solution['structured'].get('commands', []))}
-
-Explanation: {explanation_en}
-
-This solution was AI-generated and successfully resolved the error.
-""".strip()
-
-            store.add_entry(
-                content=content,
-                metadata={
-                    "source": "ai_error_solver",
-                    "category": "successful_solution",
-                    "error_type": error_type,
-                    "solution_success": True,
-                    "solution_data": ai_solution['structured'],
-                    "original_error": error,  # Keep original for reference
-                    "timestamp": datetime.now().isoformat()
-                }
-            )
-
-            connector.disconnect()
-
-            await self._notify(notify_callback, "💾 Solution stored to vector DB (English)")
-
-        except Exception as e:
-            print(f"⚠️ Failed to store solution: {e}")
-
-    async def _train_similarity(
-        self,
-        error: str,
-        ai_solution: Dict[str, Any],
-        result: Dict[str, Any],
-        notify_callback=None
-    ):
-        """
-        Train similarity matching
-
-        Compare:
-        - AI's full response
-        - What actually worked
-
-        Calculate similarity and store for future matching
-        """
-        await self._notify(notify_callback, "📊 Training similarity matching...")
-
-        try:
-            # Extract what AI predicted
-            ai_response = ai_solution.get("full_response", "")
-            ai_structured = ai_solution.get("structured", {})
-            ai_commands = ai_structured.get("commands", [])
-
-            # Extract what actually worked
-            executed_commands = result.get("commands_executed", 0)
-
-            # Extract key points from AI's response
-            ai_keywords = self._extract_keywords(ai_response)
-
-            # Extract key points from executed commands
-            cmd_keywords = self._extract_keywords(" ".join(ai_commands))
-
-            # Calculate similarity score
-            similarity_score = self._calculate_keyword_similarity(ai_keywords, cmd_keywords)
-
-            await self._notify(notify_callback, f"  Similarity score: {similarity_score:.2%}")
-
-            # Store training data to vector DB
-            await self._store_training_data(
-                error=error,
-                ai_prediction=ai_response[:500],
-                actual_solution=ai_commands,
-                similarity_score=similarity_score,
+            await notifier.notify("✅ AI solution worked!")
+
+            # Archive successful solution
+            await SolutionArchiverModule.archive(
+                error=error_str,
+                error_type=error_type,
+                error_record=error_record,
+                ai_solution=ai_solution,
+                project_root=self.project_root,
                 notify_callback=notify_callback
             )
 
-            await self._notify(notify_callback, "✅ Similarity training completed")
-
-        except Exception as e:
-            await self._notify(notify_callback, f"⚠️ Similarity training error: {e}")
-
-    def _extract_keywords(self, text: str) -> set:
-        """Extract meaningful keywords from text"""
-        import re
-
-        # Convert to lowercase
-        text = text.lower()
-
-        # Remove special characters, keep alphanumeric and spaces
-        text = re.sub(r'[^a-z0-9\s-]', ' ', text)
-
-        # Split into words
-        words = text.split()
-
-        # Filter out common stop words and very short words
-        stop_words = {
-            'the', 'is', 'at', 'which', 'on', 'a', 'an', 'and', 'or', 'but',
-            'in', 'with', 'to', 'for', 'of', 'as', 'by', 'this', 'that',
-            'it', 'from', 'be', 'are', 'was', 'were', 'have', 'has', 'had'
-        }
-
-        keywords = {
-            word for word in words
-            if len(word) > 2 and word not in stop_words
-        }
-
-        return keywords
-
-    def _calculate_keyword_similarity(self, set1: set, set2: set) -> float:
-        """Calculate similarity between two keyword sets (Jaccard similarity)"""
-        if not set1 or not set2:
-            return 0.0
-
-        intersection = set1.intersection(set2)
-        union = set1.union(set2)
-
-        return len(intersection) / len(union) if union else 0.0
-
-    async def _store_training_data(
-        self,
-        error: str,
-        ai_prediction: str,
-        actual_solution: list,
-        similarity_score: float,
-        notify_callback=None
-    ):
-        """Store training data for future learning"""
-        try:
-            from src.core.modules.atomic.vector import VectorDBConnector, KnowledgeStore
-            from src.core.utils.translator import translate_to_english
-
-            # Translate to English
-            error_en = await translate_to_english(error, context="error")
-            prediction_en = await translate_to_english(ai_prediction, context="solution")
-
-            connector = VectorDBConnector(mode="local")
-            connector.connect()
-
-            store = KnowledgeStore(
-                connector=connector,
-                collection_name="flyto2_project_knowledge",
-                embedding_provider="local"
+            # Train similarity
+            await SimilarityTrainerModule.train(
+                error=error_str,
+                ai_solution=ai_solution,
+                execution_result=result,
+                notify_callback=notify_callback
             )
+        else:
+            await notifier.notify("❌ AI solution failed")
 
-            # Create training entry
-            content = f"""
-AI Training Data
-
-Error: {error_en}
-
-AI Prediction: {prediction_en}
-
-Actual Solution: {chr(10).join(f"  - {cmd}" for cmd in actual_solution)}
-
-Similarity Score: {similarity_score:.2%}
-
-This training data helps improve AI solution accuracy over time.
-""".strip()
-
-            store.add_entry(
-                content=content,
-                metadata={
-                    "source": "ai_error_solver_training",
-                    "category": "training_data",
-                    "similarity_score": similarity_score,
-                    "original_error": error,
-                    "timestamp": datetime.now().isoformat()
-                }
-            )
-
-            connector.disconnect()
-
-            await self._notify(notify_callback, "  💾 Training data stored to vector DB")
-
-        except Exception as e:
-            await self._notify(notify_callback, f"  ⚠️ Failed to store training data: {e}")
-
-    async def _save_error_record(self, error_record: Dict[str, Any]):
-        """Save error record to log file"""
-        try:
-            # Load existing log
-            if self.solution_log.exists():
-                with open(self.solution_log, 'r') as f:
-                    log_data = json.load(f)
-            else:
-                log_data = {"solutions": []}
-
-            # Add new record
-            log_data["solutions"].append(error_record)
-
-            # Save
-            with open(self.solution_log, 'w') as f:
-                json.dump(log_data, f, indent=2)
-
-        except Exception as e:
-            print(f"⚠️ Failed to save error record: {e}")
-
-    async def _notify(self, callback, message: str):
-        """Send notification"""
-        if callback:
-            await callback(message)
-        print(message)
+        return result
