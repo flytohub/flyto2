@@ -1143,10 +1143,36 @@ async def test_burst_100_concurrent():
 
 **Status**: ✅ COMPLETE
 
-### ❌ 6.2 Rate Limit Handling (429 處理)
-**目標**: 遇到 429 自動重試
+### ✅ 6.2 Rate Limit Handling
+**Goal**: Automatic retry on rate limit responses (429)
 
-**狀態**: ❌ NOT STARTED
+**Implementation**: `src/core/modules/atomic/api/rate_limiter.py`
+
+**Features**:
+- `RateLimitHandler` class with automatic retry logic
+- `RateLimitConfig` for configurable retry behavior
+- Exponential backoff with jitter
+- Respects Retry-After headers
+- Distinguishes rate limit vs other errors
+- Configurable max_retries (default 3)
+- Tracks retry statistics
+
+**Configuration**:
+- max_retries: 3 (default)
+- base_delay: 1.0s (default)
+- max_delay: 60.0s (default)
+- exponential_base: 2.0 (default)
+- jitter: true (default)
+
+**Usage**:
+```python
+handler = RateLimitHandler()
+result = await handler.execute_with_retry(api_call, param1, param2)
+```
+
+**Tests**: `tests/test_rate_limiter.py` (4/4 passing)
+
+**Status**: ✅ COMPLETE
 
 ### ❌ 6.3 Proxy Rotation (代理切換)
 **目標**: 自動切換代理
