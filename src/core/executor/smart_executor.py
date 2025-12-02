@@ -51,14 +51,19 @@ class SmartExecutor:
 
             attempt_result = {
                 "attempt_number": attempt,
-                "steps": []
+                "steps": [],
+                "error": None,
+                "workflow_generated": False
             }
+
+            workflow = None  # Initialize to avoid UnboundLocalError
 
             try:
                 # Step 1: Generate workflow from task description
                 await self._notify(notify_callback, "📝 Generating workflow...")
                 workflow = await self._generate_workflow(task_description)
                 attempt_result["steps"].append({"step": "generate_workflow", "status": "success"})
+                attempt_result["workflow_generated"] = True
 
                 # Step 2: Execute workflow
                 await self._notify(notify_callback, "▶️ Executing workflow...")
@@ -77,15 +82,22 @@ class SmartExecutor:
 
             except Exception as e:
                 error_msg = str(e)
-                attempt_result["steps"].append({"step": "execute_workflow", "status": "error", "error": error_msg})
+
+                # Record which step failed
+                if not attempt_result["workflow_generated"]:
+                    attempt_result["steps"].append({"step": "generate_workflow", "status": "error", "error": error_msg})
+                else:
+                    attempt_result["steps"].append({"step": "execute_workflow", "status": "error", "error": error_msg})
+
+                attempt_result["error"] = error_msg
                 result["attempts"].append(attempt_result)
 
                 await self._notify(notify_callback, f"❌ Error: {error_msg}")
 
                 if attempt < self.max_retries:
-                    # Step 3: Analyze error and generate solution
+                    # Step 3: Analyze error and prepare solution
                     await self._notify(notify_callback, "\n🔍 Analyzing error...")
-                    analysis = await self._analyze_error(error_msg, workflow)
+                    analysis = await self._analyze_error(error_msg, task_description, workflow)
 
                     if analysis.get("missing_modules"):
                         await self._notify(notify_callback, f"📦 Missing modules detected: {len(analysis['missing_modules'])}")
@@ -98,6 +110,16 @@ class SmartExecutor:
                             await self._notify(notify_callback, f"✅ Module generated: {module_spec['name']}")
 
                         await self._notify(notify_callback, "\n🔄 Retrying with new modules...")
+
+                    elif analysis.get("recommendations"):
+                        await self._notify(notify_callback, f"💡 Suggestions: {', '.join(analysis['recommendations'][:2])}")
+
+                        # Try to fix the task description
+                        if analysis.get("improved_task"):
+                            task_description = analysis["improved_task"]
+                            await self._notify(notify_callback, f"🔄 Retrying with improved understanding...")
+                        else:
+                            await self._notify(notify_callback, "\n⚠️ Will retry with same parameters...")
                     else:
                         await self._notify(notify_callback, "\n⚠️ No automatic solution found")
                         break
@@ -111,19 +133,23 @@ class SmartExecutor:
     async def _query_knowledge_base(self, query: str) -> Dict[str, Any]:
         """Query vector database for available modules and knowledge"""
         try:
-            from src.core.modules.atomic.vector import VectorDBConnector, KnowledgeSearch
+            from src.core.modules.atomic.vector import VectorDBConnector, KnowledgeStore, KnowledgeSearch
 
             connector = VectorDBConnector(mode="local")
             connector.connect()
 
-            search = KnowledgeSearch(
+            # Create KnowledgeStore first
+            store = KnowledgeStore(
                 connector=connector,
                 collection_name="flyto2_project_knowledge",
                 embedding_provider="local"
             )
 
+            # Then create KnowledgeSearch with the store
+            search = KnowledgeSearch(knowledge_store=store)
+
             # Search for relevant modules and workflows
-            results = search.search(query, top_k=5)
+            results = search.search_with_score_threshold(query, min_score=0.5, top_k=5)
 
             connector.disconnect()
 
@@ -140,7 +166,9 @@ class SmartExecutor:
             }
 
         except Exception as e:
-            print(f"Knowledge base query error: {e}")
+            print(f"⚠️ Knowledge base query error: {e}")
+            import traceback
+            traceback.print_exc()
             return {"available_modules": [], "knowledge": []}
 
     async def _generate_workflow(self, task_description: str) -> Dict[str, Any]:
@@ -152,12 +180,27 @@ class SmartExecutor:
         task_lower = task_description.lower()
 
         if "crawl" in task_lower or "scrape" in task_lower:
-            # Extract URL
+            # Extract URL with multiple strategies
             import re
+
+            # Strategy 1: Standard URL with protocol
             urls = re.findall(r'https?://[^\s]+', task_description)
 
+            # Strategy 2: www. domains
             if not urls:
-                raise ValueError("No URL found in task description")
+                www_matches = re.findall(r'www\.[^\s]+', task_description, re.IGNORECASE)
+                if www_matches:
+                    urls = [f"https://{match}" for match in www_matches]
+
+            # Strategy 3: Domain-like patterns (amazon.com, google.com, etc.)
+            if not urls:
+                domain_matches = re.findall(r'\b([a-z0-9-]+\.)+[a-z]{2,}\b', task_description, re.IGNORECASE)
+                if domain_matches:
+                    # Take the first match and add https://
+                    urls = [f"https://{domain_matches[0]}"]
+
+            if not urls:
+                raise ValueError("No URL found in task description. Please include a URL like 'https://example.com' or 'amazon.com'")
 
             url = urls[0]
 
@@ -207,10 +250,24 @@ class SmartExecutor:
         elif "search" in task_lower:
             # Search workflow - treat as crawl with search query
             import re
+
+            # Strategy 1: Standard URL with protocol
             urls = re.findall(r'https?://[^\s]+', task_description)
 
+            # Strategy 2: www. domains
             if not urls:
-                raise ValueError("No URL found in task description")
+                www_matches = re.findall(r'www\.[^\s]+', task_description, re.IGNORECASE)
+                if www_matches:
+                    urls = [f"https://{match}" for match in www_matches]
+
+            # Strategy 3: Domain-like patterns
+            if not urls:
+                domain_matches = re.findall(r'\b([a-z0-9-]+\.)+[a-z]{2,}\b', task_description, re.IGNORECASE)
+                if domain_matches:
+                    urls = [f"https://{domain_matches[0]}"]
+
+            if not urls:
+                raise ValueError("No URL found in task description. Please specify where to search (e.g., 'search amazon.com for laptops')")
 
             url = urls[0]
 
@@ -296,19 +353,30 @@ class SmartExecutor:
 
         return result
 
-    async def _analyze_error(self, error_msg: str, workflow: Dict[str, Any]) -> Dict[str, Any]:
-        """Analyze error and suggest solutions"""
+    async def _analyze_error(self, error_msg: str, task_description: str, workflow: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """
+        Analyze error and suggest solutions
+
+        Args:
+            error_msg: The error message
+            task_description: Original task description
+            workflow: Generated workflow (may be None if generation failed)
+
+        Returns:
+            Analysis with missing_modules, recommendations, and improved_task
+        """
         analysis = {
             "error": error_msg,
             "missing_modules": [],
-            "recommendations": []
+            "recommendations": [],
+            "improved_task": None
         }
 
         # Pattern matching for common errors
         error_lower = error_msg.lower()
 
+        # 1. Module errors
         if "module not found" in error_lower or "no module" in error_lower:
-            # Extract module name
             import re
             match = re.search(r"module[:\s]+['\"]?([a-z._]+)['\"]?", error_lower)
             if match:
@@ -318,11 +386,57 @@ class SmartExecutor:
                     "reason": "Module not found in registry"
                 })
 
+        # 2. URL detection errors
+        if "no url found" in error_lower:
+            # Try to extract URL from task description more aggressively
+            import re
+
+            # Try different URL patterns
+            url_patterns = [
+                r'https?://[^\s]+',  # Standard URL
+                r'www\.[^\s]+',  # www without protocol
+                r'([a-z0-9-]+\.)+[a-z]{2,}',  # Domain without protocol
+            ]
+
+            for pattern in url_patterns:
+                urls = re.findall(pattern, task_description, re.IGNORECASE)
+                if urls:
+                    # Found a URL-like string, suggest adding protocol
+                    url = urls[0]
+                    if not url.startswith('http'):
+                        url = f"https://{url}"
+
+                    # Improve task description
+                    analysis["improved_task"] = f"crawl {url}"
+                    analysis["recommendations"].append(f"Added missing URL: {url}")
+                    break
+
+            if not analysis["improved_task"]:
+                analysis["recommendations"].append("Please provide a valid URL (e.g., https://example.com)")
+
+        # 3. Selector/element errors
         if "selector" in error_lower or "element not found" in error_lower:
             analysis["recommendations"].append("Add more robust element detection")
+            analysis["recommendations"].append("Try alternative selectors")
 
+        # 4. Timeout errors
         if "timeout" in error_lower:
             analysis["recommendations"].append("Increase timeout or add retry logic")
+
+        # 5. Workflow generation errors
+        if workflow is None and "unable to understand" in error_lower:
+            # Try to infer intent from task description
+            task_lower = task_description.lower()
+
+            if any(word in task_lower for word in ['爬', '抓', 'crawl', 'scrape', 'fetch']):
+                analysis["recommendations"].append("Task detected as: web crawling")
+                analysis["recommendations"].append("Please include a URL in your request")
+            elif any(word in task_lower for word in ['搜', '找', 'search', 'find']):
+                analysis["recommendations"].append("Task detected as: search")
+                analysis["recommendations"].append("Please specify where to search (e.g., 'search amazon.com for laptops')")
+            else:
+                analysis["recommendations"].append("Unable to understand task type")
+                analysis["recommendations"].append("Try: /crawl <url> or natural language with clear URL")
 
         return analysis
 
