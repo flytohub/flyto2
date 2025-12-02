@@ -290,6 +290,7 @@ Ultra-Low-Cost Three-Tier Strategy
 *Commands:*
 • Just chat - I'll use Ollama
 • `/crawl <url>` - Crawl a website (self-healing) 🕷️
+• `/leaderboard [type]` - Rankings (accuracy/stability/evolution) 🏆
 • `/lang` - Change reply language (Current: {lang_names[current_lang]}) 🌐
 • `/gpt <q>` - Force OpenAI ($)
 • `/retry` - Retry with OpenAI after my attempt

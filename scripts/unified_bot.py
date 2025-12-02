@@ -247,9 +247,63 @@ async def main():
 
         await update.message.reply_text(summary)
 
+    async def leaderboard_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Show leaderboard rankings"""
+        if str(update.effective_user.id) not in TELEGRAM_ALLOWED_USERS:
+            return
+
+        from src.core.leaderboard import MetricsTracker
+
+        tracker = MetricsTracker()
+
+        # Determine which leaderboard to show
+        board_type = context.args[0] if context.args else "accuracy"
+
+        if board_type == "accuracy":
+            leaderboard = tracker.get_accuracy_leaderboard(10)
+            msg = "🎯 **Accuracy Leaderboard**\n\n"
+            for i, metric in enumerate(leaderboard, 1):
+                msg += f"{i}. `{metric.module_id}`\n"
+                msg += f"   Overall: {metric.overall_accuracy:.1f}%\n"
+                msg += f"   Completeness: {metric.data_completeness:.1f}% | "
+                msg += f"Correctness: {metric.format_correctness:.1f}%\n"
+                msg += f"   Runs: {metric.total_runs}\n\n"
+
+        elif board_type == "stability":
+            leaderboard = tracker.get_stability_leaderboard(10)
+            msg = "⚡ **Stability Leaderboard**\n\n"
+            for i, metric in enumerate(leaderboard, 1):
+                msg += f"{i}. `{metric.module_id}`\n"
+                msg += f"   Score: {metric.stability_score:.1f}\n"
+                msg += f"   Max Streak: {metric.max_consecutive_successes}\n"
+                msg += f"   Recovery: {metric.error_recovery_rate:.1f}%\n\n"
+
+        elif board_type == "evolution":
+            leaderboard = tracker.get_evolution_leaderboard(10)
+            msg = "🧬 **Evolution Leaderboard**\n\n"
+            for i, metric in enumerate(leaderboard, 1):
+                msg += f"{i}. `{metric.module_id}`\n"
+                msg += f"   Index: {metric.evolution_index:.1f}\n"
+                msg += f"   Modules: +{metric.modules_added} | "
+                msg += f"Bugs: {metric.bugs_fixed}\n"
+                msg += f"   Coverage: +{metric.test_coverage_growth:.1f}%\n\n"
+
+        else:
+            msg = (
+                "Usage: /leaderboard [type]\n\n"
+                "Types:\n"
+                "• `accuracy` - Top accuracy scores (default)\n"
+                "• `stability` - Most stable modules\n"
+                "• `evolution` - Fastest evolving modules\n\n"
+                "Example: /leaderboard stability"
+            )
+
+        await update.message.reply_text(msg, parse_mode='Markdown')
+
     # Register all command handlers from telegram_bot_v2
     app.add_handler(CommandHandler("start", bot_v2.start))
     app.add_handler(CommandHandler("crawl", crawl_command))
+    app.add_handler(CommandHandler("leaderboard", leaderboard_command))
     app.add_handler(CommandHandler("lang", bot_v2.lang_command))
     app.add_handler(CommandHandler("retry", bot_v2.retry_command))
     app.add_handler(CommandHandler("gpt", bot_v2.gpt_command))
