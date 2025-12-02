@@ -96,8 +96,7 @@ class SmartExecutor:
 
                 if attempt < self.max_retries:
                     # USE AI ERROR SOLVER
-                    await self._notify(notify_callback, "
-🤖 Consulting AI for solution...")
+                    await self._notify(notify_callback, "\n🤖 Consulting AI for solution...")
 
                     from src.core.healing.ai_error_solver import AIErrorSolver
 
