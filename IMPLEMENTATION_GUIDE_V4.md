@@ -3221,10 +3221,10 @@ python scripts/kb_enterprise_cli.py ingest --force
 
 ### Phase 2: 智能化增强
 
-- [ ] 创建 `LLMOrchestrator` 类
-- [ ] 实现Ollama→GPT→Claude pipeline
-- [ ] 创建 `Validators` (Format/Static)
-- [ ] 测试multi-model fallback
+- [x] 创建 `LLMOrchestrator` 类
+- [x] 实现Ollama→GPT→Claude pipeline
+- [x] 创建 `Validators` (Format/Static)
+- [x] 测试multi-model fallback
 
 ### Phase 3: 自动化闭环
 
