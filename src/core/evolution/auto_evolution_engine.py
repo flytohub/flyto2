@@ -1157,19 +1157,56 @@ class AutoEvolutionEngine:
                 check=True
             )
 
-            # Push (commented out for safety)
-            # subprocess.run(
-            #     ["git", "push", "-u", "origin", branch_name],
-            #     cwd=self.project_root,
-            #     check=True
-            # )
+            # Push to remote
+            logger.info(f"Pushing branch {branch_name} to remote...")
+            push_result = subprocess.run(
+                ["git", "push", "-u", "origin", branch_name],
+                cwd=self.project_root,
+                capture_output=True,
+                text=True
+            )
 
-            return {
-                "success": True,
-                "branch": branch_name,
-                "title": pr_title,
-                "message": "Branch created (push manually to create PR)"
-            }
+            if push_result.returncode != 0:
+                logger.warning(f"Push failed: {push_result.stderr}")
+                return {
+                    "success": False,
+                    "branch": branch_name,
+                    "error": f"Failed to push: {push_result.stderr}"
+                }
+
+            # Create PR using gh CLI
+            logger.info(f"Creating PR: {pr_title}")
+            pr_result = subprocess.run(
+                [
+                    "gh", "pr", "create",
+                    "--title", pr_title,
+                    "--body", pr_body,
+                    "--head", branch_name
+                ],
+                cwd=self.project_root,
+                capture_output=True,
+                text=True
+            )
+
+            if pr_result.returncode == 0:
+                pr_url = pr_result.stdout.strip()
+                logger.info(f"✅ PR created: {pr_url}")
+                return {
+                    "success": True,
+                    "branch": branch_name,
+                    "pr_url": pr_url,
+                    "title": pr_title,
+                    "message": f"PR created successfully: {pr_url}"
+                }
+            else:
+                logger.warning(f"PR creation failed: {pr_result.stderr}")
+                return {
+                    "success": True,  # Push succeeded
+                    "branch": branch_name,
+                    "title": pr_title,
+                    "message": f"Branch pushed, but PR creation failed: {pr_result.stderr}",
+                    "manual_pr": True
+                }
 
         except Exception as e:
             return {
