@@ -69,6 +69,9 @@ class EvolutionState:
             'auto_approve_threshold': 0.8,   # Auto approve if confidence >= 0.8
         }
 
+        # Leaderboard ranking tracking
+        self.previous_rankings: Dict[str, int] = {}  # task_name -> rank
+
     def get_session(self, user_id: int) -> Dict:
         if user_id not in self.sessions:
             self.sessions[user_id] = {
@@ -944,8 +947,8 @@ async def show_practice_history(message, limit: int = 5):
         await message.reply_text(f"❌ Failed to get history:\n`{str(e)}`", parse_mode="Markdown")
 
 
-async def show_competition_leaderboard(message):
-    """Show competition leaderboard"""
+async def show_competition_leaderboard(message, check_changes=True):
+    """Show competition leaderboard with ranking change notifications"""
     from src.core.competition.speed_race import SpeedRace
 
     try:
@@ -956,6 +959,45 @@ async def show_competition_leaderboard(message):
             await message.reply_text("🏆 No races yet. Run your first speed race!")
             return
 
+        # Check for ranking changes
+        ranking_changes = []
+        current_rankings = {}
+
+        for idx, entry in enumerate(leaderboard[:10], 1):
+            task_name = entry.get('task_name', 'Unknown')
+            current_rankings[task_name] = idx
+
+            # Compare with previous ranking
+            if check_changes and task_name in state.previous_rankings:
+                prev_rank = state.previous_rankings[task_name]
+                if prev_rank != idx:
+                    change = prev_rank - idx  # Positive = improved
+                    ranking_changes.append({
+                        'task_name': task_name,
+                        'prev_rank': prev_rank,
+                        'current_rank': idx,
+                        'change': change
+                    })
+
+        # Send ranking change notifications
+        if ranking_changes:
+            changes_msg = "📊 **Ranking Changes Detected!**\n\n"
+            for change in ranking_changes:
+                task = change['task_name']
+                prev = change['prev_rank']
+                curr = change['current_rank']
+                diff = change['change']
+
+                if diff > 0:
+                    changes_msg += f"🎉 **{task}** improved!\n"
+                    changes_msg += f"   {prev} → {curr} (↑{diff})\n\n"
+                else:
+                    changes_msg += f"📉 **{task}** dropped\n"
+                    changes_msg += f"   {prev} → {curr} (↓{abs(diff)})\n\n"
+
+            await message.reply_text(changes_msg, parse_mode="Markdown")
+
+        # Show leaderboard
         response = "🏆 **Speed Race Leaderboard**\n\n"
 
         for idx, entry in enumerate(leaderboard[:10], 1):
@@ -966,9 +1008,22 @@ async def show_competition_leaderboard(message):
 
             medal = "🥇" if idx == 1 else ("🥈" if idx == 2 else ("🥉" if idx == 3 else f"{idx}."))
 
-            response += f"{medal} **{task_name}**\n"
+            # Add change indicator based on detected changes
+            change_indicator = ""
+            for change in ranking_changes:
+                if change['task_name'] == task_name:
+                    if change['change'] > 0:
+                        change_indicator = " ↑"
+                    else:
+                        change_indicator = " ↓"
+                    break
+
+            response += f"{medal} **{task_name}**{change_indicator}\n"
             response += f"   Best: {best_time:.2f}s | Avg: {avg_time:.2f}s\n"
             response += f"   Date: {timestamp[:10]}\n\n"
+
+        # Update previous rankings after displaying
+        state.previous_rankings = current_rankings
 
         await message.reply_text(response, parse_mode="Markdown")
 

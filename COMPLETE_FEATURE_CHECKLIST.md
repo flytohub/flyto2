@@ -1261,14 +1261,33 @@ async def test_burst():
 **注意**: 視覺化圖表屬於 Tickets 專案 UI，但數據計算屬於引擎
 **狀態**: ❌ NOT STARTED
 
-### ✅ 8.6 Telegram 展示
-**功能**:
-- [x] 格式化排行榜
-- [x] 互動式按鈕（查看排行榜、歷史記錄）
-- [ ] 排名變化提醒
+### ✅ 8.6 Telegram Display
+**Features**:
+- [x] Formatted leaderboard
+- [x] Interactive buttons (view leaderboard, history)
+- [x] Ranking change notifications
 
-**實作**: `scripts/interactive_evolution_bot.py` - `show_competition_leaderboard()`
-**狀態**: ⏳ PARTIAL (67% - 缺排名變化提醒)
+**Implementation**:
+- `show_competition_leaderboard()` - Display leaderboard with change tracking (line 950-1031)
+- Ranking change detection compares current vs previous rankings
+- Automatic notifications when rankings change
+- Visual indicators: ↑ (improved) or ↓ (dropped)
+- Detailed change message with rank transitions
+- Tracks top 10 positions
+
+**Example notifications**:
+```
+📊 Ranking Changes Detected!
+
+🎉 web_scrape_task improved!
+   3 → 1 (↑2)
+
+📉 data_pipeline dropped
+   1 → 3 (↓2)
+```
+
+**Files**: `scripts/interactive_evolution_bot.py` - Lines 73, 950-1031
+**Status**: ✅ COMPLETE
 
 ---
 
