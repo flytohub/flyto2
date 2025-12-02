@@ -62,6 +62,13 @@ class EvolutionState:
         self.pending_test_token_collection = False  # Flag for token collection flow
         self.pending_practice_url_input = False  # Flag for practice URL input
 
+        # Configurable escalation thresholds
+        self.config = {
+            'auto_escalate_threshold': 0.3,  # Auto jump to OpenAI if confidence < 0.3
+            'human_guidance_threshold': 0.5,  # Ask user if confidence < 0.5
+            'auto_approve_threshold': 0.8,   # Auto approve if confidence >= 0.8
+        }
+
     def get_session(self, user_id: int) -> Dict:
         if user_id not in self.sessions:
             self.sessions[user_id] = {
@@ -1109,8 +1116,25 @@ Current context: {context}
     response, confidence = await ask_ollama(message_text, system_prompt)
     session['stats']['ollama_queries'] += 1
 
-    # If confidence is low, ask user for guidance
-    if confidence < 0.5:
+    # Auto-escalation: very low confidence -> jump directly to OpenAI
+    auto_escalate_threshold = state.config['auto_escalate_threshold']
+    if confidence < auto_escalate_threshold:
+        await update.message.reply_text(
+            f"💭 Ollama says (confidence: {confidence:.0%}):\n\n{response}\n\n"
+            f"⚠️ Very low confidence (< {auto_escalate_threshold:.0%})! Auto-escalating to OpenAI..."
+        )
+
+        openai_response = await ask_openai(message_text, system_prompt)
+        session['stats']['openai_queries'] += 1
+
+        await update.message.reply_text(
+            f"🚀 **OpenAI says:**\n\n{openai_response}"
+        )
+        return
+
+    # If confidence is low but not critical, ask user for guidance
+    human_guidance_threshold = state.config['human_guidance_threshold']
+    if confidence < human_guidance_threshold:
         session['pending_question'] = message_text
         session['ollama_confidence'] = confidence
 
@@ -1415,6 +1439,69 @@ async def reject_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
+async def config_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """View or update escalation configuration"""
+    if not is_authorized(update):
+        return
+
+    if not context.args:
+        # Show current config
+        config = state.config
+        await update.message.reply_text(
+            "⚙️ **Escalation Configuration**\n\n"
+            f"**Auto-escalate threshold**: {config['auto_escalate_threshold']:.0%}\n"
+            f"  • Confidence < {config['auto_escalate_threshold']:.0%} → Auto jump to OpenAI\n\n"
+            f"**Human guidance threshold**: {config['human_guidance_threshold']:.0%}\n"
+            f"  • Confidence < {config['human_guidance_threshold']:.0%} → Ask for guidance\n\n"
+            f"**Auto-approve threshold**: {config['auto_approve_threshold']:.0%}\n"
+            f"  • Confidence >= {config['auto_approve_threshold']:.0%} → Auto approve\n\n"
+            "**Usage**: /config <key> <value>\n"
+            "Example: /config auto_escalate_threshold 0.25",
+            parse_mode="Markdown"
+        )
+        return
+
+    # Update config
+    if len(context.args) < 2:
+        await update.message.reply_text(
+            "❌ **Usage**: /config <key> <value>\n\n"
+            "Available keys:\n"
+            "• auto_escalate_threshold\n"
+            "• human_guidance_threshold\n"
+            "• auto_approve_threshold"
+        )
+        return
+
+    key = context.args[0]
+    try:
+        value = float(context.args[1])
+    except ValueError:
+        await update.message.reply_text("❌ Value must be a number between 0 and 1")
+        return
+
+    if key not in state.config:
+        await update.message.reply_text(
+            f"❌ Unknown config key: {key}\n\n"
+            "Available keys:\n"
+            "• auto_escalate_threshold\n"
+            "• human_guidance_threshold\n"
+            "• auto_approve_threshold"
+        )
+        return
+
+    if not 0 <= value <= 1:
+        await update.message.reply_text("❌ Value must be between 0 and 1")
+        return
+
+    old_value = state.config[key]
+    state.config[key] = value
+
+    await update.message.reply_text(
+        f"✅ **Config updated**\n\n"
+        f"{key}: {old_value:.0%} → {value:.0%}"
+    )
+
+
 # ============================================
 # Main
 # ============================================
@@ -1444,6 +1531,7 @@ def main():
     app.add_handler(CommandHandler("propose", propose_command))
     app.add_handler(CommandHandler("approve", approve_command))
     app.add_handler(CommandHandler("reject", reject_command))
+    app.add_handler(CommandHandler("config", config_command))
 
     # Message handlers
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))

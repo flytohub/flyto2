@@ -145,28 +145,38 @@ grep -q "Self-Evolving" README.md
 
 ## 🧠 1. Flyto2 核心能力 (5.05/6 = 84%)
 
-### ⏳ 1.1 Three-Tier Escalation
-- [x] Ollama 本地 LLM 整合
-- [x] Telegram 人工回饋
-- [x] OpenAI 作為 fallback
-- [ ] 自動選擇適合的 tier
+### ✅ 1.1 Three-Tier Escalation
+- [x] Ollama local LLM integration
+- [x] Telegram human feedback
+- [x] OpenAI as fallback
+- [x] Automatic tier selection
 
-**已實作**:
-- ✅ `ask_ollama()` - 本地 LLM 查詢 (line 95-130)
-- ✅ `estimate_confidence()` - 信心度評估 (line 133-155)
-- ✅ `ask_openai()` - OpenAI API 整合 (line 162-189)
-- ✅ 低信心度時詢問使用者 (< 0.5) (line 1090-1111)
-- ✅ 使用者可選擇: Approve / Guide / Escalate
+**Implementation**:
+- ✅ `ask_ollama()` - Local LLM query (line 95-130)
+- ✅ `estimate_confidence()` - Confidence scoring (line 133-155)
+- ✅ `ask_openai()` - OpenAI API integration (line 162-189)
+- ✅ Low confidence human guidance (< 0.5) (line 1127-1143)
+- ✅ User choices: Approve / Guide / Escalate
+- ✅ **Auto-escalation** - Confidence < 0.3 auto-jumps to OpenAI (line 1112-1125)
+- ✅ **Configurable thresholds** - Three adjustable confidence levels (line 65-70)
+- ✅ `/config` command - View/update thresholds (line 1442-1502)
+- ✅ Complete test - `workflows/_test/test_three_tier_escalation.yaml` (7 steps)
 
-**待實作**:
-- ❌ **自動 escalation** - 目前需手動點選 "🚀 Ask OpenAI" 按鈕
-- ❌ **Escalation chain** - confidence < 0.3 自動跳 OpenAI
-- ❌ **配置化 threshold** - 可調整的信心度門檻
-- ❌ **完整測試** - 缺少 `test_three_tier_escalation.yaml`
+**Escalation Logic**:
+- Confidence < 0.3: Auto-escalate to OpenAI (no human interaction)
+- Confidence < 0.5: Request human guidance (with buttons)
+- Confidence >= 0.5: Proceed directly with Ollama response
 
-**檔案**: `scripts/interactive_evolution_bot.py`
+**Configuration**:
+- `auto_escalate_threshold`: 0.3 (default)
+- `human_guidance_threshold`: 0.5 (default)
+- `auto_approve_threshold`: 0.8 (default)
 
-**狀態**: ⏳ PARTIAL (75% - 缺自動 escalation 機制)
+**Files**:
+- `scripts/interactive_evolution_bot.py` - All escalation logic
+- `workflows/_test/test_three_tier_escalation.yaml` - Full test suite
+
+**Status**: ✅ COMPLETE
 
 ---
 
