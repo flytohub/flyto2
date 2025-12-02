@@ -441,17 +441,83 @@ class SmartExecutor:
         return analysis
 
     async def _generate_module(self, module_spec: Dict[str, Any]) -> Dict[str, Any]:
-        """Generate missing module"""
-        # For now, just log
-        # In real implementation, use AI to generate module code
+        """
+        Generate missing module using AI
 
-        module_info = {
-            "name": module_spec["name"],
-            "status": "generated",
-            "path": f"src/core/modules/atomic/{module_spec['name'].replace('.', '/')}.py"
-        }
+        Steps:
+        1. Use LLM to generate intelligent implementation
+        2. Use ModuleGenerator to create files
+        3. Test the generated module
+        4. If successful, commit and create PR
+        5. Store solution to vector DB
+        """
+        from src.core.meta.module_generator import ModuleGenerator
+        import os
 
-        return module_info
+        module_name = module_spec["name"]
+
+        try:
+            # Step 1: Use LLM to design the module
+            print(f"🤖 Designing module: {module_name}")
+            spec = await self._design_module_with_llm(module_spec)
+
+            if not spec:
+                return {
+                    "name": module_name,
+                    "status": "failed",
+                    "error": "Failed to design module with LLM"
+                }
+
+            # Step 2: Generate module files
+            print(f"📝 Generating files for: {module_name}")
+            generator = ModuleGenerator(self.project_root)
+            result = generator.generate_module(spec)
+
+            if not result["success"]:
+                return {
+                    "name": module_name,
+                    "status": "failed",
+                    "errors": result["errors"]
+                }
+
+            # Step 3: Test the generated module
+            print(f"🧪 Testing module: {module_name}")
+            test_result = await self._test_generated_module(result["test_path"])
+
+            if not test_result["success"]:
+                return {
+                    "name": module_name,
+                    "status": "generated_but_test_failed",
+                    "module_path": result["module_path"],
+                    "test_path": result["test_path"],
+                    "test_error": test_result.get("error")
+                }
+
+            # Step 4: Create branch and PR
+            print(f"🌿 Creating branch and PR for: {module_name}")
+            pr_result = await self._create_module_pr(module_name, result, test_result)
+
+            # Step 5: Store solution to vector DB
+            print(f"💾 Storing solution to vector DB: {module_name}")
+            await self._store_solution_to_vector_db(module_spec, spec, result, test_result)
+
+            return {
+                "name": module_name,
+                "status": "success",
+                "module_path": result["module_path"],
+                "test_path": result["test_path"],
+                "pr_branch": pr_result.get("branch"),
+                "pr_url": pr_result.get("pr_url")
+            }
+
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return {
+                "name": module_name,
+                "status": "error",
+                "error": str(e)
+            }
 
     def _format_result(self, result: Dict[str, Any]) -> str:
         """Format result for display"""
@@ -481,3 +547,379 @@ class SmartExecutor:
         """Send notification via callback"""
         if callback:
             await callback(message)
+
+    async def _design_module_with_llm(self, module_spec: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """
+        Use LLM to design intelligent module implementation
+
+        Args:
+            module_spec: Basic spec with name and reason
+
+        Returns:
+            Complete module specification for ModuleGenerator
+        """
+        import requests
+        import os
+        import re
+
+        module_name = module_spec["name"]
+        reason = module_spec.get("reason", "")
+
+        # Try Ollama first (free)
+        ollama_url = os.getenv("OLLAMA_URL", "http://localhost:11434")
+
+        prompt = f"""Design a Python module for the Flyto2 workflow automation system.
+
+Module name: {module_name}
+Reason needed: {reason}
+
+Please provide:
+1. module_id (format: category.function_name, e.g., "string.reverse", "browser.wait")
+2. category (one of: string, array, math, object, file, datetime, data, browser, utility, test)
+3. description (concise, one sentence)
+4. params (dict of parameter_name: type_description)
+5. returns (description of return type)
+6. implementation_hint (pseudo-code or description of the logic)
+
+Respond in JSON format:
+{{
+  "module_id": "category.name",
+  "category": "category",
+  "description": "What this module does",
+  "params": {{"param1": "string", "param2": "int"}},
+  "returns": "Description of return value",
+  "implementation_hint": "Step by step logic"
+}}
+"""
+
+        try:
+            response = requests.post(
+                f"{ollama_url}/api/chat",
+                json={
+                    "model": "llama3.2",
+                    "messages": [
+                        {"role": "system", "content": "You are an expert Python developer. Always respond with valid JSON only."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    "stream": False
+                },
+                timeout=60
+            )
+
+            if response.status_code == 200:
+                content = response.json()['message']['content']
+
+                # Extract JSON from response
+                json_match = re.search(r'\{[\s\S]*\}', content)
+                if json_match:
+                    import json
+                    spec = json.loads(json_match.group())
+
+                    # Validate required fields
+                    required = ["module_id", "category", "description", "params", "returns"]
+                    if all(k in spec for k in required):
+                        print(f"✅ LLM designed module: {spec['module_id']}")
+                        return spec
+
+        except Exception as e:
+            print(f"⚠️ Ollama failed: {e}")
+
+        # Fallback: create basic spec
+        print(f"⚠️ Using fallback basic spec for {module_name}")
+        return self._create_fallback_spec(module_name, reason)
+
+    def _create_fallback_spec(self, module_name: str, reason: str) -> Dict[str, Any]:
+        """Create a basic spec when LLM fails"""
+        # Try to parse module_name as category.function
+        parts = module_name.split(".")
+        if len(parts) >= 2:
+            category = parts[0]
+            func_name = parts[1]
+        else:
+            category = "utility"
+            func_name = module_name.replace(".", "_")
+
+        return {
+            "module_id": f"{category}.{func_name}",
+            "category": category,
+            "description": f"Auto-generated module: {reason}",
+            "params": {"input": "any"},
+            "returns": "Processing result",
+            "implementation_hint": "Basic implementation placeholder"
+        }
+
+    async def _test_generated_module(self, test_path: str) -> Dict[str, Any]:
+        """
+        Test the generated module
+
+        Args:
+            test_path: Path to the test YAML file
+
+        Returns:
+            Test result
+        """
+        import subprocess
+        from pathlib import Path
+
+        test_file = Path(test_path)
+
+        if not test_file.exists():
+            return {
+                "success": False,
+                "error": f"Test file not found: {test_path}"
+            }
+
+        try:
+            # Run the test using workflow engine
+            result = subprocess.run(
+                ["python", "-m", "src.cli.main", str(test_file)],
+                cwd=self.project_root,
+                capture_output=True,
+                text=True,
+                timeout=30
+            )
+
+            output = result.stdout + result.stderr
+
+            # Check for success indicators
+            success = (
+                result.returncode == 0 and
+                "error" not in output.lower() and
+                ("success" in output.lower() or "✅" in output)
+            )
+
+            return {
+                "success": success,
+                "output": output[:500],
+                "returncode": result.returncode
+            }
+
+        except subprocess.TimeoutExpired:
+            return {
+                "success": False,
+                "error": "Test timeout (30s)"
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e)
+            }
+
+    async def _create_module_pr(self, module_name: str, gen_result: Dict[str, Any], test_result: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Create branch, commit, push, and PR for generated module
+
+        Args:
+            module_name: Module name
+            gen_result: Generation result
+            test_result: Test result
+
+        Returns:
+            PR creation result
+        """
+        import subprocess
+        from datetime import datetime
+
+        branch_name = f"auto-gen-{module_name.replace('.', '-')}-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+
+        try:
+            # Check if there are changes
+            result = subprocess.run(
+                ["git", "status", "--porcelain"],
+                cwd=self.project_root,
+                capture_output=True,
+                text=True
+            )
+
+            if not result.stdout.strip():
+                return {
+                    "success": False,
+                    "message": "No changes to commit"
+                }
+
+            # Create branch
+            subprocess.run(
+                ["git", "checkout", "-b", branch_name],
+                cwd=self.project_root,
+                check=True,
+                capture_output=True
+            )
+
+            # Stage files
+            subprocess.run(
+                ["git", "add", gen_result["module_path"], gen_result["test_path"]],
+                cwd=self.project_root,
+                check=True
+            )
+
+            # Commit
+            commit_msg = f"""feat: Auto-generate {module_name} module
+
+Generated by SmartExecutor AI Agent
+
+- Module: {gen_result['module_path']}
+- Test: {gen_result['test_path']}
+- Test result: {'✅ PASS' if test_result['success'] else '❌ FAIL'}
+
+🤖 Generated with AI-powered self-healing system
+"""
+
+            subprocess.run(
+                ["git", "commit", "-m", commit_msg],
+                cwd=self.project_root,
+                check=True,
+                capture_output=True
+            )
+
+            # Push
+            push_result = subprocess.run(
+                ["git", "push", "-u", "origin", branch_name],
+                cwd=self.project_root,
+                capture_output=True,
+                text=True
+            )
+
+            if push_result.returncode != 0:
+                return {
+                    "success": False,
+                    "branch": branch_name,
+                    "error": "Push failed",
+                    "message": "Branch created locally, push manually to create PR"
+                }
+
+            # Create PR using gh CLI
+            pr_title = f"feat: Auto-generate {module_name} module"
+            pr_body = f"""## AI-Generated Module
+
+**Module**: `{module_name}`
+**Reason**: Missing module detected during task execution
+
+### Files
+- Module: `{gen_result['module_path']}`
+- Test: `{gen_result['test_path']}`
+
+### Test Results
+{'✅ All tests passed' if test_result['success'] else '⚠️ Tests need review'}
+
+### Generated By
+SmartExecutor AI Agent - Self-healing task execution system
+
+---
+🤖 This PR was automatically generated by the AI evolution system.
+"""
+
+            pr_result = subprocess.run(
+                ["gh", "pr", "create", "--title", pr_title, "--body", pr_body],
+                cwd=self.project_root,
+                capture_output=True,
+                text=True
+            )
+
+            if pr_result.returncode == 0:
+                # Extract PR URL from output
+                pr_url = pr_result.stdout.strip().split('\n')[-1]
+
+                return {
+                    "success": True,
+                    "branch": branch_name,
+                    "pr_url": pr_url,
+                    "message": "PR created successfully"
+                }
+            else:
+                return {
+                    "success": False,
+                    "branch": branch_name,
+                    "error": pr_result.stderr,
+                    "message": "Branch pushed, but PR creation failed (use gh CLI manually)"
+                }
+
+        except subprocess.CalledProcessError as e:
+            return {
+                "success": False,
+                "branch": branch_name,
+                "error": str(e),
+                "message": "Git operation failed"
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e)
+            }
+
+    async def _store_solution_to_vector_db(
+        self,
+        module_spec: Dict[str, Any],
+        designed_spec: Dict[str, Any],
+        gen_result: Dict[str, Any],
+        test_result: Dict[str, Any]
+    ):
+        """
+        Store successful solution to vector database for future learning
+
+        Args:
+            module_spec: Original module spec
+            designed_spec: LLM-designed spec
+            gen_result: Generation result
+            test_result: Test result
+        """
+        try:
+            from src.core.modules.atomic.vector import VectorDBConnector, KnowledgeStore
+            from datetime import datetime
+
+            connector = VectorDBConnector(mode="local")
+            connector.connect()
+
+            store = KnowledgeStore(
+                connector=connector,
+                collection_name="flyto2_project_knowledge",
+                embedding_provider="local"
+            )
+
+            # Create comprehensive knowledge entry
+            content = f"""
+Module Generation Solution
+
+Problem: {module_spec.get('reason', 'Module not found')}
+Module: {designed_spec['module_id']}
+Category: {designed_spec['category']}
+Description: {designed_spec['description']}
+
+Parameters:
+{self._format_params(designed_spec['params'])}
+
+Implementation Approach:
+{designed_spec.get('implementation_hint', 'N/A')}
+
+Test Result: {'PASS' if test_result['success'] else 'FAIL'}
+
+Files Generated:
+- Module: {gen_result['module_path']}
+- Test: {gen_result['test_path']}
+
+This solution was automatically generated and tested by the SmartExecutor AI Agent.
+""".strip()
+
+            store.add_entry(
+                content=content,
+                metadata={
+                    "source": "smart_executor_auto_generation",
+                    "category": "module_generation_solution",
+                    "module_id": designed_spec['module_id'],
+                    "module_category": designed_spec['category'],
+                    "test_passed": test_result['success'],
+                    "timestamp": datetime.now().isoformat()
+                }
+            )
+
+            connector.disconnect()
+            print(f"✅ Solution stored to vector DB: {designed_spec['module_id']}")
+
+        except Exception as e:
+            print(f"⚠️ Failed to store solution to vector DB: {e}")
+
+    def _format_params(self, params: Dict[str, str]) -> str:
+        """Format parameters for documentation"""
+        lines = []
+        for name, type_desc in params.items():
+            lines.append(f"  - {name}: {type_desc}")
+        return "\n".join(lines) if lines else "  (none)"
