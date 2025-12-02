@@ -1134,11 +1134,17 @@ async def test_burst():
 ### ✅ 7.4 低效能偵測
 - [x] 追蹤執行時間
 - [x] 識別慢速模組
-- [ ] 自動建議優化方案
+- [x] 自動建議優化方案
 
-**已實作**: `metrics/module_quality.json` - `average_execution_ms` 追蹤
-**功能**: 記錄每個模組的平均執行時間
-**狀態**: ⏳ PARTIAL (75% - 追蹤完成，缺自動建議)
+**已實作**:
+- `metrics/module_quality.json` - `average_execution_ms` 追蹤
+- `src/core/performance/optimizer.py` - Performance analyzer with auto-suggestions (NEW)
+**功能**:
+- 記錄每個模組的平均執行時間
+- 自動偵測慢速模組 (>500ms threshold)
+- 生成優化建議 (category-specific)
+- 產生全系統效能報告
+**狀態**: ✅ COMPLETE (100% - Auto-suggestion system implemented)
 
 ### ✅ 7.5 新模組提案
 - [x] 分析缺口
