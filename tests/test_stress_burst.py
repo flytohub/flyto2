@@ -2,6 +2,7 @@
 """
 Stress Test - 100 Concurrent Operations
 Tests system under burst load to validate concurrent safety
+Uses StressTestEngine for standardized stress testing
 """
 import asyncio
 import sys
