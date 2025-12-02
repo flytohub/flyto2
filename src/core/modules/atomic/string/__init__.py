@@ -1,11 +1,40 @@
 """
 Atomic String Operations
-String processing with no external dependencies
 """
 
-from .operations import *
-from .advanced_operations import *
+try:
+    from .split import *
+except ImportError:
+    pass
 
-__all__ = [
-    # String modules will be auto-discovered by module registry
-]
+try:
+    from .replace import *
+except ImportError:
+    pass
+
+try:
+    from .lowercase import *
+except ImportError:
+    pass
+
+try:
+    from .uppercase import *
+except ImportError:
+    pass
+
+try:
+    from .trim import *
+except ImportError:
+    pass
+
+try:
+    from .reverse import *
+except ImportError:
+    pass
+
+try:
+    from .titlecase import *
+except ImportError:
+    pass
+
+__all__ = []

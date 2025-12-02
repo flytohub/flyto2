@@ -1,9 +1,5 @@
 """
-Training Modules - Daily Practice and Self-Improvement
-
-Modules for AI agent self-training and practice sessions
+Atomic Training Operations
 """
 
-from . import practice
-
-__all__ = ['practice']
+__all__ = []

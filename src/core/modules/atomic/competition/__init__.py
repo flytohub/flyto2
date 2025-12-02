@@ -1,9 +1,5 @@
 """
-Competition Modules - Speed Races and Performance Challenges
-
-Modules for competitive AI training
+Atomic Competition Operations
 """
 
-from . import speed_race
-
-__all__ = ['speed_race']
+__all__ = []

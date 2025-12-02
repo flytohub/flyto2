@@ -6,7 +6,7 @@ steps:
     module: string.reverse
     params:
       text: "hello"
-    description: "Reverse hello to olleh"
+    description: "Reverse 'hello' to 'olleh'"
 
   - id: verify_result
     module: test.assert_not_null
