@@ -348,28 +348,20 @@ if not exist .env (
 ) else (
     echo ✓ .env file exists
 
-    REM Check for required keys (read actual token value)
-    for /f "tokens=2 delims==" %%a in ('findstr /B "TELEGRAM_BOT_TOKEN=" .env 2^>nul') do set "TOKEN_VALUE=%%a"
-
-    if not defined TOKEN_VALUE (
+    REM Check for required keys (simplified check)
+    findstr /B "TELEGRAM_BOT_TOKEN=" .env >nul 2>nul
+    if errorlevel 1 (
         echo    ⚠️  TELEGRAM_BOT_TOKEN not found
         set "ENV_CONFIGURED=0"
     ) else (
-        REM Check if token looks like a real token (starts with a number, has colon)
-        echo !TOKEN_VALUE! | findstr /R "^[0-9][0-9]*:" >nul 2>nul
-        if !errorlevel! equ 0 (
+        REM Check if it's a placeholder
+        findstr /C:"TELEGRAM_BOT_TOKEN=your_" .env >nul 2>nul
+        if errorlevel 1 (
             echo    ✓ TELEGRAM_BOT_TOKEN configured
             set "ENV_CONFIGURED=1"
         ) else (
-            REM Check for common placeholders
-            echo !TOKEN_VALUE! | findstr /C:"your_" >nul 2>nul
-            if !errorlevel! equ 0 (
-                echo    ⚠️  TELEGRAM_BOT_TOKEN is placeholder
-                set "ENV_CONFIGURED=0"
-            ) else (
-                echo    ✓ TELEGRAM_BOT_TOKEN configured
-                set "ENV_CONFIGURED=1"
-            )
+            echo    ⚠️  TELEGRAM_BOT_TOKEN is placeholder
+            set "ENV_CONFIGURED=0"
         )
     )
 )
