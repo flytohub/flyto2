@@ -189,6 +189,7 @@ Ultra-Low-Cost Three-Tier Strategy
 • `/retry` - Retry with OpenAI after my attempt
 • `/status` - Flyto2 quality status
 • `/stats` - Usage statistics
+• `/memory` - Vector DB memory management 🧠
 
 *Example flow:*
 ```
@@ -442,6 +443,193 @@ async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"Error: {e}")
 
 
+async def memory_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Vector Database Memory Management
+    Commands:
+    - /memory search <query> - Search knowledge base
+    - /memory stats - Show statistics
+    - /memory recent [limit] - Show recent entries
+    - /memory clear <days> - Clear old entries
+    - /memory export - Export knowledge base
+    - /memory help - Show this help
+    """
+    if not is_authorized(update):
+        return
+
+    import sys
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+    from src.core.modules.atomic.vector import (
+        VectorDBConnector,
+        KnowledgeStore,
+        KnowledgeManager,
+        KnowledgeSearch
+    )
+
+    args = context.args
+
+    if not args or args[0] == "help":
+        help_msg = """
+🧠 *Vector Database Memory Management*
+
+*Commands:*
+• `/memory search <query>` - Search knowledge base
+• `/memory stats` - Show statistics
+• `/memory recent [limit]` - Recent entries (default 10)
+• `/memory clear <days>` - Clear entries older than N days
+• `/memory export` - Export to JSON
+• `/memory help` - Show this help
+
+*Examples:*
+• `/memory search browser error`
+• `/memory recent 20`
+• `/memory clear 90`
+        """
+        await update.message.reply_text(help_msg, parse_mode='Markdown')
+        return
+
+    command = args[0]
+
+    try:
+        # Connect to vector database
+        connector = VectorDBConnector(mode="local")
+        connector.connect()
+
+        store = KnowledgeStore(
+            connector=connector,
+            collection_name="flyto2_project_knowledge",
+            embedding_provider="local"
+        )
+
+        if command == "search":
+            if len(args) < 2:
+                await update.message.reply_text("Usage: /memory search <query>")
+                return
+
+            query = " ".join(args[1:])
+            await update.message.reply_text(f"🔍 Searching for: *{query}*", parse_mode='Markdown')
+
+            results = store.search(query, top_k=5)
+
+            if not results:
+                await update.message.reply_text("No results found.")
+                connector.disconnect()
+                return
+
+            response = "📚 *Search Results:*\n\n"
+            for i, result in enumerate(results, 1):
+                content = result.get('content', '')[:200]  # First 200 chars
+                score = result.get('score', 0)
+                metadata = result.get('metadata', {})
+                source = metadata.get('source', 'unknown')
+
+                response += f"*{i}. [{source}]* (score: {score:.2f})\n"
+                response += f"{content}...\n\n"
+
+            await update.message.reply_text(response, parse_mode='Markdown')
+
+        elif command == "stats":
+            await update.message.reply_text("📊 Loading statistics...")
+
+            manager = KnowledgeManager(store)
+            stats = manager.get_statistics()
+
+            stats_msg = f"""
+📊 *Knowledge Base Statistics*
+
+*Total Entries:* {stats.get('total_entries', 0)}
+
+*By Category:*
+"""
+            categories = stats.get('categories', {})
+            for cat, count in sorted(categories.items(), key=lambda x: x[1], reverse=True):
+                stats_msg += f"• {cat}: {count}\n"
+
+            stats_msg += f"\n*By Source:*\n"
+            sources = stats.get('sources', {})
+            for source, count in sorted(sources.items(), key=lambda x: x[1], reverse=True)[:10]:
+                stats_msg += f"• {source}: {count}\n"
+
+            stats_msg += f"""
+*Avg Content Length:* {stats.get('avg_content_length', 0):.0f} chars
+
+*Embedding:* {stats.get('embedding_provider', 'unknown')}
+*Dimension:* {stats.get('vector_dimension', 0)}
+*Collection:* {stats.get('collection', 'unknown')}
+            """
+
+            await update.message.reply_text(stats_msg, parse_mode='Markdown')
+
+        elif command == "recent":
+            limit = 10
+            if len(args) >= 2 and args[1].isdigit():
+                limit = int(args[1])
+                limit = min(limit, 50)  # Max 50
+
+            await update.message.reply_text(f"📋 Loading {limit} recent entries...")
+
+            manager = KnowledgeManager(store)
+            entries = manager.list_all(limit=limit)
+
+            if not entries:
+                await update.message.reply_text("No entries found.")
+                connector.disconnect()
+                return
+
+            response = f"📋 *Recent {len(entries)} Entries:*\n\n"
+            for i, entry in enumerate(entries[:limit], 1):
+                content = entry.get('content', '')[:150]
+                metadata = entry.get('metadata', {})
+                source = metadata.get('source', 'unknown')
+                timestamp = metadata.get('timestamp', '')[:10]  # Date only
+
+                response += f"*{i}. [{source}]* {timestamp}\n"
+                response += f"{content}...\n\n"
+
+            await update.message.reply_text(response, parse_mode='Markdown')
+
+        elif command == "clear":
+            if len(args) < 2:
+                await update.message.reply_text("Usage: /memory clear <days>\nExample: /memory clear 90")
+                return
+
+            days = int(args[1])
+            await update.message.reply_text(f"🗑️ Clearing entries older than {days} days...")
+
+            manager = KnowledgeManager(store)
+            deleted = manager.delete_old_entries(days_old=days, dry_run=False)
+
+            await update.message.reply_text(f"✅ Deleted {deleted} old entries (>{days} days)")
+
+        elif command == "export":
+            await update.message.reply_text("📦 Exporting knowledge base...")
+
+            export_file = PROJECT_ROOT / "exports" / f"knowledge_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+            export_file.parent.mkdir(exist_ok=True)
+
+            manager = KnowledgeManager(store)
+            exported = manager.export_entries(str(export_file), format="json")
+
+            file_size = export_file.stat().st_size / 1024  # KB
+            await update.message.reply_text(
+                f"✅ Exported {exported} entries\n"
+                f"File: `{export_file.name}`\n"
+                f"Size: {file_size:.1f} KB",
+                parse_mode='Markdown'
+            )
+
+        else:
+            await update.message.reply_text(f"Unknown command: {command}\nUse /memory help")
+
+        connector.disconnect()
+
+    except Exception as e:
+        await update.message.reply_text(f"❌ Error: {e}")
+        import traceback
+        traceback.print_exc()
+
+
 def main():
     """Start bot"""
     print("Starting Flyto2 Telegram Bot V2 (Ultra-Low-Cost)...")
@@ -458,6 +646,7 @@ def main():
     app.add_handler(CommandHandler("gpt", gpt_command))
     app.add_handler(CommandHandler("stats", stats_command))
     app.add_handler(CommandHandler("status", status_command))
+    app.add_handler(CommandHandler("memory", memory_command))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
     print("✅ Bot V2 started!")
