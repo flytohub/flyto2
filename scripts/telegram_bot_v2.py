@@ -189,6 +189,7 @@ Ultra-Low-Cost Three-Tier Strategy
 • `/retry` - Retry with OpenAI after my attempt
 • `/status` - Flyto2 quality status
 • `/stats` - Usage statistics
+• `/stress` - Run stress test (100 concurrent ops) 🔥
 • `/memory` - Vector DB memory management 🧠
 
 *Example flow:*
@@ -443,6 +444,116 @@ async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"Error: {e}")
 
 
+async def stress_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Run stress tests on the system
+    Tests 100 concurrent operations with >= 95% success rate target
+    """
+    if not is_authorized(update):
+        return
+
+    await update.message.reply_text("🔥 Starting stress test...\n100 concurrent operations")
+
+    try:
+        import sys
+        sys.path.insert(0, str(PROJECT_ROOT))
+
+        from src.core.training.stress_test import StressTestEngine
+        from src.core.engine.workflow_engine import WorkflowEngine
+
+        async def run_operation(op_id, module_name, params):
+            """Run a single operation"""
+            workflow = {
+                'workflow_name': f'stress_test_{op_id}',
+                'steps': [{'step_id': f'op_{op_id}', 'module': module_name, 'params': params}]
+            }
+            engine = WorkflowEngine(workflow)
+            result = await engine.execute()
+            return result
+
+        # Define operation templates
+        operation_templates = [
+            ('string.uppercase', {'text': 'test'}),
+            ('string.lowercase', {'text': 'TEST'}),
+            ('string.reverse', {'text': 'reverse'}),
+            ('string.trim', {'text': '  trim  '}),
+            ('math.abs', {'number': -42.5}),
+            ('math.round', {'number': 3.14159, 'decimals': 2}),
+            ('array.sort', {'array': [3, 1, 4, 2], 'order': 'asc'}),
+            ('array.unique', {'array': [1, 1, 2, 2, 3]}),
+            ('array.join', {'array': ['a', 'b', 'c'], 'separator': ','}),
+            ('object.keys', {'object': {'key1': 1, 'key2': 2}}),
+        ]
+
+        # Create 100 operation params
+        operation_params = []
+        for i in range(100):
+            module_name, base_params = operation_templates[i % len(operation_templates)]
+
+            # Customize params for each iteration
+            params = base_params.copy()
+            if 'text' in params:
+                params['text'] = f"{params['text']}_{i}"
+            elif 'number' in params and module_name == 'math.abs':
+                params['number'] = -i * 1.5
+            elif 'array' in params and module_name == 'array.sort':
+                params['array'] = [i, i+1, i+2, i+3]
+
+            operation_params.append({
+                'op_id': i,
+                'module_name': module_name,
+                'params': params
+            })
+
+        # Run stress test using StressTestEngine
+        engine = StressTestEngine(min_success_rate=95.0)
+
+        # Wrap run_operation to match expected signature
+        async def operation_wrapper(op_id, module_name, params):
+            return await run_operation(op_id, module_name, params)
+
+        result = await engine.run_burst_test(
+            operation=operation_wrapper,
+            operation_params=operation_params,
+            concurrency=100
+        )
+
+        # Generate report
+        report = engine.generate_report(result)
+
+        # Format for Telegram (limit message length)
+        if len(report) > 4000:
+            report_lines = report.split('\n')
+            telegram_report = '\n'.join(report_lines[:30])
+            telegram_report += f"\n... (truncated, total {len(report_lines)} lines)"
+        else:
+            telegram_report = report
+
+        await update.message.reply_text(f"```\n{telegram_report}\n```", parse_mode='Markdown')
+
+        # Also send summary
+        summary = f"""
+🔥 *Stress Test Complete*
+
+*Results:*
+• Total operations: {result.total}
+• Successful: {result.successful}
+• Failed: {result.failed}
+• Success rate: {result.success_rate:.1f}%
+• Duration: {result.duration:.2f}s
+• Throughput: {result.ops_per_second:.1f} ops/sec
+
+*Status:* {'✅ PASS' if engine.validate_result(result) else '❌ FAIL'}
+        """
+        await update.message.reply_text(summary, parse_mode='Markdown')
+
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        await update.message.reply_text(f"❌ Stress test failed:\n{str(e)}")
+        print(f"Stress test error:\n{error_details}")
+
+
 async def memory_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Vector Database Memory Management
@@ -646,6 +757,7 @@ def main():
     app.add_handler(CommandHandler("gpt", gpt_command))
     app.add_handler(CommandHandler("stats", stats_command))
     app.add_handler(CommandHandler("status", status_command))
+    app.add_handler(CommandHandler("stress", stress_command))
     app.add_handler(CommandHandler("memory", memory_command))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 

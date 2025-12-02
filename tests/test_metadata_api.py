@@ -138,7 +138,7 @@ def test_metadata_api():
     print("=" * 70)
     print("✅ Metadata API is ready for UI builder!")
     print()
-    print("前端可以調用：")
+    print("Frontend can call these endpoints:")
     print("  GET /api/modules/list?lang=zh")
     print("  GET /api/modules/detail/{module_id}?lang=zh")
     print("  GET /api/modules/schema/{module_id}")

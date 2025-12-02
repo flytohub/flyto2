@@ -115,9 +115,9 @@ class ProjectKnowledgeAggregator:
         content = file_path.read_text(encoding='utf-8')
         entries = []
 
-        # Extract summary table
+        # Extract summary table (looks for first table after Quick Summary heading)
         summary_match = re.search(
-            r'## 📈 快速摘要(.*?)---',
+            r'##\s+📈\s+[^\n]+(.*?)---',
             content,
             re.DOTALL
         )

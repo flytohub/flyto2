@@ -77,3 +77,6 @@ build/
 browser_data/
 test-results/
 .claude/
+
+# Runtime metrics data
+metrics/*.json

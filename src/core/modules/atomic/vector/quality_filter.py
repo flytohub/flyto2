@@ -229,11 +229,11 @@ class ConversationFilter(QualityFilter):
 
     # Conversation-specific patterns to exclude
     CONVERSATION_NOISE = [
-        r'^繼續',  # "Continue" (common but not useful)
+        r'^(continue|cont|go on)$',  # Simple continuation requests
         r'^ok$',
-        r'^好的',
-        r'^謝謝',
-        r'^了解',
+        r'^(okay|alright|fine|good)$',  # Simple acknowledgments
+        r'^(thank you|thanks|thx|ty)$',  # Simple thanks
+        r'^(understood|got it|i see)$',  # Understanding confirmations
         r'^\.\.\.$',  # Just ellipsis
         r'^[:;][-]?[)(\[\]{}|/\\]',  # Emoticons only
     ]
