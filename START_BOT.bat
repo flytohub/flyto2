@@ -2,11 +2,14 @@
 chcp 65001 >nul
 REM Flyto2 Autonomous Self-Evolving AI - Interactive Setup
 
+REM Change to script directory
+cd /d "%~dp0"
+
 echo.
-echo ╔════════════════════════════════════════╗
-echo ║   Flyto2 Autonomous Evolution AI       ║
-echo ║     Interactive Setup & Launcher       ║
-echo ╚════════════════════════════════════════╝
+echo ========================================
+echo    Flyto2 Autonomous Evolution AI
+echo    Interactive Setup ^& Launcher
+echo ========================================
 echo.
 
 REM ========================================
@@ -92,84 +95,84 @@ echo [4/4] 啟動模式選擇
 echo.
 echo 請選擇啟動模式：
 echo.
-echo [1] 🤖 完全自動模式 - 每小時自動訓練、進化、學習
+echo [1] 完全自動模式 - 每小時自動訓練、進化、學習
 echo     • 爬網站練習
 echo     • 自動進化循環
 echo     • 更新向量資料庫
 echo     • Telegram 通知
 echo.
-echo [2] 💬 只啟動 Telegram 聊天機器人
+echo [2] 只啟動 Telegram 聊天機器人
 echo     • 對話功能（Ollama + OpenAI）
 echo     • 語言選擇
 echo     • 向量資料庫管理
 echo     • 手動觸發進化
 echo.
-echo [3] 🔧 互動式進化模式
+echo [3] 互動式進化模式
 echo     • 手動控制每個進化步驟
 echo     • 即時審核和修改
 echo.
-echo [0] ❌ 取消
+echo [0] 取消
 echo.
 set /p mode="請輸入選項 (0-3): "
 
 if "%mode%"=="1" (
     echo.
-    echo ╔════════════════════════════════════════╗
-    echo ║  🤖 啟動完全自動模式                   ║
-    echo ║  • 每小時自動訓練                       ║
-    echo ║  • 自動進化和學習                       ║
-    echo ║  • Telegram 即時通知                    ║
-    echo ╚════════════════════════════════════════╝
+    echo ========================================
+    echo   啟動完全自動模式
+    echo   • 每小時自動訓練
+    echo   • 自動進化和學習
+    echo   • Telegram 即時通知
+    echo ========================================
     echo.
     set /p confirm="確定要啟動嗎？(Y/N): "
     if /i "%confirm%"=="Y" (
         echo.
-        echo ▶️  啟動中... Press Ctrl+C to stop
+        echo 啟動中... Press Ctrl+C to stop
         echo.
         python scripts\autonomous_bot.py
     ) else (
-        echo ❌ 已取消
+        echo 已取消
     )
 ) else if "%mode%"=="2" (
     echo.
-    echo ╔════════════════════════════════════════╗
-    echo ║  💬 啟動 Telegram 聊天機器人            ║
-    echo ║  • 對話功能（三層策略）                 ║
-    echo ║  • 使用 /start 查看所有指令             ║
-    echo ╚════════════════════════════════════════╝
+    echo ========================================
+    echo   啟動 Telegram 聊天機器人
+    echo   • 對話功能（三層策略）
+    echo   • 使用 /start 查看所有指令
+    echo ========================================
     echo.
     set /p confirm="確定要啟動嗎？(Y/N): "
     if /i "%confirm%"=="Y" (
         echo.
-        echo ▶️  啟動中... Press Ctrl+C to stop
+        echo 啟動中... Press Ctrl+C to stop
         echo.
         python scripts\telegram_bot_v2.py
     ) else (
-        echo ❌ 已取消
+        echo 已取消
     )
 ) else if "%mode%"=="3" (
     echo.
-    echo ╔════════════════════════════════════════╗
-    echo ║  🔧 啟動互動式進化模式                  ║
-    echo ║  • 手動控制進化步驟                     ║
-    echo ║  • 即時審核修改                         ║
-    echo ╚════════════════════════════════════════╝
+    echo ========================================
+    echo   啟動互動式進化模式
+    echo   • 手動控制進化步驟
+    echo   • 即時審核修改
+    echo ========================================
     echo.
     set /p confirm="確定要啟動嗎？(Y/N): "
     if /i "%confirm%"=="Y" (
         echo.
-        echo ▶️  啟動中... Press Ctrl+C to stop
+        echo 啟動中... Press Ctrl+C to stop
         echo.
         python scripts\interactive_evolution_bot.py
     ) else (
-        echo ❌ 已取消
+        echo 已取消
     )
 ) else if "%mode%"=="0" (
     echo.
-    echo ❌ 已取消啟動
+    echo 已取消啟動
 ) else (
     echo.
-    echo ❌ 無效的選項！
+    echo 無效的選項！
 )
 
 echo.
