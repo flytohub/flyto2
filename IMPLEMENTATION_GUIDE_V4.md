@@ -2938,28 +2938,286 @@ module_count_gauge = Gauge('flyto2_modules_total', 'Total modules')
 
 ---
 
-## 9. 实施检查清单
+## 9. Enterprise Knowledge Base System (IMPLEMENTED)
+
+> **Status**: ✅ Fully Operational
+> **Implementation Date**: 2025-12-02
+> **Cloud Platform**: Qdrant Cloud (AWS us-east-1)
+
+### 9.1 System Overview
+
+Enterprise-grade knowledge base management with version control, audit logging, and quality metrics.
+
+**Key Features**:
+- Version control for all documents
+- Complete audit trail for operations
+- Automated quality scoring
+- Cloud deployment with concurrent access
+- Multi-language support (English + Chinese)
+- Incremental updates with hash-based deduplication
+
+### 9.2 Architecture
+
+```
+Enterprise KB Manager
+├── Version Control
+│   ├── Document versioning
+│   ├── Hash-based deduplication
+│   └── Change tracking
+├── Audit System
+│   ├── Operation logging (JSONL)
+│   ├── User tracking
+│   └── Metrics recording
+├── Quality Engine
+│   ├── Completeness scoring
+│   ├── Readability analysis
+│   └── Language detection
+└── Vector Storage
+    ├── Qdrant Cloud
+    ├── 210+ vectors
+    └── 7 payload indexes
+```
+
+### 9.3 Implementation Files
+
+**Core Files**:
+- `src/core/knowledge/enterprise_kb_manager.py` - Main manager with version control
+- `src/core/knowledge/doc_ingestion.py` - Document processing pipeline
+- `src/core/knowledge/knowledge_store.py` - Vector storage wrapper
+- `src/core/knowledge/vector_schema.py` - Schema definitions
+- `scripts/kb_enterprise_cli.py` - Command-line interface
+- `scripts/ingest_implementation_guides.py` - Ingestion script
+
+**Configuration**:
+- `.env` - Qdrant Cloud credentials and settings
+- `logs/kb_audit.jsonl` - Audit logs (append-only)
+- `logs/kb_versions.json` - Version history
+
+### 9.4 Usage Examples
+
+**Ingest Documents**:
+```bash
+# Ingest all implementation guides
+python scripts/kb_enterprise_cli.py ingest --user your_name
+
+# Ingest specific document
+python scripts/kb_enterprise_cli.py ingest --document path/to/doc.md --user your_name
+
+# Force re-ingest (bypass hash check)
+python scripts/kb_enterprise_cli.py ingest --force --user your_name
+```
+
+**View Statistics**:
+```bash
+# Show knowledge base stats
+python scripts/kb_enterprise_cli.py stats
+
+# Output:
+# Total documents: 2
+# Total versions: 2
+# Total vectors: 210
+# Vector dimension: 384
+```
+
+**Check Audit Logs**:
+```bash
+# View recent operations
+python scripts/kb_enterprise_cli.py audit --limit 50
+
+# Export logs to file
+python scripts/kb_enterprise_cli.py export --output logs/audit_export.json
+```
+
+**View Document History**:
+```bash
+# Show version history for a document
+python scripts/kb_enterprise_cli.py history --doc IMPLEMENTATION_GUIDE_V4
+
+# Show all documents
+python scripts/kb_enterprise_cli.py history
+```
+
+### 9.5 Data Schema
+
+**Vector Metadata**:
+```python
+{
+    # Classification
+    "type": "module|architecture|practice|fix|pain_point",
+    "category": "vector_db|ollama|evolution|browser|general",
+    "importance": "critical|high|medium|low",
+
+    # Versioning
+    "doc_id": "IMPLEMENTATION_GUIDE_V4",
+    "version": 1,
+    "timestamp": "2025-12-02T20:44:20",
+
+    # Content
+    "section_title": "Evolution Planner",
+    "hierarchy": "Architecture/Evolution/Planner",
+    "language": "zh|en",
+    "has_code": true,
+    "word_count": 1234,
+
+    # Status
+    "status": "active",
+    "source": "documentation"
+}
+```
+
+**Audit Log Format**:
+```json
+{
+  "timestamp": "2025-12-02T20:44:20.730040",
+  "operation": "ingest",
+  "user": "claude_code",
+  "document_id": "IMPLEMENTATION_GUIDE_V4",
+  "chunks_affected": 65,
+  "success": true,
+  "error_message": null,
+  "metrics": {
+    "quality": {
+      "total_chunks": 65,
+      "avg_chunk_size": 1234,
+      "language_detected": "zh",
+      "completeness_score": 1.0,
+      "readability_score": 1.0
+    },
+    "elapsed_seconds": 22.59,
+    "version": 1
+  }
+}
+```
+
+### 9.6 Quality Metrics
+
+**Automated Scoring**:
+- **Completeness**: Average chunk size / 500 chars (target: ≥80%)
+- **Readability**: Presence of headers + lists (target: ≥50%)
+- **Language Detection**: Chinese chars vs English words
+- **Structure**: Code blocks + tables detection
+
+**Example Quality Report**:
+```
+Quality metrics:
+   Chunks: 65
+   Avg size: 1234 chars
+   Language: zh
+   Code blocks: Yes
+   Completeness: 100%  ✅
+   Readability: 100%   ✅
+```
+
+### 9.7 Integration Points
+
+**1. Self-Awareness System Integration**:
+```python
+from src.core.knowledge.knowledge_store import KnowledgeStore
+
+# Query system's own documentation
+store = KnowledgeStore()
+results = store.query(
+    "How does Evolution Planner work?",
+    filters={"type": "architecture"}
+)
+```
+
+**2. Evolution Pipeline Integration**:
+```python
+from src.core.knowledge.enterprise_kb_manager import EnterpriseKBManager
+
+# Update knowledge base after PR merge
+manager = EnterpriseKBManager()
+await manager.ingest_all_enterprise(
+    documents=[updated_doc],
+    user="evolution_bot"
+)
+```
+
+**3. RAG Integration**:
+```python
+from src.core.utils.rag_retriever import retrieve_knowledge
+
+# Retrieve relevant documentation for error analysis
+context = await retrieve_knowledge(
+    query="browser stealth detection bypass",
+    filters={"category": "browser", "importance": "high"}
+)
+```
+
+### 9.8 Monitoring and Maintenance
+
+**Daily Tasks**:
+- Monitor audit logs for failures
+- Check quality scores (should be ≥80%)
+- Verify vector count growth
+
+**Weekly Tasks**:
+- Export audit logs for backup
+- Review version history
+- Clean up old log files
+
+**Monthly Tasks**:
+- Analyze ingestion performance
+- Review and optimize indexes
+- Update documentation
+
+### 9.9 Troubleshooting
+
+**Issue: Ingestion Failed**
+```bash
+# Check audit logs
+python scripts/kb_enterprise_cli.py audit --limit 10
+
+# Verify Qdrant connection
+python -c "from src.core.modules.atomic.vector.connector import VectorDBConnector; conn = VectorDBConnector(mode='cloud'); conn.connect(); print('✅ Connected')"
+
+# Re-run with force flag
+python scripts/kb_enterprise_cli.py ingest --force
+```
+
+**Issue: Low Quality Scores**
+- Add more content to small sections
+- Improve document structure (use headers)
+- Add code examples and lists
+
+**Issue: Version Not Incrementing**
+- Check if document actually changed
+- Use `--force` flag to bypass hash check
+- Verify correct file path
+
+### 9.10 Best Practices
+
+1. **Always specify user**: Use `--user` flag for audit trail
+2. **Regular backups**: Export audit logs weekly
+3. **Monitor quality**: Check metrics after each ingestion
+4. **Incremental updates**: Let hash detection skip unchanged docs
+5. **Version control**: Keep document versions in Git before ingesting
+
+---
+
+## 10. Implementation Checklist
 
 ### Phase 1: 核心基础设施
 
-- [ ] 创建 `modules/catalog.json` schema
-- [ ] 实现 `CatalogManager`
-- [ ] 实现 `ModuleScanner`
-- [ ] 创建 `update_module_catalog.py` 脚本
-- [ ] 运行一次catalog更新
-- [ ] 验证module同步到VectorDB
+- [x] 创建 `modules/catalog.json` schema
+- [x] 实现 `CatalogManager`
+- [x] 实现 `ModuleScanner`
+- [x] 创建 `update_module_catalog.py` 脚本 (CLI in registry.py)
+- [x] 运行一次catalog更新
+- [x] 验证module同步到VectorDB
 
-- [ ] 创建 `ErrorCenter` 类
-- [ ] 创建 `generate_error_signature()` 函数
-- [ ] 创建 `metrics/error_events.jsonl`
+- [x] 创建 `ErrorCenter` 类
+- [x] 创建 `generate_error_signature()` 函数
+- [x] 创建 `metrics/error_events.jsonl`
 - [ ] 集成到workflow engine
-- [ ] 测试error logging
+- [x] 测试error logging
 
-- [ ] 创建 `DebugEngine` 类
-- [ ] 实现 `analyze()` 方法
-- [ ] 创建 `run_debug_analysis.py` 脚本
+- [x] 创建 `DebugEngine` 类
+- [x] 实现 `analyze()` 方法
+- [x] 创建 `run_debug_analysis.py` 脚本 (CLI in reporter.py)
 - [ ] 设置定时任务
-- [ ] 测试debug报告生成
+- [x] 测试debug报告生成
 
 ### Phase 2: 智能化增强
 
@@ -2992,46 +3250,54 @@ module_count_gauge = Gauge('flyto2_modules_total', 'Total modules')
 
 ---
 
-## 10. 常见问题 FAQ
+## 11. Common Questions (FAQ)
 
-### Q: Catalog更新频率?
-**A**: 新增module时手动运行，或每天定时更新一次。
+### Q: How often should Catalog be updated?
+**A**: Run manually when adding modules, or schedule daily automated updates.
 
-### Q: ErrorCenter会拖慢performance吗?
-**A**: 不会，异步写入JSONL，不阻塞主流程。
+### Q: Will ErrorCenter slow down performance?
+**A**: No, it uses async JSONL writes that don't block the main workflow.
 
-### Q: DebugEngine报告太长怎么办?
-**A**: TG Bot自动分段发送，或提供"View in File"按钮。
+### Q: What if DebugEngine reports are too long?
+**A**: TG Bot automatically splits messages, or provides "View in File" button.
 
-### Q: Evolution失败了怎么办?
-**A**: Ticket保留完整log，人工review后可重试或reject。
+### Q: What if Evolution fails?
+**A**: Tickets preserve complete logs for manual review, retry, or rejection.
 
-### Q: VectorDB什么时候清理?
-**A**: 提供 `/memory_cleanup` 指令，手动清理>90天或低质量数据。
+### Q: When to clean up VectorDB?
+**A**: Use `/memory_cleanup` command to manually remove >90-day or low-quality data.
 
----
+### Q: How to update implementation guides in VectorDB?
+**A**: Use `python scripts/kb_enterprise_cli.py ingest --force --user your_name` after editing guides.
 
-## 11. 下一步行动
-
-**立即开始**:
-1. 运行 `python scripts/update_module_catalog.py` 建立catalog
-2. 集成ErrorCenter到现有workflow engine
-3. 运行 `python scripts/run_debug_analysis.py` 看第一份报告
-
-**本周完成**:
-1. Phase 1所有组件
-2. TG Bot `/debug` 和 `/modules` 指令
-3. 第一次完整test
-
-**下周目标**:
-1. Phase 2 LLMOrchestrator
-2. Phase 3 Evolution Pipeline
-3. 第一个auto-generated PR!
+### Q: Is translation required for knowledge base?
+**A**: No, the system supports both English and Chinese content. Translation is optional.
 
 ---
 
-**文档版本**: V4.0
-**最后更新**: 2025-12-02
-**维护者**: Flyto2 Team
+## 12. Next Steps
 
-如有问题，请查阅 `/docs` 或提issue到GitHub。
+**Start Immediately**:
+1. Run `python scripts/update_module_catalog.py` to build catalog
+2. Integrate ErrorCenter into existing workflow engine
+3. Run `python scripts/run_debug_analysis.py` to see first report
+4. Run `python scripts/kb_enterprise_cli.py stats` to verify KB system
+
+**This Week**:
+1. Complete all Phase 1 components
+2. Add TG Bot `/debug` and `/modules` commands
+3. First complete end-to-end test
+4. Verify Enterprise KB ingestion working
+
+**Next Week**:
+1. Implement Phase 2 LLMOrchestrator
+2. Build Phase 3 Evolution Pipeline
+3. Generate first auto-generated PR!
+
+---
+
+**Document Version**: V4.0
+**Last Updated**: 2025-12-02
+**Maintained By**: Flyto2 Team
+
+For questions, consult `/docs` or file an issue on GitHub.

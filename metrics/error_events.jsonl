@@ -1,0 +1,1 @@
+{"timestamp": "2025-12-02T21:12:59.482122", "error_type": "ValueError", "error_message": "Test error for Phase 1", "error_signature": "5c993d6832d8", "module_id": "test.module", "workflow_id": null, "context": {"test": true}, "stack_trace": "Traceback (most recent call last):\n  File \"<string>\", line 10, in <module>\nValueError: Test error for Phase 1\n"}

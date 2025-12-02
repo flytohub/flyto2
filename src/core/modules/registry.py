@@ -417,3 +417,269 @@ def register_module(
         return module_class
 
     return decorator
+
+
+class ModuleCatalogManager:
+    """
+    Module Catalog Manager - Phase 1 Core Infrastructure
+
+    Manages module catalog with export, search, and sync capabilities.
+    """
+
+    def __init__(self):
+        self.registry = ModuleRegistry()
+
+    def export_catalog(self, lang: str = 'en') -> Dict[str, Any]:
+        """
+        Export complete module catalog
+
+        Args:
+            lang: Language for localized fields
+
+        Returns:
+            Complete catalog with all modules
+        """
+        all_metadata = self.registry.get_all_metadata(lang=lang)
+
+        catalog = {
+            "version": "1.0.0",
+            "generated_at": self._get_timestamp(),
+            "total_modules": len(all_metadata),
+            "modules": all_metadata,
+            "categories": self._get_categories(all_metadata),
+            "tags": self._get_all_tags(all_metadata)
+        }
+
+        return catalog
+
+    def export_to_json_file(self, filepath: str, lang: str = 'en'):
+        """Export catalog to JSON file"""
+        import json
+        from pathlib import Path
+
+        catalog = self.export_catalog(lang)
+
+        file_path = Path(filepath)
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+
+        with open(file_path, 'w', encoding='utf-8') as f:
+            json.dump(catalog, f, indent=2, ensure_ascii=False)
+
+        print(f"Catalog exported to: {file_path}")
+        print(f"Total modules: {catalog['total_modules']}")
+
+    def search_modules(
+        self,
+        query: str,
+        category: Optional[str] = None,
+        tags: Optional[List[str]] = None,
+        lang: str = 'en'
+    ) -> List[Dict[str, Any]]:
+        """
+        Search modules by query string
+
+        Args:
+            query: Search query
+            category: Filter by category
+            tags: Filter by tags
+            lang: Language for results
+
+        Returns:
+            List of matching modules
+        """
+        all_modules = self.registry.get_all_metadata(category=category, tags=tags, lang=lang)
+
+        query_lower = query.lower()
+        results = []
+
+        for module_id, metadata in all_modules.items():
+            # Search in module_id, label, description
+            searchable_text = " ".join([
+                module_id,
+                str(metadata.get('label', '')),
+                str(metadata.get('description', ''))
+            ]).lower()
+
+            if query_lower in searchable_text:
+                results.append({
+                    "module_id": module_id,
+                    **metadata
+                })
+
+        return results
+
+    def get_module_by_category(self, category: str, lang: str = 'en') -> List[Dict[str, Any]]:
+        """Get all modules in a category"""
+        modules = self.registry.get_all_metadata(category=category, lang=lang)
+        return [{"module_id": mid, **meta} for mid, meta in modules.items()]
+
+    def get_statistics(self) -> Dict[str, Any]:
+        """Get catalog statistics"""
+        all_modules = self.registry.get_all_metadata()
+
+        categories = {}
+        tags_count = {}
+
+        for module_id, metadata in all_modules.items():
+            cat = metadata.get('category', 'unknown')
+            categories[cat] = categories.get(cat, 0) + 1
+
+            for tag in metadata.get('tags', []):
+                tags_count[tag] = tags_count.get(tag, 0) + 1
+
+        return {
+            "total_modules": len(all_modules),
+            "categories": categories,
+            "most_common_tags": sorted(tags_count.items(), key=lambda x: x[1], reverse=True)[:10],
+            "total_categories": len(categories),
+            "total_unique_tags": len(tags_count)
+        }
+
+    async def sync_to_vectordb(self, lang: str = 'en'):
+        """
+        Sync module catalog to VectorDB for RAG
+
+        Uses knowledge store to make modules searchable via RAG.
+        """
+        try:
+            from src.core.knowledge.knowledge_store import KnowledgeStore
+
+            store = KnowledgeStore()
+            all_modules = self.registry.get_all_metadata(lang=lang)
+
+            ingested_count = 0
+            for module_id, metadata in all_modules.items():
+                # Create searchable content
+                content = self._format_module_for_rag(module_id, metadata)
+
+                # Ingest to vector store
+                await store.ingest_text(
+                    content=content,
+                    metadata={
+                        "type": "module",
+                        "module_id": module_id,
+                        "category": metadata.get('category', 'unknown'),
+                        "source": "catalog"
+                    }
+                )
+                ingested_count += 1
+
+            print(f"Synced {ingested_count} modules to VectorDB")
+            return {"success": True, "count": ingested_count}
+
+        except Exception as e:
+            print(f"Failed to sync to VectorDB: {e}")
+            return {"success": False, "error": str(e)}
+
+    def _format_module_for_rag(self, module_id: str, metadata: Dict[str, Any]) -> str:
+        """Format module information for RAG ingestion"""
+        lines = [
+            f"Module: {module_id}",
+            f"Label: {metadata.get('label', '')}",
+            f"Category: {metadata.get('category', '')}",
+            f"Description: {metadata.get('description', '')}",
+            ""
+        ]
+
+        if metadata.get('tags'):
+            lines.append(f"Tags: {', '.join(metadata['tags'])}")
+
+        if metadata.get('params_schema'):
+            lines.append("\nParameters:")
+            for param_name, param_def in metadata['params_schema'].items():
+                if isinstance(param_def, dict):
+                    lines.append(f"  - {param_name}: {param_def.get('description', '')}")
+
+        if metadata.get('examples'):
+            lines.append("\nExamples:")
+            for example in metadata['examples'][:2]:  # First 2 examples
+                if isinstance(example, dict):
+                    lines.append(f"  {example.get('description', '')}")
+
+        return "\n".join(lines)
+
+    def _get_categories(self, modules: Dict[str, Dict[str, Any]]) -> List[str]:
+        """Extract unique categories"""
+        return list(set(m.get('category', 'unknown') for m in modules.values()))
+
+    def _get_all_tags(self, modules: Dict[str, Dict[str, Any]]) -> List[str]:
+        """Extract all unique tags"""
+        tags = set()
+        for metadata in modules.values():
+            tags.update(metadata.get('tags', []))
+        return sorted(list(tags))
+
+    def _get_timestamp(self) -> str:
+        """Get current ISO timestamp"""
+        from datetime import datetime
+        return datetime.now().isoformat()
+
+
+# Global catalog manager instance
+_catalog_manager = None
+
+def get_catalog_manager() -> ModuleCatalogManager:
+    """Get singleton catalog manager instance"""
+    global _catalog_manager
+    if _catalog_manager is None:
+        _catalog_manager = ModuleCatalogManager()
+    return _catalog_manager
+
+
+if __name__ == "__main__":
+    """
+    Command-line interface for module catalog management
+
+    Usage:
+        python -m src.core.modules.registry export [--output PATH] [--lang LANG]
+        python -m src.core.modules.registry stats
+        python -m src.core.modules.registry sync
+    """
+    import sys
+    import asyncio
+
+    if len(sys.argv) < 2:
+        print("Usage: python -m src.core.modules.registry <command>")
+        print("Commands:")
+        print("  export [--output PATH] [--lang LANG]  Export catalog to JSON")
+        print("  stats                                  Show catalog statistics")
+        print("  sync                                   Sync to VectorDB")
+        sys.exit(1)
+
+    command = sys.argv[1]
+    manager = get_catalog_manager()
+
+    if command == "export":
+        output = "modules/catalog.json"
+        lang = "en"
+
+        # Parse optional arguments
+        for i, arg in enumerate(sys.argv[2:], start=2):
+            if arg == "--output" and i + 1 < len(sys.argv):
+                output = sys.argv[i + 1]
+            elif arg == "--lang" and i + 1 < len(sys.argv):
+                lang = sys.argv[i + 1]
+
+        manager.export_to_json_file(output, lang=lang)
+
+    elif command == "stats":
+        stats = manager.get_statistics()
+        print("\nModule Catalog Statistics:")
+        print(f"  Total modules: {stats['total_modules']}")
+        print(f"  Total categories: {stats['total_categories']}")
+        print(f"  Total unique tags: {stats['total_unique_tags']}")
+        print("\nModules by category:")
+        for cat, count in sorted(stats['categories'].items()):
+            print(f"  - {cat}: {count}")
+
+    elif command == "sync":
+        print("Syncing catalog to VectorDB...")
+        result = asyncio.run(manager.sync_to_vectordb())
+        if result['success']:
+            print(f"✅ Successfully synced {result['count']} modules")
+        else:
+            print(f"❌ Sync failed: {result['error']}")
+
+    else:
+        print(f"Unknown command: {command}")
+        sys.exit(1)

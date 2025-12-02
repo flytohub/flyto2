@@ -270,3 +270,320 @@ def get_reporter() -> EvolutionReporter:
     if _global_reporter is None:
         _global_reporter = EvolutionReporter()
     return _global_reporter
+
+
+class ErrorCenter:
+    """
+    Error Center - Phase 1 Core Infrastructure
+
+    Unified error management system that tracks, logs, and analyzes all errors.
+    """
+
+    def __init__(self, project_root: Optional[Path] = None):
+        self.project_root = project_root or Path(__file__).parent.parent.parent.parent
+        self.metrics_dir = self.project_root / "metrics"
+        self.metrics_dir.mkdir(exist_ok=True)
+        self.error_log = self.metrics_dir / "error_events.jsonl"
+
+    def log_error(
+        self,
+        error: Exception,
+        context: Optional[Dict[str, Any]] = None,
+        module_id: Optional[str] = None,
+        workflow_id: Optional[str] = None
+    ) -> str:
+        """
+        Log an error event
+
+        Args:
+            error: Exception object
+            context: Error context (params, state, etc.)
+            module_id: Module where error occurred
+            workflow_id: Workflow where error occurred
+
+        Returns:
+            Error signature (hash)
+        """
+        import hashlib
+
+        error_signature = self._generate_error_signature(error, module_id)
+
+        error_event = {
+            "timestamp": datetime.now().isoformat(),
+            "error_type": type(error).__name__,
+            "error_message": str(error),
+            "error_signature": error_signature,
+            "module_id": module_id,
+            "workflow_id": workflow_id,
+            "context": context or {},
+            "stack_trace": self._get_stack_trace(error)
+        }
+
+        # Append to JSONL file
+        with open(self.error_log, 'a', encoding='utf-8') as f:
+            f.write(json.dumps(error_event) + '\n')
+
+        return error_signature
+
+    def get_errors(
+        self,
+        limit: Optional[int] = None,
+        module_id: Optional[str] = None,
+        hours: Optional[int] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Get error events
+
+        Args:
+            limit: Max number of errors to return
+            module_id: Filter by module
+            hours: Get errors from last N hours
+
+        Returns:
+            List of error events
+        """
+        if not self.error_log.exists():
+            return []
+
+        errors = []
+        cutoff_time = None
+        if hours:
+            cutoff_time = datetime.now() - timedelta(hours=hours)
+
+        with open(self.error_log, 'r', encoding='utf-8') as f:
+            for line in f:
+                try:
+                    error_event = json.loads(line.strip())
+
+                    # Filter by module
+                    if module_id and error_event.get('module_id') != module_id:
+                        continue
+
+                    # Filter by time
+                    if cutoff_time:
+                        event_time = datetime.fromisoformat(error_event['timestamp'])
+                        if event_time < cutoff_time:
+                            continue
+
+                    errors.append(error_event)
+                except:
+                    continue
+
+        # Sort by timestamp (newest first)
+        errors.sort(key=lambda x: x['timestamp'], reverse=True)
+
+        if limit:
+            errors = errors[:limit]
+
+        return errors
+
+    def get_error_statistics(self, hours: int = 24) -> Dict[str, Any]:
+        """
+        Get error statistics
+
+        Args:
+            hours: Time window for statistics
+
+        Returns:
+            Error statistics
+        """
+        errors = self.get_errors(hours=hours)
+
+        error_types = {}
+        error_signatures = {}
+        module_errors = {}
+
+        for error in errors:
+            # Count by type
+            error_type = error.get('error_type', 'Unknown')
+            error_types[error_type] = error_types.get(error_type, 0) + 1
+
+            # Count by signature
+            sig = error.get('error_signature', 'unknown')
+            error_signatures[sig] = error_signatures.get(sig, 0) + 1
+
+            # Count by module
+            module = error.get('module_id', 'unknown')
+            module_errors[module] = module_errors.get(module, 0) + 1
+
+        return {
+            "total_errors": len(errors),
+            "time_window_hours": hours,
+            "error_by_type": error_types,
+            "error_by_signature": error_signatures,
+            "error_by_module": module_errors,
+            "most_common_errors": sorted(
+                error_signatures.items(),
+                key=lambda x: x[1],
+                reverse=True
+            )[:10]
+        }
+
+    def _generate_error_signature(self, error: Exception, module_id: Optional[str]) -> str:
+        """Generate unique error signature"""
+        import hashlib
+
+        signature_parts = [
+            type(error).__name__,
+            str(error)[:100],
+            module_id or ""
+        ]
+
+        signature_str = "|".join(signature_parts)
+        return hashlib.md5(signature_str.encode()).hexdigest()[:12]
+
+    def _get_stack_trace(self, error: Exception) -> str:
+        """Extract stack trace from exception"""
+        import traceback
+        return "".join(traceback.format_exception(type(error), error, error.__traceback__))
+
+
+class DebugEngine:
+    """
+    Debug Engine - Phase 1 Core Infrastructure
+
+    System health analyzer that detects patterns and suggests fixes.
+    """
+
+    def __init__(self, project_root: Optional[Path] = None):
+        self.project_root = project_root or Path(__file__).parent.parent.parent.parent
+        self.error_center = ErrorCenter(project_root)
+
+    async def analyze_system_health(self, hours: int = 24) -> Dict[str, Any]:
+        """
+        Analyze system health over time window
+
+        Args:
+            hours: Time window for analysis
+
+        Returns:
+            Health analysis report
+        """
+        stats = self.error_center.get_error_statistics(hours=hours)
+        errors = self.error_center.get_errors(hours=hours)
+
+        analysis = {
+            "timestamp": datetime.now().isoformat(),
+            "time_window_hours": hours,
+            "summary": self._generate_summary(stats, errors),
+            "priority_issues": self._identify_priority_issues(stats, errors),
+            "recommendations": self._generate_recommendations(stats, errors),
+            "health_score": self._calculate_health_score(stats)
+        }
+
+        return analysis
+
+    def _generate_summary(self, stats: Dict, errors: List[Dict]) -> str:
+        """Generate health summary"""
+        total_errors = stats.get('total_errors', 0)
+        hours = stats.get('time_window_hours', 24)
+
+        if total_errors == 0:
+            return f"System is healthy. No errors in the last {hours} hours."
+        elif total_errors < 5:
+            return f"System is mostly stable. {total_errors} errors in the last {hours} hours."
+        elif total_errors < 20:
+            return f"System has moderate issues. {total_errors} errors detected. Review recommended."
+        else:
+            return f"System health critical. {total_errors} errors detected. Immediate action required."
+
+    def _identify_priority_issues(self, stats: Dict, errors: List[Dict]) -> List[Dict[str, Any]]:
+        """Identify high priority issues"""
+        issues = []
+
+        # Most common errors
+        most_common = stats.get('most_common_errors', [])
+        for sig, count in most_common[:3]:
+            if count >= 3:
+                # Find an example error with this signature
+                example = next((e for e in errors if e.get('error_signature') == sig), None)
+
+                issues.append({
+                    "type": "recurring_error",
+                    "signature": sig,
+                    "count": count,
+                    "error_type": example.get('error_type') if example else 'Unknown',
+                    "error_message": example.get('error_message') if example else 'Unknown',
+                    "module_id": example.get('module_id') if example else None,
+                    "priority": "high" if count >= 10 else "medium"
+                })
+
+        # Module with most errors
+        module_errors = stats.get('error_by_module', {})
+        if module_errors:
+            worst_module = max(module_errors.items(), key=lambda x: x[1])
+            if worst_module[1] >= 5:
+                issues.append({
+                    "type": "problematic_module",
+                    "module_id": worst_module[0],
+                    "error_count": worst_module[1],
+                    "priority": "high"
+                })
+
+        return issues
+
+    def _generate_recommendations(self, stats: Dict, errors: List[Dict]) -> List[str]:
+        """Generate recommendations based on analysis"""
+        recommendations = []
+
+        total_errors = stats.get('total_errors', 0)
+
+        if total_errors >= 20:
+            recommendations.append("Critical: Run full system diagnostic")
+            recommendations.append("Consider rolling back recent changes")
+
+        most_common = stats.get('most_common_errors', [])
+        if most_common:
+            top_error_sig = most_common[0][0]
+            top_error_count = most_common[0][1]
+
+            if top_error_count >= 5:
+                recommendations.append(f"Priority: Fix recurring error (signature: {top_error_sig}, {top_error_count} occurrences)")
+
+        module_errors = stats.get('error_by_module', {})
+        if module_errors:
+            worst_module = max(module_errors.items(), key=lambda x: x[1])
+            if worst_module[1] >= 5:
+                recommendations.append(f"Review module: {worst_module[0]} ({worst_module[1]} errors)")
+
+        if not recommendations:
+            recommendations.append("System is stable. Continue monitoring.")
+
+        return recommendations
+
+    def _calculate_health_score(self, stats: Dict) -> float:
+        """
+        Calculate health score (0-100)
+
+        Higher score = better health
+        """
+        total_errors = stats.get('total_errors', 0)
+
+        # Base score
+        if total_errors == 0:
+            return 100.0
+        elif total_errors < 5:
+            return 90.0 - (total_errors * 2)
+        elif total_errors < 20:
+            return 80.0 - (total_errors - 5)
+        else:
+            return max(0.0, 60.0 - (total_errors - 20))
+
+
+# Global instances
+_error_center = None
+_debug_engine = None
+
+def get_error_center() -> ErrorCenter:
+    """Get singleton error center instance"""
+    global _error_center
+    if _error_center is None:
+        _error_center = ErrorCenter()
+    return _error_center
+
+def get_debug_engine() -> DebugEngine:
+    """Get singleton debug engine instance"""
+    global _debug_engine
+    if _debug_engine is None:
+        _debug_engine = DebugEngine()
+    return _debug_engine
