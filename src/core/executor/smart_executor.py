@@ -205,8 +205,81 @@ class SmartExecutor:
             return workflow
 
         elif "search" in task_lower:
-            # Search workflow
-            raise NotImplementedError("Search workflow not yet implemented")
+            # Search workflow - treat as crawl with search query
+            import re
+            urls = re.findall(r'https?://[^\s]+', task_description)
+
+            if not urls:
+                raise ValueError("No URL found in task description")
+
+            url = urls[0]
+
+            # Extract search query
+            query_match = re.search(r'search for (.+)', task_lower)
+            search_query = query_match.group(1) if query_match else ""
+
+            # Generate search workflow
+            workflow = {
+                "workflow_name": f"search_{url}",
+                "steps": [
+                    {
+                        "step_id": "launch_browser",
+                        "module": "browser.launch",
+                        "params": {"headless": True}
+                    },
+                    {
+                        "step_id": "goto_page",
+                        "module": "browser.goto",
+                        "params": {
+                            "url": url,
+                            "wait_until": "networkidle"
+                        }
+                    },
+                    {
+                        "step_id": "search_input",
+                        "module": "browser.type",
+                        "params": {
+                            "selector": "input[type='search'], input[name='q'], input[name='k']",
+                            "text": search_query
+                        }
+                    },
+                    {
+                        "step_id": "submit_search",
+                        "module": "browser.click",
+                        "params": {
+                            "selector": "button[type='submit'], input[type='submit']"
+                        }
+                    },
+                    {
+                        "step_id": "wait_results",
+                        "module": "browser.wait",
+                        "params": {"timeout": 5000}
+                    },
+                    {
+                        "step_id": "extract_results",
+                        "module": "browser.extract",
+                        "params": {
+                            "fields": [
+                                {"name": "products", "selector": "[data-component-type='s-search-result']", "multiple": True},
+                                {"name": "titles", "selector": "h2 a span", "multiple": True},
+                                {"name": "prices", "selector": ".a-price-whole", "multiple": True}
+                            ]
+                        }
+                    },
+                    {
+                        "step_id": "close_browser",
+                        "module": "browser.close",
+                        "params": {}
+                    }
+                ],
+                "outputs": {
+                    "result": {
+                        "source": "extract_results.result"
+                    }
+                }
+            }
+
+            return workflow
 
         else:
             raise ValueError(f"Unable to understand task: {task_description}")
