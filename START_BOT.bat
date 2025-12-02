@@ -77,18 +77,34 @@ if %errorlevel% equ 0 (
 )
 
 REM ========================================
-REM Start Unified Bot
+REM V4 Feature Check
+REM ========================================
+findstr /C:"QDRANT_URL=" .env >nul 2>&1
+if %errorlevel% equ 0 (
+    echo V4 Features: ENABLED
+    echo - Evolution Pipeline
+    echo - Knowledge Base
+    echo - Auto-Debug
+) else (
+    echo V4 Features: Basic Mode
+)
+echo.
+
+REM ========================================
+REM Start Interactive Evolution Bot
 REM ========================================
 echo ========================================
-echo Starting Unified Bot
-echo - Chat features: /start /lang /gpt /memory
-echo - Auto-training in background
-echo - All features in one bot
+echo Starting Flyto2 V4 Interactive Bot
+echo - Evolution: /evolve /debug
+echo - Modules: /modules
+echo - Memory: /memory_search
+echo - Practice: /practice
+echo - Competition: /competition
 echo ========================================
 echo.
 echo Press Ctrl+C to stop
 echo.
 
-python scripts\unified_bot.py
+python scripts\interactive_evolution_bot.py
 
 pause

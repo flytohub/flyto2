@@ -3243,10 +3243,11 @@ python scripts/kb_enterprise_cli.py ingest --force
 
 ### 部署
 
-- [ ] 创建 `start_bot_with_memory.bat`
-- [ ] 设置定时任务
-- [ ] 配置监控
-- [ ] 准备文档
+- [x] 更新 `START_BOT.bat` 支持 V4 功能
+- [x] 创建定时任务脚本 (`run_scheduled_tasks.py`)
+- [x] 创建任务调度设置 (Windows/Linux)
+- [x] 实现系统监控 (`monitor_system.py`)
+- [x] 测试所有部署脚本
 
 ---
 
