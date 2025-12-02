@@ -58,7 +58,66 @@
       ],
       "success_rate": 0.0,
       "status": "completed"
+    },
+    {
+      "url": "https://example.com",
+      "timestamp": "2025-12-02T10:19:39.340392",
+      "analysis": {
+        "url": "https://example.com",
+        "base_url": "https://example.com",
+        "timestamp": "2025-12-02T10:19:39.340415",
+        "robots_txt": {
+          "status": "not_found"
+        },
+        "structure": {
+          "title": "Example Domain",
+          "meta_tags": 1,
+          "headings": {
+            "h1": 1,
+            "h2": 0,
+            "h3": 0
+          },
+          "links": 1,
+          "images": 0,
+          "forms": 0,
+          "tables": 0,
+          "lists": {
+            "ul": 0,
+            "ol": 0
+          },
+          "patterns": {
+            "article_containers": [],
+            "product_containers": [],
+            "list_containers": [],
+            "pagination": null,
+            "common_classes": []
+          }
+        },
+        "recommendations": [
+          "✅ No robots.txt found - scraping generally allowed"
+        ],
+        "errors": []
+      },
+      "schema": {
+        "url": "https://example.com",
+        "timestamp": "2025-12-02T10:19:41.338786",
+        "detected_fields": {},
+        "extraction_rules": [],
+        "confidence": 0.0,
+        "errors": [
+          "No repeating containers found"
+        ]
+      },
+      "scraped_data": [],
+      "errors": [],
+      "learnings": [
+        "❌ Low success rate - need better pattern detection",
+        "✨ No errors - clean execution",
+        "❓ Low confidence - manual schema definition recommended"
+      ],
+      "success_rate": 0.0,
+      "status": "completed"
     }
   ],
-  "total_sessions": 1
+  "total_sessions": 2
 }
