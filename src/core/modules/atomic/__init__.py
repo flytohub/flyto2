@@ -39,6 +39,8 @@ from . import meta
 from . import training
 from . import analysis
 from . import competition
+from . import image_modules  # Image processing modules
+from . import browser_aliases  # Browser module aliases
 
 __all__ = [
     'BrowserFindModule',
