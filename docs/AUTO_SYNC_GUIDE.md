@@ -274,3 +274,54 @@ python scripts/setup_auto_sync.py
 ```
 
 Your Ollama on Windows can now continuously organize and feed knowledge automatically! 🎯
+
+## Quality Filtering
+
+Auto-sync includes intelligent quality filtering to prevent knowledge base pollution.
+
+### What Gets Filtered
+
+Automatically excluded:
+- Debug statements (`print()`, `console.log`)
+- Trivial responses ("ok", "yes", "thanks")
+- Cache and temporary files
+- Short/low-information content
+- Test artifacts and compiled files
+
+### Filter Modes
+
+**Enabled by default** - Recommended for all use cases:
+```bash
+# Quality filtering enabled (default)
+python scripts/auto_sync_knowledge.py --mode incremental
+```
+
+**Disable if needed** - Archives everything:
+```bash
+# Edit auto_sync_knowledge.py to disable filter
+# Change: enable_quality_filter=True
+# To: enable_quality_filter=False
+```
+
+### Quality Metrics
+
+Monitor filtering effectiveness:
+```bash
+# Check what's being filtered (console output)
+python scripts/auto_sync_knowledge.py --mode incremental
+
+# Example output:
+# Filtered practice result (score=0.10, reason=too_short)
+# ✓ Synced 5 entries (2 filtered)
+```
+
+### Benefits
+
+1. **Cleaner Knowledge Base** - Only valuable content stored
+2. **Better AI Retrieval** - Relevant results, no noise
+3. **Lower Costs** - Fewer embeddings = less API cost
+4. **Faster Search** - Smaller vector DB = faster queries
+
+**See**: `docs/QUALITY_FILTER_GUIDE.md` for detailed configuration
+
+Your knowledge base stays clean while auto-syncing! 🎯

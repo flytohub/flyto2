@@ -7,6 +7,7 @@ from datetime import datetime
 from pathlib import Path
 import json
 from .knowledge_store import KnowledgeStore
+from .quality_filter import QualityFilter
 
 
 class ExperienceArchiver:
@@ -14,21 +15,27 @@ class ExperienceArchiver:
     Automatically archives experiences to knowledge base
     """
 
-    def __init__(self, knowledge_store: KnowledgeStore):
+    def __init__(
+        self,
+        knowledge_store: KnowledgeStore,
+        enable_quality_filter: bool = True
+    ):
         """
         Initialize experience archiver
 
         Args:
             knowledge_store: KnowledgeStore instance
+            enable_quality_filter: Enable quality filtering
         """
         self.store = knowledge_store
+        self.quality_filter = QualityFilter() if enable_quality_filter else None
 
     def archive_practice_result(
         self,
         website: str,
         result: Dict[str, Any],
         analysis: Optional[str] = None
-    ) -> str:
+    ) -> Optional[str]:
         """
         Archive daily practice result
 
@@ -38,7 +45,7 @@ class ExperienceArchiver:
             analysis: Optional analysis text
 
         Returns:
-            Entry ID
+            Entry ID or None if filtered
         """
         # Extract key information
         success = result.get("status") == "success"
@@ -61,18 +68,26 @@ class ExperienceArchiver:
 
         content = " | ".join(content_parts)
 
+        # Build metadata
+        metadata = {
+            "source": "daily_practice",
+            "category": "success" if success else "error",
+            "website": website,
+            "steps_count": steps_count,
+            "duration": duration,
+            "timestamp": datetime.now().isoformat()
+        }
+
+        # Quality filter check
+        if self.quality_filter:
+            should_archive, score, reason = self.quality_filter.should_archive(content, metadata)
+            if not should_archive:
+                print(f"Filtered practice result (score={score:.2f}, reason={reason})")
+                return None
+            metadata["quality_score"] = score
+
         # Store with metadata
-        entry_id = self.store.store(
-            content=content,
-            metadata={
-                "source": "daily_practice",
-                "category": "success" if success else "error",
-                "website": website,
-                "steps_count": steps_count,
-                "duration": duration,
-                "timestamp": datetime.now().isoformat()
-            }
-        )
+        entry_id = self.store.store(content=content, metadata=metadata)
 
         return entry_id
 
@@ -80,7 +95,7 @@ class ExperienceArchiver:
         self,
         task_name: str,
         race_result: Dict[str, Any]
-    ) -> str:
+    ) -> Optional[str]:
         """
         Archive speed race result
 
@@ -89,7 +104,7 @@ class ExperienceArchiver:
             race_result: Race execution result
 
         Returns:
-            Entry ID
+            Entry ID or None if filtered
         """
         stats = race_result.get("stats", {})
 
@@ -101,18 +116,25 @@ class ExperienceArchiver:
             f"Total rounds: {race_result.get('rounds', 0)}"
         )
 
-        entry_id = self.store.store(
-            content=content,
-            metadata={
-                "source": "speed_race",
-                "category": "performance",
-                "task_name": task_name,
-                "best_time": stats.get("best_time"),
-                "avg_time": stats.get("avg_time"),
-                "success_rate": stats.get("success_rate"),
-                "timestamp": datetime.now().isoformat()
-            }
-        )
+        metadata = {
+            "source": "speed_race",
+            "category": "performance",
+            "task_name": task_name,
+            "best_time": stats.get("best_time"),
+            "avg_time": stats.get("avg_time"),
+            "success_rate": stats.get("success_rate"),
+            "timestamp": datetime.now().isoformat()
+        }
+
+        # Quality filter check
+        if self.quality_filter:
+            should_archive, score, reason = self.quality_filter.should_archive(content, metadata)
+            if not should_archive:
+                print(f"Filtered speed race (score={score:.2f}, reason={reason})")
+                return None
+            metadata["quality_score"] = score
+
+        entry_id = self.store.store(content=content, metadata=metadata)
 
         return entry_id
 
@@ -123,7 +145,7 @@ class ExperienceArchiver:
         error_message: str,
         context: Optional[Dict[str, Any]] = None,
         solution: Optional[str] = None
-    ) -> str:
+    ) -> Optional[str]:
         """
         Archive error case
 
@@ -135,7 +157,7 @@ class ExperienceArchiver:
             solution: Optional solution description
 
         Returns:
-            Entry ID
+            Entry ID or None if filtered
         """
         content_parts = [
             f"Error in {module_id}:",
@@ -162,6 +184,14 @@ class ExperienceArchiver:
         if solution:
             metadata["has_solution"] = True
 
+        # Quality filter check
+        if self.quality_filter:
+            should_archive, score, reason = self.quality_filter.should_archive(content, metadata)
+            if not should_archive:
+                print(f"Filtered error log (score={score:.2f}, reason={reason})")
+                return None
+            metadata["quality_score"] = score
+
         entry_id = self.store.store(content=content, metadata=metadata)
 
         return entry_id
@@ -172,7 +202,7 @@ class ExperienceArchiver:
         success_rate: float,
         description: str,
         use_cases: Optional[List[str]] = None
-    ) -> str:
+    ) -> Optional[str]:
         """
         Archive successful strategy pattern
 
@@ -183,7 +213,7 @@ class ExperienceArchiver:
             use_cases: Optional list of use cases
 
         Returns:
-            Entry ID
+            Entry ID or None if filtered
         """
         content = (
             f"Success Pattern - {strategy_name}: "
@@ -194,16 +224,23 @@ class ExperienceArchiver:
         if use_cases:
             content += f" | Use cases: {', '.join(use_cases)}"
 
-        entry_id = self.store.store(
-            content=content,
-            metadata={
-                "source": "success_pattern",
-                "category": "success",
-                "strategy_name": strategy_name,
-                "success_rate": success_rate,
-                "timestamp": datetime.now().isoformat()
-            }
-        )
+        metadata = {
+            "source": "success_pattern",
+            "category": "success",
+            "strategy_name": strategy_name,
+            "success_rate": success_rate,
+            "timestamp": datetime.now().isoformat()
+        }
+
+        # Quality filter check
+        if self.quality_filter:
+            should_archive, score, reason = self.quality_filter.should_archive(content, metadata)
+            if not should_archive:
+                print(f"Filtered success pattern (score={score:.2f}, reason={reason})")
+                return None
+            metadata["quality_score"] = score
+
+        entry_id = self.store.store(content=content, metadata=metadata)
 
         return entry_id
 
@@ -213,7 +250,7 @@ class ExperienceArchiver:
         version: str,
         changes: str,
         impact: str
-    ) -> str:
+    ) -> Optional[str]:
         """
         Archive module improvement/changelog
 
@@ -224,23 +261,30 @@ class ExperienceArchiver:
             impact: Impact description
 
         Returns:
-            Entry ID
+            Entry ID or None if filtered
         """
         content = (
             f"Module Improvement - {module_id} v{version}: "
             f"{changes} | Impact: {impact}"
         )
 
-        entry_id = self.store.store(
-            content=content,
-            metadata={
-                "source": "module_changelog",
-                "category": "improvement",
-                "module_id": module_id,
-                "version": version,
-                "timestamp": datetime.now().isoformat()
-            }
-        )
+        metadata = {
+            "source": "module_changelog",
+            "category": "improvement",
+            "module_id": module_id,
+            "version": version,
+            "timestamp": datetime.now().isoformat()
+        }
+
+        # Quality filter check
+        if self.quality_filter:
+            should_archive, score, reason = self.quality_filter.should_archive(content, metadata)
+            if not should_archive:
+                print(f"Filtered module improvement (score={score:.2f}, reason={reason})")
+                return None
+            metadata["quality_score"] = score
+
+        entry_id = self.store.store(content=content, metadata=metadata)
 
         return entry_id
 
@@ -316,11 +360,18 @@ class ExperienceArchiver:
         """
         stats = self.store.get_stats()
 
-        return {
+        result = {
             "total_archived": stats.get("total_entries", 0),
             "collection": stats.get("collection"),
             "provider": stats.get("embedding_provider")
         }
+
+        # Add quality filter stats if enabled
+        if self.quality_filter:
+            filter_stats = self.quality_filter.get_stats()
+            result["quality_filter"] = filter_stats
+
+        return result
 
 
 class AutoArchiveTrigger:
