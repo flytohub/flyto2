@@ -46,6 +46,7 @@ class BotState:
                 "conversation": [],
                 "pending_question": None,  # Question waiting for guidance
                 "ollama_attempt": None,     # Last Ollama response
+                "language": "zh-TW",        # Default: Traditional Chinese
                 "stats": {
                     "ollama_queries": 0,
                     "human_guided": 0,
@@ -76,7 +77,85 @@ def is_authorized(update: Update) -> bool:
     return user_id in TELEGRAM_ALLOWED_USERS
 
 
-async def ask_ollama(prompt: str, system_prompt: str = None) -> tuple[str, float]:
+async def translate_to_english(text: str) -> str:
+    """Translate text to English using Ollama (free)"""
+    try:
+        import requests
+
+        messages = [
+            {"role": "system", "content": "Translate the following text to English. Only output the translation, no explanations."},
+            {"role": "user", "content": text}
+        ]
+
+        response = requests.post(
+            f"{OLLAMA_URL}/api/chat",
+            json={
+                "model": "llama3.2",
+                "messages": messages,
+                "stream": False
+            },
+            timeout=30
+        )
+
+        if response.status_code == 200:
+            return response.json()['message']['content']
+        else:
+            return text  # Fallback: return original
+
+    except Exception as e:
+        print(f"Translation error: {e}")
+        return text  # Fallback: return original
+
+
+async def store_conversation_to_vector_db(question: str, answer: str, source: str = "telegram_chat"):
+    """
+    Store conversation to vector database
+    Translates to English before storing for consistency
+    """
+    try:
+        import sys
+        sys.path.insert(0, str(PROJECT_ROOT))
+
+        from src.core.modules.atomic.vector import VectorDBConnector, KnowledgeStore
+
+        # Translate both Q&A to English
+        question_en = await translate_to_english(question)
+        answer_en = await translate_to_english(answer)
+
+        # Combine as Q&A pair
+        content = f"Q: {question_en}\n\nA: {answer_en}"
+
+        # Store in vector DB
+        connector = VectorDBConnector(mode="local")
+        connector.connect()
+
+        store = KnowledgeStore(
+            connector=connector,
+            collection_name="flyto2_project_knowledge",
+            embedding_provider="local"
+        )
+
+        store.add_entry(
+            content=content,
+            metadata={
+                "source": source,
+                "timestamp": datetime.now().isoformat(),
+                "category": "telegram_conversation",
+                "question_original": question[:200],  # Keep original for reference
+                "answer_original": answer[:200]
+            }
+        )
+
+        connector.disconnect()
+        print(f"✅ Stored to vector DB: {question_en[:50]}...")
+
+    except Exception as e:
+        print(f"❌ Failed to store to vector DB: {e}")
+        import traceback
+        traceback.print_exc()
+
+
+async def ask_ollama(prompt: str, system_prompt: str = None, language: str = "zh-TW") -> tuple[str, float]:
     """
     Ask Ollama and return (response, confidence)
     Confidence: 0.0-1.0 estimate based on response analysis
@@ -84,9 +163,22 @@ async def ask_ollama(prompt: str, system_prompt: str = None) -> tuple[str, float
     try:
         import requests
 
+        # Language instruction mapping
+        lang_instructions = {
+            "zh-TW": "請用繁體中文回答。Be concise and clear.",
+            "zh-CN": "请用简体中文回答。Be concise and clear.",
+            "en": "Please reply in English. Be concise and clear.",
+            "ja": "日本語で答えてください。Be concise and clear.",
+            "ko": "한국어로 답변해주세요. Be concise and clear.",
+        }
+
+        lang_instruction = lang_instructions.get(language, lang_instructions["zh-TW"])
+
+        # Combine system prompt with language instruction
+        full_system_prompt = f"{system_prompt}\n\n{lang_instruction}" if system_prompt else lang_instruction
+
         messages = []
-        if system_prompt:
-            messages.append({"role": "system", "content": system_prompt})
+        messages.append({"role": "system", "content": full_system_prompt})
         messages.append({"role": "user", "content": prompt})
 
         response = requests.post(
@@ -172,7 +264,19 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Unauthorized")
         return
 
-    welcome = """
+    user_id = update.effective_user.id
+    session = state.get_session(user_id)
+    current_lang = session.get("language", "zh-TW")
+
+    lang_names = {
+        "zh-TW": "繁體中文",
+        "zh-CN": "简体中文",
+        "en": "English",
+        "ja": "日本語",
+        "ko": "한국어"
+    }
+
+    welcome = f"""
 🤖 *Flyto2 AI Assistant V2*
 Ultra-Low-Cost Three-Tier Strategy
 
@@ -185,12 +289,15 @@ Ultra-Low-Cost Three-Tier Strategy
 
 *Commands:*
 • Just chat - I'll use Ollama
+• `/lang` - Change reply language (Current: {lang_names[current_lang]}) 🌐
 • `/gpt <q>` - Force OpenAI ($)
 • `/retry` - Retry with OpenAI after my attempt
 • `/status` - Flyto2 quality status
 • `/stats` - Usage statistics
 • `/stress` - Run stress test (100 concurrent ops) 🔥
 • `/memory` - Vector DB memory management 🧠
+
+*Auto-Storage:* All conversations → Vector DB (English) ✅
 
 *Example flow:*
 ```
@@ -216,6 +323,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     session = state.get_session(user_id)
     message = update.message.text
+    language = session.get("language", "zh-TW")
 
     await context.bot.send_chat_action(
         chat_id=update.effective_chat.id,
@@ -228,9 +336,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await handle_guidance(update, context, message)
         return
 
-    # Tier 1: Try Ollama first
-    answer, confidence = await ask_ollama(message)
+    # Tier 1: Try Ollama first (with user's language preference)
+    answer, confidence = await ask_ollama(message, language=language)
     session['stats']['ollama_queries'] += 1
+
+    # Store to vector DB (async, don't wait)
+    import asyncio
+    asyncio.create_task(store_conversation_to_vector_db(message, answer, source="telegram_ollama"))
 
     # If confident enough, return directly
     if confidence >= 0.7:
@@ -268,6 +380,7 @@ async def handle_guidance(update: Update, context: ContextTypes.DEFAULT_TYPE, gu
     """Handle human guidance for pending question"""
     user_id = update.effective_user.id
     session = state.get_session(user_id)
+    language = session.get("language", "zh-TW")
 
     original_question = session["pending_question"]
 
@@ -286,8 +399,12 @@ Based on the guidance above, provide a focused answer.
 Be concise. Follow the direction given.
 """
 
-    answer, confidence = await ask_ollama(enhanced_prompt)
+    answer, confidence = await ask_ollama(enhanced_prompt, language=language)
     session['stats']['human_guided'] += 1
+
+    # Store to vector DB
+    import asyncio
+    asyncio.create_task(store_conversation_to_vector_db(original_question, answer, source="telegram_guided"))
 
     state.clear_pending(user_id)
 
@@ -331,6 +448,10 @@ async def retry_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     session['stats']['openai_queries'] += 1
     session['stats']['cost_today'] += 0.10  # Rough estimate
 
+    # Store to vector DB
+    import asyncio
+    asyncio.create_task(store_conversation_to_vector_db(question, answer, source="telegram_openai"))
+
     state.clear_pending(user_id)
 
     await update.message.reply_text(
@@ -364,6 +485,10 @@ async def gpt_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     session['stats']['openai_queries'] += 1
     session['stats']['cost_today'] += 0.10
+
+    # Store to vector DB
+    import asyncio
+    asyncio.create_task(store_conversation_to_vector_db(question, answer, source="telegram_openai"))
 
     await update.message.reply_text(
         f"*[OpenAI GPT-4 ✓ $0.10]*\n\n{answer}",
@@ -741,6 +866,70 @@ async def memory_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         traceback.print_exc()
 
 
+async def lang_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Change reply language preference"""
+    if not is_authorized(update):
+        return
+
+    user_id = update.effective_user.id
+    session = state.get_session(user_id)
+
+    if not context.args:
+        current_lang = session.get("language", "zh-TW")
+        lang_names = {
+            "zh-TW": "繁體中文 (Traditional Chinese)",
+            "zh-CN": "简体中文 (Simplified Chinese)",
+            "en": "English",
+            "ja": "日本語 (Japanese)",
+            "ko": "한국어 (Korean)"
+        }
+
+        help_msg = f"""
+🌐 *Language Settings*
+
+*Current Language:* {lang_names.get(current_lang, current_lang)}
+
+*Available Languages:*
+• `/lang zh-TW` - 繁體中文 (Traditional Chinese)
+• `/lang zh-CN` - 简体中文 (Simplified Chinese)
+• `/lang en` - English
+• `/lang ja` - 日本語 (Japanese)
+• `/lang ko` - 한국어 (Korean)
+
+*Note:* All conversations are automatically stored in vector database (translated to English for consistency).
+        """
+        await update.message.reply_text(help_msg, parse_mode='Markdown')
+        return
+
+    new_lang = context.args[0]
+    valid_langs = ["zh-TW", "zh-CN", "en", "ja", "ko"]
+
+    if new_lang not in valid_langs:
+        await update.message.reply_text(
+            f"❌ Invalid language: {new_lang}\n"
+            f"Valid options: {', '.join(valid_langs)}\n"
+            f"Use `/lang` to see all options."
+        )
+        return
+
+    session["language"] = new_lang
+
+    lang_names = {
+        "zh-TW": "繁體中文",
+        "zh-CN": "简体中文",
+        "en": "English",
+        "ja": "日本語",
+        "ko": "한국어"
+    }
+
+    await update.message.reply_text(
+        f"✅ Language set to: *{lang_names[new_lang]}*\n\n"
+        f"All future replies will be in {lang_names[new_lang]}.\n"
+        f"(Conversations are still stored in English in vector DB)",
+        parse_mode='Markdown'
+    )
+
+
 async def evolve_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Run one auto-evolution cycle
@@ -807,6 +996,7 @@ def main():
 
     # Register handlers
     app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("lang", lang_command))
     app.add_handler(CommandHandler("retry", retry_command))
     app.add_handler(CommandHandler("gpt", gpt_command))
     app.add_handler(CommandHandler("stats", stats_command))
