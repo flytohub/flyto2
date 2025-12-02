@@ -1207,20 +1207,121 @@ result = await handler.execute_with_retry(api_call, param1, param2)
 
 **Status**: ✅ COMPLETE
 
-### ❌ 6.3 Proxy Rotation (代理切換)
-**目標**: 自動切換代理
+### ✅ 6.3 Proxy Rotation
+**Goal**: Automatic proxy switching for distributed requests
 
-**狀態**: ❌ NOT STARTED
+**Implementation**: `src/core/modules/atomic/api/proxy_manager.py`
 
-### ❌ 6.4 Anti-Bot Detection (反爬偵測)
-**目標**: 檢測並應對反爬機制
+**Features**:
+- ProxyManager class with rotation strategies
+- ProxyConfig dataclass for proxy configuration
+- Rotation strategies: round_robin, random, least_used
+- Automatic usage tracking and rotation
+- Max requests per proxy with auto-reset
+- Proxy pool management (add, remove, clear)
+- Usage statistics tracking
 
-**狀態**: ❌ NOT STARTED
+**Rotation Strategies**:
+- round_robin: Cycle through proxies in order
+- random: Random selection from pool
+- least_used: Select proxy with fewest requests
 
-### ❌ 6.5 Headless Rendering (無頭瀏覽器)
-**目標**: JS 密集型網站抓取
+**Usage**:
+```python
+manager = ProxyManager(proxies=['http://proxy1.com', 'http://proxy2.com'])
+manager.set_strategy('least_used')
+proxy_config = manager.get_next_proxy()
+```
 
-**狀態**: ❌ NOT STARTED
+**Status**: ✅ COMPLETE
+
+### ✅ 6.4 Anti-Bot Detection
+**Goal**: Detect and respond to anti-bot mechanisms
+
+**Implementation**: `src/core/modules/atomic/api/anti_bot.py`
+
+**Classes**:
+1. **AntiBotDetector**: Detects anti-bot mechanisms in HTTP responses
+   - Detects captcha, cloudflare, rate limiting
+   - Status code analysis (403, 429, 503)
+   - Header inspection (cf-ray, cloudflare)
+   - Body content scanning for bot indicators
+   - Confidence scoring
+   - Suggested actions based on detection type
+
+2. **UserAgentRotator**: Rotates user agents to avoid detection
+   - 5 default modern user agents (Chrome, Firefox, Safari)
+   - Sequential and random rotation
+   - Custom user agent support
+
+**Detection Indicators**:
+- captcha, recaptcha, hcaptcha
+- cloudflare protection
+- access denied messages
+- bot detected warnings
+- unusual traffic notices
+- security checks
+
+**Suggested Actions**:
+- human_intervention_required (for captcha)
+- retry_with_delay (for cloudflare)
+- rotate_proxy_or_user_agent (for generic blocks)
+
+**Usage**:
+```python
+detector = AntiBotDetector()
+result = detector.detect(response)
+if result['detected']:
+    action = result['suggested_action']
+```
+
+**Status**: ✅ COMPLETE
+
+### ✅ 6.5 Headless Rendering
+**Goal**: Headless browser management for JS-heavy sites
+
+**Implementation**: `src/core/modules/atomic/browser/headless_manager.py`
+
+**Classes**:
+1. **HeadlessManager**: Manages headless browser configuration
+   - Multiple launch modes: default, performance, stealth
+   - Configurable viewport size (1920x1080 default)
+   - JavaScript control
+   - HTTPS error handling
+   - User agent management
+   - Browser args optimization
+
+2. **ResourceBlocker**: Manages resource blocking for performance
+   - Block by resource type (image, stylesheet, font, media)
+   - Block by URL pattern
+   - Blocking statistics tracking
+
+**Launch Modes**:
+- **default**: Standard headless configuration
+- **performance**: Fast mode with image/resource blocking
+- **stealth**: Detection evasion with automation flags disabled
+
+**Browser Args**:
+- Disable automation detection
+- Disable dev-shm-usage for stability
+- No sandbox for containers
+- GPU/software rasterizer control
+- Extension control
+
+**Performance Config**:
+- Block resources: image, stylesheet, font
+- Timeout: 30000ms
+- Wait until: domcontentloaded vs networkidle
+
+**Usage**:
+```python
+manager = HeadlessManager()
+config = manager.optimize_for_speed()
+# or
+config = manager.optimize_for_stealth()
+```
+
+**Status**: ✅ COMPLETE
 
 ### ✅ 6.6 Connection Pooling
 **Goal**: Optimize concurrent connection management
