@@ -59,6 +59,7 @@ class WorkflowEngine:
         # Execution state
         self.start_time = None
         self.end_time = None
+        # Status values: 'pending', 'running', 'success', 'failure'
         self.status = 'pending'
 
     def _parse_params(self, param_schema: List[Dict[str, Any]], provided_params: Dict[str, Any]) -> Dict[str, Any]:
@@ -126,7 +127,7 @@ class WorkflowEngine:
             return output
 
         except Exception as e:
-            self.status = 'failed'
+            self.status = 'failure'
             self.end_time = time.time()
 
             logger.error(f"Workflow failed: {str(e)}")
@@ -299,7 +300,7 @@ class WorkflowEngine:
 
             if on_error == 'continue':
                 logger.warning(f"Step '{step_id}' failed but continuing: {str(e)}")
-                return {'status': 'failed', 'error': str(e)}
+                return {'status': 'failure', 'error': str(e)}
             elif on_error == 'rollback':
                 logger.error(f"Step '{step_id}' failed, initiating rollback")
                 raise StepExecutionError(step_id, f"Step failed: {str(e)}", e)
