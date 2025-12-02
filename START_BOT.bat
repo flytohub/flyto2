@@ -59,13 +59,16 @@ if %errorlevel% equ 0 (
     set /p enable_openai="Enable OpenAI? (Y/N): "
     if /i "%enable_openai%"=="Y" (
         echo.
-        echo Please add your OpenAI API key to .env file:
-        echo   OPENAI_API_KEY=sk-your-key-here
+        echo Enter your OpenAI API Key:
+        set /p openai_key="OPENAI_API_KEY=sk-"
+
+        REM Add key to .env file
+        echo OPENAI_API_KEY=sk-%openai_key%>> .env
+
         echo.
-        echo Then run START_BOT.bat again
+        echo ✓ API Key saved to .env
+        echo Using three-tier strategy ^(Ollama -^> Human -^> OpenAI^)
         echo.
-        pause
-        exit /b
     ) else (
         echo.
         echo Running with Ollama only ^(free^)
