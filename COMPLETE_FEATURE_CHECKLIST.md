@@ -1517,7 +1517,7 @@ async with ConnectionPool() as pool:
 
 ---
 
-## 🧠 9. 向量資料庫與長期記憶系統 (3/8 = 38%)
+## 🧠 9. Vector Database and Long-term Memory System (4/8 = 50%)
 
 **目標**: 解決 AI 失憶問題，建立持久化知識庫，避免依賴長 Token
 
@@ -1650,30 +1650,64 @@ store.delete(id)
 
 **Status**: ✅ COMPLETE
 
-### ❌ 9.4 經驗自動歸檔
-**目標**: 自動將訓練經驗、錯誤、成功案例存入向量庫
+### ✅ 9.4 Experience Auto-Archiving
+**Goal**: Automatically archive training results, errors, and successes to vector database
 
-**需自動歸檔內容**:
-- [ ] **Daily Practice 結果** - 每次練習的分析和學習
-- [ ] **Speed Race 數據** - 效能優化經驗
-- [ ] **錯誤案例** - 失敗原因和解決方案
-- [ ] **成功模式** - 高成功率的抓取策略
-- [ ] **模組改進** - 每次模組優化的 changelog
+**Implementation**: `src/core/modules/atomic/vector/auto_archive.py`
 
-**Atomic Modules**:
-- [ ] `vector.archive.practice` - 歸檔練習結果
-- [ ] `vector.archive.race` - 歸檔競賽數據
-- [ ] `vector.archive.error` - 歸檔錯誤案例
-- [ ] `vector.archive.success` - 歸檔成功案例
+**Classes**:
+1. **ExperienceArchiver**: Archives various experience types
+   - archive_practice_result(): Daily practice results
+   - archive_speed_race(): Performance optimization data
+   - archive_error(): Error cases with solutions
+   - archive_success_pattern(): High success rate strategies
+   - archive_module_improvement(): Module changelogs
+   - batch_archive(): Batch archiving support
 
-**自動觸發點**:
-- Daily Practice 完成後 → 歸檔學習內容
-- Speed Race 完成後 → 歸檔效能數據
-- 模組測試失敗 → 歸檔錯誤
-- 模組改進合併 → 歸檔變更
+2. **AutoArchiveTrigger**: Event-driven auto-archiving
+   - on_practice_complete(): Triggered after practice
+   - on_race_complete(): Triggered after speed race
+   - on_module_error(): Triggered on errors
+   - Enable/disable support
 
-**優先級**: P1
-**狀態**: ❌ NOT STARTED
+**Auto-Trigger Points**:
+- Daily Practice complete → archive learning content
+- Speed Race complete → archive performance data
+- Module test failure → archive error with context
+- Module improvement merged → archive changelog
+
+**Archived Content**:
+- Practice: website, status, steps, duration, analysis
+- Race: task name, best/avg time, success rate
+- Error: module, type, message, context, solution
+- Success: strategy, success rate, use cases
+- Improvement: module, version, changes, impact
+
+**Usage**:
+```python
+archiver = ExperienceArchiver(knowledge_store)
+
+# Manual archiving
+archiver.archive_practice_result(
+    website="https://example.com",
+    result={"status": "success", "steps": [...]}
+)
+
+# Auto-trigger
+trigger = AutoArchiveTrigger(archiver)
+trigger.on_practice_complete(website, result)
+```
+
+**Tests**: `tests/test_auto_archive.py` (all passed)
+- Practice archiving ✓
+- Race archiving ✓
+- Error archiving ✓
+- Success pattern archiving ✓
+- Module improvement archiving ✓
+- Semantic search on archived data ✓
+- Auto-trigger functionality ✓
+
+**Status**: ✅ COMPLETE
 
 ### ❌ 9.5 智能記憶檢索 (RAG)
 **目標**: AI 決策時自動檢索相關記憶
