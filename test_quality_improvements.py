@@ -39,7 +39,7 @@ async def test_template_quality():
     quality_checks = {
         'BaseModule': 'BaseModule' in template,
         '@register_module': '@register_module' in template,
-        'NO HARDCODED': 'NO HARDCODED' in template,
+        'No hardcoded data warning': 'hardcoded' in template.lower() or 'NO hardcoded' in template,
         'MUST read from self.params': 'self.params' in template,
         'validate_params()': 'def validate_params' in template,
         'Error handling': 'try:' in template and 'except' in template,

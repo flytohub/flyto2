@@ -421,19 +421,52 @@ ATOMIC MODULE STANDARDS:
 
 CRITICAL QUALITY REQUIREMENTS (MUST FOLLOW):
 1. ❌ NO HARDCODED test data in execute()
-2. ✅ MUST read ALL data from self.params
-3. ✅ MUST validate required params in validate_params()
-4. ✅ validate_params() MUST actually validate (not just return success)
-5. ✅ MUST be reusable with different inputs
-6. ✅ Use BaseModule class and @register_module decorator
-7. ✅ Handle errors gracefully
-8. ✅ Return proper status dict with 'status', 'data', and 'error' fields
+2. ❌ NO random data generation (no random.randint, random.choice, etc.)
+3. ❌ DO NOT redefine BaseModule - IMPORT it from src.core.modules.base
+4. ❌ DO NOT redefine @register_module - IMPORT it from src.core.modules.registry
+5. ✅ MUST read ALL data from self.params
+6. ✅ MUST validate required params in validate_params()
+7. ✅ validate_params() MUST actually validate and raise ValueError if params missing
+8. ✅ MUST be reusable with different inputs
+9. ✅ Handle errors gracefully with try/except
+10. ✅ Return proper status dict with 'status', 'data', and 'error' fields
+
+REQUIRED IMPORTS (copy exactly):
+from typing import Dict, Any
+from src.core.modules.base import BaseModule
+from src.core.modules.registry import register_module
 
 OUTPUT FORMAT:
 - Return ONLY the Python code
-- Do NOT include markdown code fences
-- Do NOT include explanations
-- Code must be complete and production-ready"""
+- Do NOT include markdown code fences (no ```)
+- Do NOT include explanations or comments outside code
+- Do NOT redefine BaseModule or @register_module
+- Code must be complete and production-ready
+
+EXAMPLE STRUCTURE (follow this pattern):
+```
+from typing import Dict, Any
+from src.core.modules.base import BaseModule
+from src.core.modules.registry import register_module
+
+@register_module('category.action')
+class MyModule(BaseModule):
+    module_name = "My Module"
+    module_description = "Description"
+
+    def validate_params(self) -> Dict[str, Any]:
+        if 'input' not in self.params:
+            raise ValueError("Missing required parameter: input")
+        self.input_data = self.params['input']
+        return {{'status': 'success', 'data': None}}
+
+    async def execute(self) -> Dict[str, Any]:
+        try:
+            result = process(self.input_data)
+            return {{'status': 'success', 'data': result}}
+        except Exception as e:
+            return {{'status': 'error', 'error': str(e)}}
+```"""
 
             user_prompt = f"""Create atomic module: {module_id}
 
@@ -479,17 +512,125 @@ Requirements:
             generated_code = re.sub(r'\n```$', '', generated_code, flags=re.MULTILINE)
             generated_code = generated_code.strip()
 
-            # Validate generated code has required components
-            if '@register_module' in generated_code and 'class' in generated_code and 'BaseModule' in generated_code:
-                logger.info(f"✅ Ollama generated code for {module_id}")
+            # Validate generated code quality
+            validation_result = self._validate_generated_code(generated_code, module_id)
+
+            if validation_result['valid']:
+                logger.info(f"✅ Ollama generated high-quality code for {module_id}")
                 return generated_code
             else:
-                logger.warning(f"⚠️ Ollama code missing required components")
+                issues = ', '.join(validation_result['issues'])
+                logger.warning(f"⚠️ Ollama code has quality issues: {issues}")
                 return None
 
         except Exception as e:
             logger.error(f"Ollama generation failed: {e}")
             return None
+
+    def _validate_generated_code(self, code: str, module_id: str) -> Dict[str, Any]:
+        """
+        Validate generated code quality
+
+        Checks for common issues:
+        - Redefining BaseModule or decorators
+        - Missing imports
+        - Hardcoded test data
+        - No actual validation
+        - Using random data
+
+        Args:
+            code: Generated Python code
+            module_id: Expected module ID
+
+        Returns:
+            {'valid': bool, 'issues': List[str]}
+        """
+        issues = []
+
+        # Check 1: Must have proper imports
+        if 'from src.core.modules.base import BaseModule' not in code:
+            issues.append("Missing BaseModule import")
+
+        if 'from src.core.modules.registry import register_module' not in code:
+            issues.append("Missing register_module import")
+
+        # Check 2: Must NOT redefine BaseModule
+        if 'class BaseModule' in code:
+            issues.append("Redefining BaseModule (should import it)")
+
+        # Check 3: Must have @register_module with correct ID
+        if f"@register_module('{module_id}')" not in code and f'@register_module("{module_id}")' not in code:
+            issues.append(f"Missing or incorrect @register_module('{module_id}')")
+
+        # Check 4: Must have class inheriting BaseModule
+        if 'class' not in code or '(BaseModule)' not in code:
+            issues.append("Missing class inheriting from BaseModule")
+
+        # Check 5: Must have validate_params and execute methods
+        if 'def validate_params' not in code:
+            issues.append("Missing validate_params method")
+
+        if 'def execute' not in code and 'async def execute' not in code:
+            issues.append("Missing execute method")
+
+        # Check 6: validate_params should have real validation (not just return success)
+        if 'def validate_params' in code:
+            # Extract validate_params method
+            lines = code.split('\n')
+            in_validate = False
+            validate_lines = []
+            indent_level = 0
+
+            for line in lines:
+                if 'def validate_params' in line:
+                    in_validate = True
+                    indent_level = len(line) - len(line.lstrip())
+                    continue
+
+                if in_validate:
+                    current_indent = len(line) - len(line.lstrip())
+                    if line.strip() and current_indent <= indent_level:
+                        break
+                    validate_lines.append(line)
+
+            validate_body = '\n'.join(validate_lines)
+
+            # Should have at least one validation check
+            if 'if' not in validate_body and 'raise' not in validate_body:
+                issues.append("validate_params has no actual validation logic")
+
+        # Check 7: Should NOT have hardcoded test data
+        hardcoded_patterns = [
+            'xml_string = ',
+            'test_data = ',
+            'example_data = ',
+            'sample = ',
+            '<root>',  # Hardcoded XML
+            '{"test"',  # Hardcoded JSON
+        ]
+
+        for pattern in hardcoded_patterns:
+            if pattern in code and 'def execute' in code:
+                # Check if it's in execute method
+                issues.append(f"Possible hardcoded test data: '{pattern}'")
+                break
+
+        # Check 8: Should NOT use random data generation
+        if 'random.' in code and 'import random' in code:
+            issues.append("Using random data generation (not deterministic)")
+
+        # Check 9: Should use self.params
+        if 'self.params' not in code:
+            issues.append("Not reading from self.params")
+
+        # Check 10: Should return proper status dict
+        if "{'status':" not in code and '{"status":' not in code:
+            issues.append("execute() should return dict with 'status' field")
+
+        return {
+            'valid': len(issues) == 0,
+            'issues': issues
+        }
 
     async def _query_past_failures(self, change: Dict[str, Any]) -> List[str]:
         """

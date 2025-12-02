@@ -19,6 +19,7 @@ Features:
 import os
 import sys
 import json
+import re
 import asyncio
 import subprocess
 from datetime import datetime, timedelta, timezone
@@ -1067,6 +1068,162 @@ async def show_competition_history(message, limit: int = 5):
         await message.reply_text(f"❌ Failed to get history:\n`{str(e)}`", parse_mode="Markdown")
 
 
+async def detect_task_intent(message: str) -> Optional[Dict[str, Any]]:
+    """
+    Detect if user wants to execute a task
+
+    Returns:
+        Task definition dict or None
+    """
+    message_lower = message.lower()
+
+    # Search intent patterns
+    search_patterns = [
+        (r'(?:用|使用)?(?:google|谷歌).*?(?:搜索|搜尋|search)\s*["""\'](.*?)["""\']\s*(?:看|查|找)(?:在)?第幾頁', 'search_with_page'),
+        (r'(?:用|使用)?(?:google|谷歌).*?(?:搜索|搜尋|search)\s+(.+?)(?:\s+|$)', 'search_simple'),
+        (r'(?:搜索|搜尋|search)\s*["""\'](.*?)["""\']\s*(?:看|查|找)(?:在)?第幾頁', 'search_with_page'),
+        (r'(?:搜索|搜尋|search)\s+(.+?)$', 'search_simple'),
+    ]
+
+    for pattern, intent_type in search_patterns:
+        match = re.search(pattern, message, re.IGNORECASE)
+        if match:
+            keyword = match.group(1).strip()
+            return {
+                'type': 'search',
+                'intent': intent_type,
+                'keyword': keyword,
+                'find_page_rank': 'with_page' in intent_type
+            }
+
+    return None
+
+
+async def execute_search_task(update: Update, keyword: str, find_page_rank: bool = False, target_url: str = None):
+    """Execute Google search task and optionally find page rank"""
+
+    await update.message.reply_text(f"🔍 正在搜尋: `{keyword}`...", parse_mode="Markdown")
+
+    try:
+        from src.core.engine.executor import WorkflowExecutor
+        import tempfile
+        import yaml
+
+        # Check if SerpAPI key is available
+        serpapi_key = os.getenv('SERPAPI_KEY')
+
+        if not serpapi_key:
+            await update.message.reply_text(
+                "⚠️ **需要設置 API Key**\n\n"
+                "請設置環境變數:\n"
+                "`SERPAPI_KEY=your_key_here`\n\n"
+                "免費註冊: https://serpapi.com/\n"
+                "(每月 100 次免費搜尋)",
+                parse_mode="Markdown"
+            )
+            return
+
+        # Create workflow YAML
+        workflow = {
+            'name': 'Dynamic Google Search',
+            'steps': [
+                {
+                    'id': 'search',
+                    'module': 'core.api.serpapi_search',
+                    'params': {
+                        'keyword': keyword,
+                        'limit': 100 if find_page_rank else 10
+                    }
+                }
+            ]
+        }
+
+        # Save to temp file
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+            yaml.dump(workflow, f)
+            workflow_path = f.name
+
+        try:
+            # Execute workflow
+            executor = WorkflowExecutor()
+            result = await executor.execute_workflow_file(workflow_path)
+
+            if result.get('status') == 'error':
+                await update.message.reply_text(
+                    f"❌ 搜尋失敗:\n`{result.get('error', 'Unknown error')}`",
+                    parse_mode="Markdown"
+                )
+                return
+
+            # Get search results
+            search_step = result.get('steps', {}).get('search', {})
+            search_data = search_step.get('output', {})
+
+            if search_data.get('status') != 'success':
+                await update.message.reply_text(
+                    f"❌ API 錯誤:\n`{search_data.get('message', 'Unknown error')}`",
+                    parse_mode="Markdown"
+                )
+                return
+
+            results = search_data.get('data', [])
+            total_count = search_data.get('count', 0)
+
+            if not results:
+                await update.message.reply_text(
+                    f"📭 找不到結果: `{keyword}`",
+                    parse_mode="Markdown"
+                )
+                return
+
+            # If looking for specific page rank
+            if find_page_rank and target_url:
+                for idx, item in enumerate(results, 1):
+                    url = item.get('url', '')
+                    if target_url.lower() in url.lower():
+                        page = (idx - 1) // 10 + 1
+                        position = (idx - 1) % 10 + 1
+                        await update.message.reply_text(
+                            f"🎯 **找到了！**\n\n"
+                            f"關鍵字: `{keyword}`\n"
+                            f"頁數: **第 {page} 頁**\n"
+                            f"位置: **第 {position} 個結果**\n\n"
+                            f"🔗 {url}",
+                            parse_mode="Markdown"
+                        )
+                        return
+
+                await update.message.reply_text(
+                    f"❌ 在前 100 個結果中找不到目標網址\n\n"
+                    f"關鍵字: `{keyword}`\n"
+                    f"搜尋結果數: {total_count}",
+                    parse_mode="Markdown"
+                )
+                return
+
+            # Show top results
+            response = f"✅ **搜尋結果**: `{keyword}`\n\n"
+            response += f"找到 {total_count} 個結果\n\n"
+
+            for idx, item in enumerate(results[:10], 1):
+                title = item.get('title', 'No title')
+                url = item.get('url', '')
+                response += f"**{idx}.** {title}\n{url}\n\n"
+
+            await update.message.reply_text(response, parse_mode="Markdown")
+
+        finally:
+            # Clean up temp file
+            if os.path.exists(workflow_path):
+                os.unlink(workflow_path)
+
+    except Exception as e:
+        await update.message.reply_text(
+            f"❌ 執行失敗:\n`{str(e)}`",
+            parse_mode="Markdown"
+        )
+
+
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle free-form conversation"""
     if not is_authorized(update):
@@ -1075,6 +1232,17 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     session = state.get_session(user_id)
     message_text = update.message.text
+
+    # Check for task intent first
+    task_intent = await detect_task_intent(message_text)
+    if task_intent:
+        if task_intent['type'] == 'search':
+            await execute_search_task(
+                update,
+                task_intent['keyword'],
+                find_page_rank=task_intent['find_page_rank']
+            )
+            return
 
     # Handle practice URL input flow
     if state.pending_practice_url_input:
