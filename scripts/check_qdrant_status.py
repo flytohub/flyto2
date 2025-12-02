@@ -16,7 +16,7 @@ from pathlib import Path
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.core.modules.atomic.vector import VectorDBConnector, KnowledgeStore, KnowledgeSearch
+from src.core.modules.atomic.vector import VectorDBConnector, KnowledgeStore
 
 
 async def check_qdrant():
@@ -76,8 +76,7 @@ async def check_qdrant():
                     embedding_provider="local"
                 )
 
-                search = KnowledgeSearch(knowledge_store=store)
-                results = search.search(query="Ollama", top_k=3)
+                results = store.search(query="Ollama", top_k=3)
 
                 if results:
                     print(f"      ✅ Sample search returned {len(results)} results")
@@ -117,8 +116,7 @@ async def check_qdrant():
                     collection_name=target_collection,
                     embedding_provider="local"
                 )
-                search = KnowledgeSearch(knowledge_store=store)
-                results = search.search(query=query, top_k=1)
+                results = store.search(query=query, top_k=1)
 
                 if results:
                     score = results[0].get("score", 0)
@@ -139,8 +137,7 @@ async def check_qdrant():
                 collection_name=target_collection,
                 embedding_provider="local"
             )
-            search = KnowledgeSearch(knowledge_store=store)
-            results = search.search(query="project status", top_k=3)
+            results = store.search(query="project status", top_k=3)
 
             for i, result in enumerate(results, 1):
                 metadata = result.get("metadata", {})

@@ -92,20 +92,25 @@ class RAGRetriever:
 
         # Step 3: Search vector DB
         try:
-            # Get vector DB manager
-            manager = self.vector_manager
+            # Get knowledge store directly (bypasses manager)
+            from src.core.modules.atomic.vector import VectorDBConnector, KnowledgeStore
 
-            # Search with language-bridged query
-            results = await manager.search(
-                query=search_query,
+            connector = VectorDBConnector(mode="local")
+            connector.connect()
+
+            store = KnowledgeStore(
+                connector=connector,
                 collection_name=collection_name,
-                top_k=top_k,
-                min_score=min_score
+                embedding_provider="local"
             )
 
-            # Apply metadata filters if needed
-            if filters:
-                results = self._filter_results(results, filters)
+            # Search with language-bridged query
+            results = store.search(
+                query=search_query,
+                top_k=top_k,
+                score_threshold=min_score,
+                filters=filters  # Pass filters directly to Qdrant
+            )
 
             # Sort by importance score if available
             results = self._sort_by_importance(results)

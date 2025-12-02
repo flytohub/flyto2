@@ -11,6 +11,7 @@ Critical for Flyto2 Self-Evolving AI Agent
 """
 
 from typing import Dict, Any, Optional, List
+import os
 import re
 
 
@@ -47,7 +48,7 @@ class LanguageBridge:
         else:
             return "en"
 
-    async def translate_to_english(self, text: str, provider: str = "ollama") -> Dict[str, Any]:
+    async def translate_to_english(self, text: str, provider: str = "auto") -> Dict[str, Any]:
         """
         Semantic translation zh → en for vector search
 
@@ -55,13 +56,14 @@ class LanguageBridge:
 
         Args:
             text: Chinese text
-            provider: 'ollama' or 'openai'
+            provider: 'ollama', 'openai', or 'auto' (automatic fallback)
 
         Returns:
             {
                 "success": bool,
                 "translated": str (English),
-                "original": str (Chinese)
+                "original": str (Chinese),
+                "provider_used": str  # Which provider was actually used
             }
         """
         from src.core.utils.http_client import HTTPClient
@@ -80,6 +82,19 @@ English (semantic, technical):"""
 4. Return ONLY the English translation, no explanation"""
 
         try:
+            # Auto-detect provider with fallback
+            if provider == "auto":
+                if HTTPClient.check_ollama_available():
+                    provider = "ollama"
+                elif os.getenv("OPENAI_API_KEY"):
+                    provider = "openai"
+                else:
+                    return {
+                        "success": False,
+                        "error": "No AI provider available (Ollama not running, OpenAI API key not set)",
+                        "original": text
+                    }
+
             if provider == "ollama":
                 response = await HTTPClient.ask_ollama(
                     prompt=prompt,
@@ -87,8 +102,16 @@ English (semantic, technical):"""
                     model="llama3.2",
                     timeout=30
                 )
+                # Auto-fallback to OpenAI if Ollama fails
+                if not response["success"] and os.getenv("OPENAI_API_KEY"):
+                    response = await HTTPClient.ask_openai(
+                        prompt=prompt,
+                        system_prompt=system_prompt,
+                        timeout=30
+                    )
+                    provider = "openai"
             else:
-                # OpenAI fallback
+                # OpenAI direct
                 response = await HTTPClient.ask_openai(
                     prompt=prompt,
                     system_prompt=system_prompt,
@@ -101,13 +124,15 @@ English (semantic, technical):"""
                 return {
                     "success": True,
                     "translated": translated,
-                    "original": text
+                    "original": text,
+                    "provider_used": provider
                 }
             else:
                 return {
                     "success": False,
                     "error": response.get("error", "Translation failed"),
-                    "original": text
+                    "original": text,
+                    "provider_used": provider
                 }
 
         except Exception as e:

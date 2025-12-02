@@ -26,6 +26,8 @@ class HTTPClient:
     - interactive_evolution_bot.py (ask_ollama, ask_openai)
     """
 
+    _ollama_available = None  # Cache Ollama availability status
+
     @staticmethod
     async def post_json(
         url: str,
@@ -78,6 +80,32 @@ class HTTPClient:
                 raise
 
         raise Exception(f"Failed after {max_retries} attempts")
+
+    @staticmethod
+    def check_ollama_available() -> bool:
+        """
+        Check if Ollama is available and running
+
+        Returns:
+            True if Ollama is available, False otherwise
+        """
+        # Return cached result if available
+        if HTTPClient._ollama_available is not None:
+            return HTTPClient._ollama_available
+
+        try:
+            ollama_url = os.getenv("OLLAMA_URL", "http://localhost:11434")
+            response = requests.get(f"{ollama_url}/api/tags", timeout=2)
+            HTTPClient._ollama_available = response.status_code == 200
+            return HTTPClient._ollama_available
+        except Exception:
+            HTTPClient._ollama_available = False
+            return False
+
+    @staticmethod
+    def reset_ollama_check():
+        """Reset cached Ollama availability status"""
+        HTTPClient._ollama_available = None
 
     @staticmethod
     async def ask_ollama(
