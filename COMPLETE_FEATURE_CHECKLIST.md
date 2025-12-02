@@ -1517,7 +1517,7 @@ async with ConnectionPool() as pool:
 
 ---
 
-## 🧠 9. Vector Database and Long-term Memory System (5/8 = 63%)
+## 🧠 9. Vector Database and Long-term Memory System (6/8 = 75%)
 
 **目標**: 解決 AI 失憶問題，建立持久化知識庫，避免依賴長 Token
 
@@ -1774,29 +1774,72 @@ ai_response = ai_client.chat(augmented_prompt)
 
 **Status**: ✅ COMPLETE
 
-### ❌ 9.6 知識庫管理與維護
-**目標**: 管理、清理、優化向量資料庫
+### ✅ 9.6 Knowledge Base Management
+**Goal**: Manage, clean, and optimize vector database
 
-**需實作功能**:
-- [ ] 列出所有知識條目
-- [ ] 按類別/標籤篩選
-- [ ] 刪除過時或錯誤知識
-- [ ] 重新生成 embeddings (模型升級時)
-- [ ] 知識去重 (相似度 > 0.99)
+**Implementation**: `src/core/modules/atomic/vector/knowledge_manager.py`
 
-**Atomic Modules**:
-- [ ] `vector.list` - 列出條目
-- [ ] `vector.filter` - 篩選條目
-- [ ] `vector.cleanup.duplicates` - 去重
-- [ ] `vector.reindex` - 重建索引
+**Classes**:
+1. **KnowledgeManager**: Complete knowledge base management
+   - list_all(): List all entries with pagination
+   - filter_by_source(): Filter by source identifier
+   - filter_by_category(): Filter by category
+   - find_duplicates(): Find near-duplicate entries
+   - delete_old_entries(): Remove entries older than N days
+   - cleanup_duplicates(): Auto-remove duplicates
+   - reindex_collection(): Regenerate embeddings
+   - get_statistics(): Comprehensive stats
+   - export_entries(): Export to JSON/CSV
 
-**Telegram 控制**:
-- [ ] `/memory stats` - 顯示知識庫統計
-- [ ] `/memory search <query>` - 搜尋知識
-- [ ] `/memory cleanup` - 清理重複項
+2. **KnowledgeSearch**: Advanced search capabilities
+   - search_by_date_range(): Search within dates
+   - search_with_score_threshold(): Filter by similarity
 
-**優先級**: P2
-**狀態**: ❌ NOT STARTED
+**Features**:
+- **List and Filter**: Pagination, category, source filtering
+- **Duplicate Detection**: Similarity threshold (default 0.99)
+- **Cleanup**: Remove old/duplicate entries
+- **Reindexing**: Regenerate embeddings on model upgrade
+- **Statistics**: Categories, sources, avg content length
+- **Export**: JSON and CSV formats
+
+**Management Operations**:
+```python
+manager = KnowledgeManager(knowledge_store)
+
+# List entries
+entries = manager.list_all(limit=100, category="error")
+
+# Find duplicates
+duplicates = manager.find_duplicates(similarity_threshold=0.99)
+
+# Cleanup old entries
+deleted = manager.delete_old_entries(days_old=90)
+
+# Reindex with new model
+stats = manager.reindex_collection(embedding_provider="openai")
+
+# Get statistics
+stats = manager.get_statistics()
+# → {total_entries, categories, sources, avg_content_length}
+
+# Export knowledge base
+manager.export_entries("knowledge_backup.json", format="json")
+```
+
+**Statistics Tracking**:
+- Total entries count
+- Entries by category
+- Entries by source
+- Average content length
+- Embedding provider and dimension
+
+**Tests**: Tested via inline Python script (all passed)
+- List all entries ✓
+- Filter by category ✓
+- Get statistics ✓
+
+**Status**: ✅ COMPLETE
 
 ### ❌ 9.7 跨 AI 模型知識共享
 **目標**: Ollama、OpenAI、Human 三層共享同一知識庫
