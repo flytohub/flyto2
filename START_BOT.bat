@@ -74,19 +74,18 @@ if %errorlevel% equ 0 (
 )
 
 REM ========================================
-REM Start Autonomous Bot
+REM Start Unified Bot
 REM ========================================
 echo ========================================
-echo Starting Autonomous Evolution AI
-echo - Auto-training every hour
-echo - Auto-evolution cycles
-echo - Vector DB updates
-echo - Telegram notifications
+echo Starting Unified Bot
+echo - Chat features: /start /lang /gpt /memory
+echo - Auto-training in background
+echo - All features in one bot
 echo ========================================
 echo.
 echo Press Ctrl+C to stop
 echo.
 
-python scripts\autonomous_bot.py
+python scripts\unified_bot.py
 
 pause

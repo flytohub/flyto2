@@ -1,0 +1,256 @@
+#!/usr/bin/env python3
+"""
+Unified Bot - Combines Autonomous Training + Chat Features
+
+Features:
+- Auto-training loop (background task)
+- Full chat bot functionality (/lang, /gpt, /memory, etc.)
+- All TG commands available while training runs
+"""
+import os
+import sys
+import asyncio
+from pathlib import Path
+from dotenv import load_dotenv
+
+load_dotenv()
+
+PROJECT_ROOT = Path(__file__).parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
+TELEGRAM_ALLOWED_USERS = os.getenv('TELEGRAM_ALLOWED_USERS', '').split(',')
+
+from telegram import Bot, Update
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+
+# Import all command handlers from telegram_bot_v2
+import importlib.util
+spec = importlib.util.spec_from_file_location("telegram_bot_v2", PROJECT_ROOT / "scripts" / "telegram_bot_v2.py")
+bot_v2 = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(bot_v2)
+
+
+async def auto_training_loop(bot: Bot):
+    """Background task for autonomous training"""
+    iteration = 0
+    interval_minutes = int(os.getenv('TRAINING_INTERVAL_MINUTES', '60'))
+
+    # Send startup message
+    for user_id in TELEGRAM_ALLOWED_USERS:
+        try:
+            await bot.send_message(
+                chat_id=int(user_id),
+                text=(
+                    "🤖 **Unified Bot Started!**\n\n"
+                    "✅ Chat features active - try /start\n"
+                    "✅ Auto-training in background\n\n"
+                    f"Training interval: {interval_minutes} minutes\n"
+                    "(Set TRAINING_INTERVAL_MINUTES in .env to change)"
+                )
+            )
+        except Exception as e:
+            print(f"Failed to send startup message: {e}")
+
+    while True:
+        iteration += 1
+
+        for user_id in TELEGRAM_ALLOWED_USERS:
+            try:
+                await bot.send_message(
+                    chat_id=int(user_id),
+                    text=f"🔄 **Training Iteration #{iteration}**\n\nStarting..."
+                )
+            except:
+                pass
+
+        # 1. Run crawler practice
+        try:
+            from src.core.training.daily_practice import DailyPracticeEngine
+
+            engine = DailyPracticeEngine()
+
+            test_sites = [
+                "https://example.com",
+                "https://books.toscrape.com",
+                "https://httpbin.org/html"
+            ]
+
+            success_count = 0
+            error_count = 0
+
+            for site in test_sites:
+                result = await engine.analyze_website(site)
+
+                if result['errors']:
+                    error_count += 1
+                    msg = f"📊 **Analyzed**: {site}\n⚠️ Errors:\n"
+                    for err in result['errors'][:2]:
+                        msg += f"  • {err}\n"
+                else:
+                    success_count += 1
+                    msg = f"📊 **Analyzed**: {site}\n✅ Success!\n"
+                    if result.get('structure', {}).get('title'):
+                        msg += f"  Title: {result['structure']['title'][:50]}\n"
+
+                for user_id in TELEGRAM_ALLOWED_USERS:
+                    try:
+                        await bot.send_message(chat_id=int(user_id), text=msg)
+                    except:
+                        pass
+
+            # Summary
+            summary_msg = f"\n📈 **Crawler Summary**\n✅ Success: {success_count}\n⚠️ Errors: {error_count}"
+            for user_id in TELEGRAM_ALLOWED_USERS:
+                try:
+                    await bot.send_message(chat_id=int(user_id), text=summary_msg)
+                except:
+                    pass
+
+        except Exception as e:
+            for user_id in TELEGRAM_ALLOWED_USERS:
+                try:
+                    await bot.send_message(
+                        chat_id=int(user_id),
+                        text=f"❌ Training error: {str(e)}"
+                    )
+                except:
+                    pass
+
+        # 2. Run auto-evolution
+        try:
+            from src.core.evolution.auto_evolution_engine import AutoEvolutionEngine
+
+            evolution = AutoEvolutionEngine()
+            result = await evolution.run_evolution_cycle()
+
+            msg = f"🧬 **Evolution Cycle #{result['cycle_id']}**\n\n"
+            msg += f"Status: {result['status']}\n"
+
+            if 'test_crawler' in result['steps']:
+                test = result['steps']['test_crawler']
+                msg += f"Tests: {test['passed']}/{test['total']}\n"
+
+            for user_id in TELEGRAM_ALLOWED_USERS:
+                try:
+                    await bot.send_message(chat_id=int(user_id), text=msg)
+                except:
+                    pass
+
+        except Exception as e:
+            for user_id in TELEGRAM_ALLOWED_USERS:
+                try:
+                    await bot.send_message(
+                        chat_id=int(user_id),
+                        text=f"❌ Evolution error: {str(e)}"
+                    )
+                except:
+                    pass
+
+        # 3. Aggregate knowledge to vector DB
+        try:
+            import subprocess
+            result = subprocess.run(
+                ["python", "scripts/aggregate_project_knowledge.py"],
+                cwd=PROJECT_ROOT,
+                capture_output=True,
+                text=True,
+                timeout=300
+            )
+
+            if result.returncode == 0:
+                msg = "📚 **Knowledge Base Updated**\n\nAll learnings archived!"
+                for user_id in TELEGRAM_ALLOWED_USERS:
+                    try:
+                        await bot.send_message(chat_id=int(user_id), text=msg)
+                    except:
+                        pass
+        except Exception as e:
+            print(f"Knowledge aggregation error: {e}")
+
+        # Report completion
+        interval_seconds = interval_minutes * 60
+        for user_id in TELEGRAM_ALLOWED_USERS:
+            try:
+                await bot.send_message(
+                    chat_id=int(user_id),
+                    text=(
+                        f"✅ **Iteration #{iteration} Complete!**\n\n"
+                        f"Next training in {interval_minutes} minutes...\n"
+                        f"Chat features still active!\n"
+                        f"(Try /lang, /gpt, /memory, /status)"
+                    )
+                )
+            except:
+                pass
+
+        # Wait for configured interval
+        await asyncio.sleep(interval_seconds)
+
+
+async def main():
+    """Start unified bot with training + chat"""
+    print("=" * 60)
+    print("  UNIFIED BOT - Training + Chat")
+    print("  All features in one bot!")
+    print("=" * 60)
+    print()
+
+    if not TELEGRAM_BOT_TOKEN:
+        print("ERROR: TELEGRAM_BOT_TOKEN not set in .env")
+        return
+
+    # Create application
+    app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
+
+    # Register all command handlers from telegram_bot_v2
+    app.add_handler(CommandHandler("start", bot_v2.start))
+    app.add_handler(CommandHandler("lang", bot_v2.lang_command))
+    app.add_handler(CommandHandler("retry", bot_v2.retry_command))
+    app.add_handler(CommandHandler("gpt", bot_v2.gpt_command))
+    app.add_handler(CommandHandler("stats", bot_v2.stats_command))
+    app.add_handler(CommandHandler("status", bot_v2.status_command))
+    app.add_handler(CommandHandler("stress", bot_v2.stress_command))
+    app.add_handler(CommandHandler("memory", bot_v2.memory_command))
+    app.add_handler(CommandHandler("evolve", bot_v2.evolve_command))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, bot_v2.handle_message))
+
+    # Start auto-training loop in background
+    asyncio.create_task(auto_training_loop(app.bot))
+
+    print("✅ Unified Bot started!")
+    print("- Auto-training: Running in background")
+    print("- Chat features: All active")
+    print("- Commands: /start, /lang, /gpt, /memory, /status, etc.")
+    print()
+    print("Running... Press Ctrl+C to stop")
+    print()
+
+    # Run bot
+    await app.initialize()
+    await app.start()
+    await app.updater.start_polling(allowed_updates=Update.ALL_TYPES)
+
+    # Keep running
+    try:
+        while True:
+            await asyncio.sleep(1)
+    except KeyboardInterrupt:
+        print("\n\nStopping unified bot...")
+        for user_id in TELEGRAM_ALLOWED_USERS:
+            try:
+                await app.bot.send_message(
+                    chat_id=int(user_id),
+                    text="⏸️ **Bot stopped**\n\nRun START_BOT.bat to restart"
+                )
+            except:
+                pass
+
+    await app.updater.stop()
+    await app.stop()
+    await app.shutdown()
+
+
+if __name__ == '__main__':
+    asyncio.run(main())
