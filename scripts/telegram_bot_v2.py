@@ -741,6 +741,60 @@ async def memory_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         traceback.print_exc()
 
 
+async def evolve_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Run one auto-evolution cycle
+    Tests crawler → Analyzes errors → Generates solutions → Creates PR
+    """
+    if not is_authorized(update):
+        return
+
+    await update.message.reply_text("🤖 Starting auto-evolution cycle...\nThis may take a few minutes.")
+
+    try:
+        import sys
+        sys.path.insert(0, str(PROJECT_ROOT))
+
+        from src.core.evolution.auto_evolution_engine import AutoEvolutionEngine
+
+        engine = AutoEvolutionEngine()
+        result = await engine.run_evolution_cycle()
+
+        # Format results
+        status_emoji = "✅" if result['status'] == 'completed' else "❌"
+
+        msg = f"{status_emoji} Evolution Cycle #{result['cycle_id']}\n\n"
+
+        # Test results
+        if 'test_crawler' in result['steps']:
+            test = result['steps']['test_crawler']
+            msg += f"🔍 Crawler Tests: {test['passed']}/{test['total']}\n"
+
+        # Error analysis
+        if 'analyze_errors' in result['steps']:
+            analysis = result['steps']['analyze_errors']
+            msg += f"🔬 Missing Resources: {len(analysis['missing_resources'])}\n"
+
+        # Solutions
+        if 'generate_solutions' in result['steps']:
+            solutions = result['steps']['generate_solutions']
+            msg += f"💡 Solutions Generated: {solutions['count']}\n"
+
+        # PR
+        if 'create_pr' in result['steps']:
+            pr = result['steps']['create_pr']
+            if pr['success']:
+                msg += f"🎯 Branch: {pr['branch']}\n"
+
+        msg += f"\nStatus: {result['status']}"
+
+        await update.message.reply_text(msg)
+
+    except Exception as e:
+        await update.message.reply_text(f"❌ Evolution failed: {str(e)}")
+        print(f"Error in evolve_command: {e}")
+
+
 def main():
     """Start bot"""
     print("Starting Flyto2 Telegram Bot V2 (Ultra-Low-Cost)...")
@@ -759,6 +813,7 @@ def main():
     app.add_handler(CommandHandler("status", status_command))
     app.add_handler(CommandHandler("stress", stress_command))
     app.add_handler(CommandHandler("memory", memory_command))
+    app.add_handler(CommandHandler("evolve", evolve_command))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
     print("✅ Bot V2 started!")
