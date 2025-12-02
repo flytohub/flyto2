@@ -65,11 +65,11 @@ async def auto_training_loop(bot: Bot):
             except:
                 pass
 
-        # 1. Run crawler practice
+        # 1. Run crawler practice with SELF-HEALING
         try:
-            from src.core.training.daily_practice import DailyPracticeEngine
+            from src.core.training.self_healing_practice import SelfHealingPracticeEngine
 
-            engine = DailyPracticeEngine()
+            engine = SelfHealingPracticeEngine()
 
             test_sites = [
                 "https://example.com",
@@ -80,33 +80,38 @@ async def auto_training_loop(bot: Bot):
             success_count = 0
             error_count = 0
 
-            for site in test_sites:
-                result = await engine.analyze_website(site)
-
-                if result['errors']:
-                    error_count += 1
-                    msg = f"📊 **Analyzed**: {site}\n⚠️ Errors:\n"
-                    for err in result['errors'][:2]:
-                        msg += f"  • {err}\n"
-                else:
-                    success_count += 1
-                    msg = f"📊 **Analyzed**: {site}\n✅ Success!\n"
-                    if result.get('structure', {}).get('title'):
-                        msg += f"  Title: {result['structure']['title'][:50]}\n"
-
+            # Create notification callback
+            async def notify_telegram(message: str):
                 for user_id in TELEGRAM_ALLOWED_USERS:
                     try:
-                        await bot.send_message(chat_id=int(user_id), text=msg)
+                        await bot.send_message(chat_id=int(user_id), text=message)
                     except:
                         pass
 
+            for site in test_sites:
+                await notify_telegram(f"🎯 **Analyzing**: {site}")
+
+                # Use self-healing engine (will auto-fix errors!)
+                result = await engine.analyze_website(site, notify_callback=notify_telegram)
+
+                if result['errors']:
+                    error_count += 1
+                    msg = f"📊 **Final Status**: {site}\n⚠️ Still has errors after healing attempts\n"
+                    for err in result['errors'][:2]:
+                        msg += f"  • {err[:100]}...\n"
+                else:
+                    success_count += 1
+                    msg = f"📊 **Final Status**: {site}\n✅ Success!\n"
+                    if result.get('structure', {}).get('title'):
+                        msg += f"  Title: {result['structure']['title'][:50]}\n"
+
+                await notify_telegram(msg)
+
             # Summary
             summary_msg = f"\n📈 **Crawler Summary**\n✅ Success: {success_count}\n⚠️ Errors: {error_count}"
-            for user_id in TELEGRAM_ALLOWED_USERS:
-                try:
-                    await bot.send_message(chat_id=int(user_id), text=summary_msg)
-                except:
-                    pass
+            if success_count > 0:
+                summary_msg += f"\n\n🧠 **AI Agent Status**: Learning and evolving!"
+            await notify_telegram(summary_msg)
 
         except Exception as e:
             for user_id in TELEGRAM_ALLOWED_USERS:
