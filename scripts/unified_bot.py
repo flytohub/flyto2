@@ -204,8 +204,52 @@ async def main():
     # Create application
     app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
 
+    # Import crawl command
+    from pathlib import Path
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+    async def crawl_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Execute crawling task with self-healing"""
+        if str(update.effective_user.id) not in TELEGRAM_ALLOWED_USERS:
+            return
+
+        if not context.args:
+            await update.message.reply_text(
+                "Usage: /crawl <url>\n\n"
+                "Example: /crawl https://www.amazon.com"
+            )
+            return
+
+        url = context.args[0]
+
+        from src.core.executor.smart_executor import SmartExecutor
+
+        executor = SmartExecutor()
+
+        # Callback for progress updates
+        async def notify(message: str):
+            try:
+                await update.message.reply_text(message)
+            except:
+                pass
+
+        # Execute task
+        result = await executor.execute_task(f"crawl {url}", notify_callback=notify)
+
+        # Send final summary
+        if result["status"] == "success":
+            summary = f"✅ **Task Completed**\n\n"
+            if result["generated_modules"]:
+                summary += f"🆕 Generated {len(result['generated_modules'])} new modules\n"
+            summary += f"Attempts: {len(result['attempts'])}"
+        else:
+            summary = f"❌ **Task Failed**\n\nAttempts: {len(result['attempts'])}"
+
+        await update.message.reply_text(summary)
+
     # Register all command handlers from telegram_bot_v2
     app.add_handler(CommandHandler("start", bot_v2.start))
+    app.add_handler(CommandHandler("crawl", crawl_command))
     app.add_handler(CommandHandler("lang", bot_v2.lang_command))
     app.add_handler(CommandHandler("retry", bot_v2.retry_command))
     app.add_handler(CommandHandler("gpt", bot_v2.gpt_command))

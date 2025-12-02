@@ -289,6 +289,7 @@ Ultra-Low-Cost Three-Tier Strategy
 
 *Commands:*
 • Just chat - I'll use Ollama
+• `/crawl <url>` - Crawl a website (self-healing) 🕷️
 • `/lang` - Change reply language (Current: {lang_names[current_lang]}) 🌐
 • `/gpt <q>` - Force OpenAI ($)
 • `/retry` - Retry with OpenAI after my attempt
@@ -299,14 +300,16 @@ Ultra-Low-Cost Three-Tier Strategy
 
 *Auto-Storage:* All conversations → Vector DB (English) ✅
 
-*Example flow:*
+*Self-Healing Crawl:*
 ```
-You: How to refactor this?
-Bot: [Ollama] I'm not confident...
-     Need your guidance?
-
-You: Use async, keep compatibility
-Bot: [Ollama] Got it! Here's the plan...
+You: /crawl https://www.amazon.com
+Bot: 🎯 Task: crawl amazon.com
+     📝 Generating workflow...
+     ▶️ Executing workflow...
+     ❌ Error: Module not found
+     📦 Generating missing module...
+     🔄 Retrying...
+     ✅ Task completed!
 ```
 
 Start chatting! 🚀
