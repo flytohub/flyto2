@@ -65,40 +65,22 @@ class SelfHealingPracticeEngine:
             for error in errors:
                 await self._notify(notify_callback, f"🔍 Analyzing error: {error[:100]}...")
 
-                # Step 1: Try automatic fix
+                # AI Error Solver handles everything:
+                # 1. Query vector DB for past solutions
+                # 2. If found + high similarity → use it
+                # 3. Else → ask AI
+                # 4. Execute solution
+                # 5. Store if successful
+                # 6. Train similarity
                 fix_result = await self._try_automatic_fix(error, notify_callback)
 
                 if fix_result["success"]:
-                    await self._notify(notify_callback, f"✅ Auto-fixed: {fix_result['action']}")
-
-                    # Store solution
-                    await self._store_solution(error, fix_result, "automatic")
-
-                    # Retry
+                    await self._notify(notify_callback, f"✅ Error resolved!")
+                    # Retry the analysis
                     continue
-
-                # Step 2: Consult AI
-                await self._notify(notify_callback, "🤖 Consulting AI for solution...")
-                ai_solution = await self._consult_ai(error, url, notify_callback)
-
-                if ai_solution["success"]:
-                    await self._notify(notify_callback, f"✅ AI provided solution: {ai_solution['solution'][:100]}...")
-
-                    # Execute AI solution
-                    exec_result = await self._execute_solution(ai_solution, notify_callback)
-
-                    if exec_result["success"]:
-                        await self._notify(notify_callback, "✅ AI solution executed successfully!")
-
-                        # Store solution
-                        await self._store_solution(error, ai_solution, "ai_generated")
-
-                        # Retry
-                        continue
-                    else:
-                        await self._notify(notify_callback, f"❌ AI solution failed: {exec_result.get('error')}")
                 else:
-                    await self._notify(notify_callback, f"❌ AI couldn't provide solution")
+                    await self._notify(notify_callback, f"❌ Could not resolve error")
+                    # Try next attempt anyway (maybe transient error)
 
         # Max retries reached
         await self._notify(notify_callback, f"❌ Max retries reached. Logging for human review.")
@@ -108,87 +90,42 @@ class SelfHealingPracticeEngine:
 
     async def _try_automatic_fix(self, error: str, notify_callback=None) -> Dict[str, Any]:
         """
-        Try automatic fixes for common errors
+        Use AI to fix ANY error - NO HARDCODED LOGIC
 
         Returns:
             Fix result with success status and action taken
         """
-        error_lower = error.lower()
+        from src.core.healing.ai_error_solver import AIErrorSolver
 
-        # Fix 1: Playwright not installed
-        if "playwright" in error_lower and "executable doesn't exist" in error_lower:
-            await self._notify(notify_callback, "🔧 Detected: Playwright browsers not installed")
-            await self._notify(notify_callback, "⚙️ Running: playwright install chromium")
+        # Create AI solver
+        solver = AIErrorSolver(self.project_root)
 
-            try:
-                result = subprocess.run(
-                    ["playwright", "install", "chromium"],
-                    cwd=self.project_root,
-                    capture_output=True,
-                    text=True,
-                    timeout=300
-                )
+        # Build context
+        context = {
+            "operation": "website_analysis",
+            "error_source": "DailyPracticeEngine",
+            "project": "Flyto2 autonomous training"
+        }
 
-                if result.returncode == 0:
-                    return {
-                        "success": True,
-                        "action": "playwright install chromium",
-                        "output": result.stdout[:500]
-                    }
-                else:
-                    return {
-                        "success": False,
-                        "action": "playwright install chromium",
-                        "error": result.stderr
-                    }
+        # Ask AI to solve
+        result = await solver.solve_error(
+            Exception(error),
+            context,
+            notify_callback
+        )
 
-            except Exception as e:
-                return {
-                    "success": False,
-                    "action": "playwright install chromium",
-                    "error": str(e)
-                }
-
-        # Fix 2: Missing Python package
-        if "no module named" in error_lower or "import error" in error_lower:
-            # Extract package name
-            match = re.search(r"no module named ['\"]?([a-z0-9_]+)['\"]?", error_lower)
-            if match:
-                package = match.group(1)
-                await self._notify(notify_callback, f"🔧 Detected: Missing package '{package}'")
-                await self._notify(notify_callback, f"⚙️ Running: pip install {package}")
-
-                try:
-                    result = subprocess.run(
-                        ["pip", "install", package],
-                        capture_output=True,
-                        text=True,
-                        timeout=120
-                    )
-
-                    if result.returncode == 0:
-                        return {
-                            "success": True,
-                            "action": f"pip install {package}",
-                            "output": result.stdout[:500]
-                        }
-
-                except Exception as e:
-                    pass
-
-        # Fix 3: Permission errors
-        if "permission denied" in error_lower:
-            await self._notify(notify_callback, "🔧 Detected: Permission error")
-            # Could try chmod, but risky - let AI handle
-            return {"success": False, "action": "permission_fix", "note": "Requires AI consultation"}
-
-        # Fix 4: Network timeout
-        if "timeout" in error_lower or "timed out" in error_lower:
-            await self._notify(notify_callback, "🔧 Detected: Network timeout")
-            # Simple fix: just retry (already handled by outer loop)
-            return {"success": False, "action": "retry", "note": "Will retry automatically"}
-
-        return {"success": False, "action": "unknown", "note": "No automatic fix available"}
+        if result["success"]:
+            return {
+                "success": True,
+                "action": "AI-provided solution",
+                "output": str(result)
+            }
+        else:
+            return {
+                "success": False,
+                "action": "AI solution failed",
+                "error": result.get("error", "Unknown")
+            }
 
     async def _consult_ai(self, error: str, context: str, notify_callback=None) -> Dict[str, Any]:
         """
