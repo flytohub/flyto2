@@ -1105,9 +1105,7 @@ async def execute_search_task(update: Update, keyword: str, find_page_rank: bool
     await update.message.reply_text(f"🔍 正在搜尋: `{keyword}`...", parse_mode="Markdown")
 
     try:
-        from src.core.engine.executor import WorkflowExecutor
-        import tempfile
-        import yaml
+        import aiohttp
 
         # Check if SerpAPI key is available
         serpapi_key = os.getenv('SERPAPI_KEY')
@@ -1123,99 +1121,73 @@ async def execute_search_task(update: Update, keyword: str, find_page_rank: bool
             )
             return
 
-        # Create workflow YAML
-        workflow = {
-            'name': 'Dynamic Google Search',
-            'steps': [
-                {
-                    'id': 'search',
-                    'module': 'core.api.serpapi_search',
-                    'params': {
-                        'keyword': keyword,
-                        'limit': 100 if find_page_rank else 10
-                    }
-                }
-            ]
+        # Call SerpAPI directly
+        num_results = 100 if find_page_rank else 10
+        api_url = "https://serpapi.com/search"
+
+        params = {
+            'q': keyword,
+            'num': num_results,
+            'api_key': serpapi_key,
+            'engine': 'google'
         }
 
-        # Save to temp file
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
-            yaml.dump(workflow, f)
-            workflow_path = f.name
+        async with aiohttp.ClientSession() as session:
+            async with session.get(api_url, params=params) as response:
+                if response.status != 200:
+                    await update.message.reply_text(
+                        f"❌ API 錯誤: HTTP {response.status}",
+                        parse_mode="Markdown"
+                    )
+                    return
 
-        try:
-            # Execute workflow
-            executor = WorkflowExecutor()
-            result = await executor.execute_workflow_file(workflow_path)
+                data = await response.json()
 
-            if result.get('status') == 'error':
-                await update.message.reply_text(
-                    f"❌ 搜尋失敗:\n`{result.get('error', 'Unknown error')}`",
-                    parse_mode="Markdown"
-                )
-                return
+                # Get organic results
+                results = data.get('organic_results', [])
 
-            # Get search results
-            search_step = result.get('steps', {}).get('search', {})
-            search_data = search_step.get('output', {})
+                if not results:
+                    await update.message.reply_text(
+                        f"📭 找不到結果: `{keyword}`",
+                        parse_mode="Markdown"
+                    )
+                    return
 
-            if search_data.get('status') != 'success':
-                await update.message.reply_text(
-                    f"❌ API 錯誤:\n`{search_data.get('message', 'Unknown error')}`",
-                    parse_mode="Markdown"
-                )
-                return
+                # If looking for specific page rank
+                if find_page_rank and target_url:
+                    for idx, item in enumerate(results, 1):
+                        url = item.get('link', '')
+                        if target_url.lower() in url.lower():
+                            page = (idx - 1) // 10 + 1
+                            position = (idx - 1) % 10 + 1
+                            await update.message.reply_text(
+                                f"🎯 **找到了！**\n\n"
+                                f"關鍵字: `{keyword}`\n"
+                                f"頁數: **第 {page} 頁**\n"
+                                f"位置: **第 {position} 個結果**\n\n"
+                                f"🔗 {url}",
+                                parse_mode="Markdown"
+                            )
+                            return
 
-            results = search_data.get('data', [])
-            total_count = search_data.get('count', 0)
+                    await update.message.reply_text(
+                        f"❌ 在前 {num_results} 個結果中找不到目標網址\n\n"
+                        f"關鍵字: `{keyword}`\n"
+                        f"搜尋結果數: {len(results)}",
+                        parse_mode="Markdown"
+                    )
+                    return
 
-            if not results:
-                await update.message.reply_text(
-                    f"📭 找不到結果: `{keyword}`",
-                    parse_mode="Markdown"
-                )
-                return
+                # Show top results
+                response_text = f"✅ **搜尋結果**: `{keyword}`\n\n"
+                response_text += f"找到 {len(results)} 個結果\n\n"
 
-            # If looking for specific page rank
-            if find_page_rank and target_url:
-                for idx, item in enumerate(results, 1):
-                    url = item.get('url', '')
-                    if target_url.lower() in url.lower():
-                        page = (idx - 1) // 10 + 1
-                        position = (idx - 1) % 10 + 1
-                        await update.message.reply_text(
-                            f"🎯 **找到了！**\n\n"
-                            f"關鍵字: `{keyword}`\n"
-                            f"頁數: **第 {page} 頁**\n"
-                            f"位置: **第 {position} 個結果**\n\n"
-                            f"🔗 {url}",
-                            parse_mode="Markdown"
-                        )
-                        return
+                for idx, item in enumerate(results[:10], 1):
+                    title = item.get('title', 'No title')
+                    url = item.get('link', '')
+                    response_text += f"**{idx}.** {title}\n{url}\n\n"
 
-                await update.message.reply_text(
-                    f"❌ 在前 100 個結果中找不到目標網址\n\n"
-                    f"關鍵字: `{keyword}`\n"
-                    f"搜尋結果數: {total_count}",
-                    parse_mode="Markdown"
-                )
-                return
-
-            # Show top results
-            response = f"✅ **搜尋結果**: `{keyword}`\n\n"
-            response += f"找到 {total_count} 個結果\n\n"
-
-            for idx, item in enumerate(results[:10], 1):
-                title = item.get('title', 'No title')
-                url = item.get('url', '')
-                response += f"**{idx}.** {title}\n{url}\n\n"
-
-            await update.message.reply_text(response, parse_mode="Markdown")
-
-        finally:
-            # Clean up temp file
-            if os.path.exists(workflow_path):
-                os.unlink(workflow_path)
+                await update.message.reply_text(response_text, parse_mode="Markdown")
 
     except Exception as e:
         await update.message.reply_text(
