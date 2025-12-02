@@ -424,9 +424,27 @@ Be specific and actionable. Provide exact commands to run.
         ai_solution: Dict[str, Any],
         notify_callback=None
     ):
-        """Store successful solution to vector DB"""
+        """Store successful solution to vector DB (in English)"""
         try:
             from src.core.modules.atomic.vector import VectorDBConnector, KnowledgeStore
+            from src.core.utils.translator import translate_to_english
+
+            await self._notify(notify_callback, "🌐 Translating to English for vector DB...")
+
+            # Translate all content to English
+            error_en = await translate_to_english(error, context="error")
+            analysis_en = await translate_to_english(
+                ai_solution['structured'].get('error_analysis', 'N/A'),
+                context="error"
+            )
+            solution_summary_en = await translate_to_english(
+                ai_solution['structured'].get('solution_summary', 'N/A'),
+                context="solution"
+            )
+            explanation_en = await translate_to_english(
+                ai_solution['structured'].get('explanation', 'N/A'),
+                context="solution"
+            )
 
             connector = VectorDBConnector(mode="local")
             connector.connect()
@@ -437,22 +455,22 @@ Be specific and actionable. Provide exact commands to run.
                 embedding_provider="local"
             )
 
-            # Create comprehensive knowledge entry
+            # Create comprehensive knowledge entry (ALL IN ENGLISH)
             content = f"""
 AI Error Solution (SUCCESS)
 
 Error Type: {error_type}
-Error: {error}
+Error: {error_en}
 
-AI Analysis: {ai_solution['structured'].get('error_analysis', 'N/A')}
+AI Analysis: {analysis_en}
 
 Solution Type: {ai_solution['structured'].get('solution_type', 'N/A')}
-Solution: {ai_solution['structured'].get('solution_summary', 'N/A')}
+Solution: {solution_summary_en}
 
 Commands Executed:
 {chr(10).join(f"  - {cmd}" for cmd in ai_solution['structured'].get('commands', []))}
 
-Explanation: {ai_solution['structured'].get('explanation', 'N/A')}
+Explanation: {explanation_en}
 
 This solution was AI-generated and successfully resolved the error.
 """.strip()
@@ -465,13 +483,14 @@ This solution was AI-generated and successfully resolved the error.
                     "error_type": error_type,
                     "solution_success": True,
                     "solution_data": ai_solution['structured'],
+                    "original_error": error,  # Keep original for reference
                     "timestamp": datetime.now().isoformat()
                 }
             )
 
             connector.disconnect()
 
-            await self._notify(notify_callback, "💾 Solution stored to vector DB")
+            await self._notify(notify_callback, "💾 Solution stored to vector DB (English)")
 
         except Exception as e:
             print(f"⚠️ Failed to store solution: {e}")

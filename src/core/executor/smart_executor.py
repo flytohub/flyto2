@@ -854,7 +854,7 @@ SmartExecutor AI Agent - Self-healing task execution system
         test_result: Dict[str, Any]
     ):
         """
-        Store successful solution to vector database for future learning
+        Store successful solution to vector database (in English)
 
         Args:
             module_spec: Original module spec
@@ -864,7 +864,24 @@ SmartExecutor AI Agent - Self-healing task execution system
         """
         try:
             from src.core.modules.atomic.vector import VectorDBConnector, KnowledgeStore
+            from src.core.utils.translator import translate_to_english
             from datetime import datetime
+
+            print("🌐 Translating to English for vector DB...")
+
+            # Translate content to English
+            problem_en = await translate_to_english(
+                module_spec.get('reason', 'Module not found'),
+                context="error"
+            )
+            description_en = await translate_to_english(
+                designed_spec['description'],
+                context="solution"
+            )
+            implementation_en = await translate_to_english(
+                designed_spec.get('implementation_hint', 'N/A'),
+                context="code"
+            )
 
             connector = VectorDBConnector(mode="local")
             connector.connect()
@@ -875,20 +892,20 @@ SmartExecutor AI Agent - Self-healing task execution system
                 embedding_provider="local"
             )
 
-            # Create comprehensive knowledge entry
+            # Create comprehensive knowledge entry (ALL IN ENGLISH)
             content = f"""
 Module Generation Solution
 
-Problem: {module_spec.get('reason', 'Module not found')}
+Problem: {problem_en}
 Module: {designed_spec['module_id']}
 Category: {designed_spec['category']}
-Description: {designed_spec['description']}
+Description: {description_en}
 
 Parameters:
 {self._format_params(designed_spec['params'])}
 
 Implementation Approach:
-{designed_spec.get('implementation_hint', 'N/A')}
+{implementation_en}
 
 Test Result: {'PASS' if test_result['success'] else 'FAIL'}
 
@@ -907,12 +924,13 @@ This solution was automatically generated and tested by the SmartExecutor AI Age
                     "module_id": designed_spec['module_id'],
                     "module_category": designed_spec['category'],
                     "test_passed": test_result['success'],
+                    "original_problem": module_spec.get('reason', ''),  # Keep original
                     "timestamp": datetime.now().isoformat()
                 }
             )
 
             connector.disconnect()
-            print(f"✅ Solution stored to vector DB: {designed_spec['module_id']}")
+            print(f"✅ Solution stored to vector DB (English): {designed_spec['module_id']}")
 
         except Exception as e:
             print(f"⚠️ Failed to store solution to vector DB: {e}")
