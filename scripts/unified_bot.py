@@ -312,7 +312,63 @@ async def main():
     app.add_handler(CommandHandler("stress", bot_v2.stress_command))
     app.add_handler(CommandHandler("memory", bot_v2.memory_command))
     app.add_handler(CommandHandler("evolve", bot_v2.evolve_command))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, bot_v2.handle_message))
+    async def smart_message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Smart handler that detects intent and routes to task or conversation"""
+        if str(update.effective_user.id) not in TELEGRAM_ALLOWED_USERS:
+            return
+
+        message = update.message.text
+
+        # Step 1: Detect intent
+        from src.core.agent.intent_detector import IntentDetector
+        detector = IntentDetector()
+        intent = detector.detect(message)
+
+        # Step 2: If task, execute with SmartExecutor
+        if intent["type"] == "task" and intent["confidence"] >= 0.4:
+            await update.message.reply_text(
+                f"🎯 Detected task: {intent['task_type']}\n"
+                f"Confidence: {intent['confidence']:.0%}\n\n"
+                f"Executing..."
+            )
+
+            from src.core.executor.smart_executor import SmartExecutor
+            executor = SmartExecutor()
+
+            # Callback for progress updates
+            async def notify(msg: str):
+                try:
+                    await update.message.reply_text(msg)
+                except:
+                    pass
+
+            # Build task description
+            if intent["params"].get("urls"):
+                task_desc = f"{intent['task_type']} {intent['params']['urls'][0]}"
+                if intent["params"].get("query"):
+                    task_desc += f" search for {intent['params']['query']}"
+            else:
+                task_desc = message
+
+            # Execute task with RAG and self-healing
+            result = await executor.execute_task(task_desc, notify_callback=notify)
+
+            # Send final summary
+            if result["status"] == "success":
+                summary = f"✅ **Task Completed**\n\n"
+                if result["generated_modules"]:
+                    summary += f"🆕 Generated {len(result['generated_modules'])} new modules\n"
+                summary += f"Attempts: {len(result['attempts'])}"
+            else:
+                summary = f"❌ **Task Failed**\n\nAttempts: {len(result['attempts'])}"
+
+            await update.message.reply_text(summary)
+
+        else:
+            # Step 3: If conversation, use Ollama chat (existing handler)
+            await bot_v2.handle_message(update, context)
+
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, smart_message_handler))
 
     # Start auto-training loop in background
     asyncio.create_task(auto_training_loop(app.bot))

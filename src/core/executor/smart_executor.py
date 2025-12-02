@@ -108,10 +108,46 @@ class SmartExecutor:
 
         return result
 
+    async def _query_knowledge_base(self, query: str) -> Dict[str, Any]:
+        """Query vector database for available modules and knowledge"""
+        try:
+            from src.core.modules.atomic.vector import VectorDBConnector, KnowledgeSearch
+
+            connector = VectorDBConnector(mode="local")
+            connector.connect()
+
+            search = KnowledgeSearch(
+                connector=connector,
+                collection_name="flyto2_project_knowledge",
+                embedding_provider="local"
+            )
+
+            # Search for relevant modules and workflows
+            results = search.search(query, top_k=5)
+
+            connector.disconnect()
+
+            # Extract module information
+            available_modules = []
+            for result in results:
+                content = result.get('content', '')
+                if 'module' in content.lower():
+                    available_modules.append(content)
+
+            return {
+                "available_modules": available_modules,
+                "knowledge": results
+            }
+
+        except Exception as e:
+            print(f"Knowledge base query error: {e}")
+            return {"available_modules": [], "knowledge": []}
+
     async def _generate_workflow(self, task_description: str) -> Dict[str, Any]:
-        """Generate workflow from natural language description"""
-        # Use Ollama/OpenAI to generate workflow
-        # For now, simple pattern matching
+        """Generate workflow from natural language description with RAG"""
+        # Step 1: Query knowledge base for available modules
+        kb_query = f"browser crawling modules workflow {task_description}"
+        knowledge = await self._query_knowledge_base(kb_query)
 
         task_lower = task_description.lower()
 
