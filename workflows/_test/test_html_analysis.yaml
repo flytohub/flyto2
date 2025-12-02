@@ -1,0 +1,89 @@
+name: "Test HTML Analysis Modules"
+description: "Test advanced HTML analysis capabilities"
+
+steps:
+  # Test 1: Create sample HTML
+  - id: create_html
+    module: data.text.template
+    params:
+      template: "<html><head><title>Test Page</title><meta name='description' content='Test description'><meta property='og:title' content='Test OG Title'></head><body><header><h1>Main Title</h1><nav><a href='/home'>Home</a></nav></header><main><article class='post'><h2>Article 1</h2><p>Content 1</p></article><article class='post'><h2>Article 2</h2><p>Content 2</p></article><article class='post'><h2>Article 3</h2><p>Content 3</p></article><table><thead><tr><th>Name</th><th>Age</th></tr></thead><tbody><tr><td>John</td><td>30</td></tr><tr><td>Jane</td><td>25</td></tr></tbody></table><form action='/submit' method='POST'><input type='text' name='username' required><input type='email' name='email'><button type='submit'>Submit</button></form></main><footer>Footer content</footer></body></html>"
+      variables: {}
+    description: "Create sample HTML for testing"
+
+  # Test 2: Analyze structure
+  - id: analyze_structure
+    module: analysis.html.structure
+    params:
+      html: "${create_html.result}"
+    description: "Analyze HTML structure"
+
+  - id: verify_structure
+    module: test.assert_not_null
+    params:
+      value: "${analyze_structure.dom_stats}"
+      message: "Structure analysis should return DOM stats"
+
+  # Test 3: Find patterns
+  - id: find_patterns
+    module: analysis.html.find_patterns
+    params:
+      html: "${create_html.result}"
+    description: "Find data patterns"
+
+  - id: verify_patterns
+    module: test.assert_not_null
+    params:
+      value: "${find_patterns.pattern_count}"
+      message: "Pattern detection should return pattern count"
+
+  # Test 4: Extract tables
+  - id: extract_tables
+    module: analysis.html.extract_tables
+    params:
+      html: "${create_html.result}"
+    description: "Extract tables"
+
+  - id: verify_tables
+    module: test.assert_not_null
+    params:
+      value: "${extract_tables.table_count}"
+      message: "Table extraction should return table count"
+
+  # Test 5: Extract forms
+  - id: extract_forms
+    module: analysis.html.extract_forms
+    params:
+      html: "${create_html.result}"
+    description: "Extract forms"
+
+  - id: verify_forms
+    module: test.assert_not_null
+    params:
+      value: "${extract_forms.form_count}"
+      message: "Form extraction should return form count"
+
+  # Test 6: Extract metadata
+  - id: extract_metadata
+    module: analysis.html.extract_metadata
+    params:
+      html: "${create_html.result}"
+    description: "Extract metadata"
+
+  - id: verify_metadata
+    module: test.assert_not_null
+    params:
+      value: "${extract_metadata.meta_info}"
+      message: "Metadata extraction should return meta_info"
+
+  # Test 7: Analyze readability
+  - id: analyze_readability
+    module: analysis.html.analyze_readability
+    params:
+      html: "${create_html.result}"
+    description: "Analyze content readability"
+
+  - id: verify_readability
+    module: test.assert_not_null
+    params:
+      value: "${analyze_readability.word_count}"
+      message: "Readability analysis should return word count"

@@ -1,0 +1,37 @@
+name: "Test Module Generator"
+description: "Verify ModuleGenerator can create new modules automatically"
+
+steps:
+  - id: test_generator_import
+    module: meta.modules.test_generator
+    params:
+      module_spec:
+        module_id: "string.reverse"
+        description: "Reverse a string"
+        category: "string"
+        params:
+          text: "string"
+        returns: "Reversed string"
+        examples:
+          - params:
+              text: "hello"
+            description: "Reverse 'hello' to 'olleh'"
+
+  - id: verify_generation_success
+    module: test.assert_equal
+    params:
+      actual: "${test_generator_import.success}"
+      expected: true
+      message: "Module generation should succeed"
+
+  - id: verify_module_created
+    module: test.assert_not_null
+    params:
+      value: "${test_generator_import.module_path}"
+      message: "Module file should be created"
+
+  - id: verify_test_created
+    module: test.assert_not_null
+    params:
+      value: "${test_generator_import.test_path}"
+      message: "Test file should be created"

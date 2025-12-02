@@ -1,0 +1,56 @@
+name: "Test Daily Practice Engine"
+description: "Test AI self-training practice sessions"
+
+steps:
+  # Test 1: Analyze a simple website
+  - id: analyze_website
+    module: training.practice.analyze
+    params:
+      url: "https://example.com"
+    description: "Analyze example.com structure"
+
+  - id: verify_analysis
+    module: test.assert_not_null
+    params:
+      value: "${analyze_website.structure}"
+      message: "Website analysis should return structure data"
+
+  # Test 2: Infer schema from a website
+  - id: infer_schema
+    module: training.practice.infer_schema
+    params:
+      url: "https://example.com"
+      sample_size: 3
+    description: "Infer data schema from example.com"
+
+  - id: verify_schema
+    module: test.assert_not_null
+    params:
+      value: "${infer_schema.detected_fields}"
+      message: "Schema inference should return detected fields"
+
+  # Test 3: Execute a small practice session
+  - id: execute_practice
+    module: training.practice.execute
+    params:
+      url: "https://example.com"
+      max_items: 5
+    description: "Execute practice session on example.com"
+
+  - id: verify_practice
+    module: test.assert_not_null
+    params:
+      value: "${execute_practice.status}"
+      message: "Practice execution should return status"
+
+  # Test 4: Get practice statistics
+  - id: get_stats
+    module: training.practice.stats
+    params: {}
+    description: "Get overall practice statistics"
+
+  - id: verify_stats
+    module: test.assert_not_null
+    params:
+      value: "${get_stats.total_sessions}"
+      message: "Practice stats should include total_sessions"

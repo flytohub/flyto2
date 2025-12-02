@@ -35,6 +35,10 @@ from . import datetime
 from . import object
 from . import meta_operations
 from . import test_utilities
+from . import meta
+from . import training
+from . import analysis
+from . import competition
 
 __all__ = [
     'BrowserFindModule',

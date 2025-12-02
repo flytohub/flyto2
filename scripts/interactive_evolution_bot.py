@@ -60,6 +60,7 @@ class EvolutionState:
         self.pending_proposals = []  # AI proposals waiting for your review
         self.api_tokens: Dict[str, str] = {}  # User-provided API tokens for testing
         self.pending_test_token_collection = False  # Flag for token collection flow
+        self.pending_practice_url_input = False  # Flag for practice URL input
 
     def get_session(self, user_id: int) -> Dict:
         if user_id not in self.sessions:
@@ -493,8 +494,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     keyboard = [
-        ["🧪 Run Tests", "📊 Show Status"],
-        ["💡 Suggest Improvements", "📚 Analyze Docs"],
+        ["🧪 Run Tests", "🏋️ Practice", "🏁 Competition"],
+        ["📊 Show Status", "📚 Analyze Docs"],
         ["🤖 Toggle Auto Mode", "⚙️ Settings"]
     ]
     reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
@@ -504,6 +505,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "I'm your AI assistant for continuous module improvement.\n\n"
         "**What I can do:**\n"
         "• Test all modules and report quality\n"
+        "• Practice on real websites daily\n"
         "• Suggest improvements based on failures\n"
         "• Analyze docs to find missing features\n"
         "• Discuss new module ideas with you\n"
@@ -762,6 +764,234 @@ async def autonomous_evolution_loop(context):
         await asyncio.sleep(3600)
 
 
+async def competition_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Start a competition"""
+    if not is_authorized(update):
+        return
+
+    keyboard = [
+        [InlineKeyboardButton("🏁 Speed Race", callback_data="comp_speed_race")],
+        [InlineKeyboardButton("🏆 View Leaderboard", callback_data="comp_leaderboard")],
+        [InlineKeyboardButton("📊 Race History", callback_data="comp_history")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    await update.message.reply_text(
+        "🏁 **Competition Mode**\n\n"
+        "Compete to improve performance:\n\n"
+        "• **Speed Race** - Execute same task multiple times, track best time\n"
+        "• **Leaderboard** - See your personal bests\n"
+        "• **History** - View past race results\n\n"
+        "What would you like to do?",
+        reply_markup=reply_markup
+    )
+
+
+async def practice_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Start a daily practice session"""
+    if not is_authorized(update):
+        return
+
+    keyboard = [
+        [InlineKeyboardButton("🎯 Practice on a website", callback_data="practice_start")],
+        [InlineKeyboardButton("📊 View practice stats", callback_data="practice_stats")],
+        [InlineKeyboardButton("📜 View practice history", callback_data="practice_history")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    await update.message.reply_text(
+        "🏋️ **Daily Practice Engine**\n\n"
+        "Practice makes perfect! Let me train on real websites:\n\n"
+        "• Analyze website structure\n"
+        "• Infer data schemas automatically\n"
+        "• Execute small-scale scraping (10-20 items)\n"
+        "• Learn from errors\n"
+        "• Track improvement over time\n\n"
+        "What would you like to do?",
+        reply_markup=reply_markup
+    )
+
+
+async def execute_practice_session(message, url: str, max_items: int = 10):
+    """Execute a practice session and show results"""
+    from src.core.training.daily_practice import DailyPracticeEngine
+
+    await message.reply_text(f"🎯 Starting practice session on:\n`{url}`\n\nThis may take 30-60 seconds...", parse_mode="Markdown")
+
+    try:
+        engine = DailyPracticeEngine()
+
+        # Execute practice
+        result = await engine.execute_practice(url, max_items)
+
+        # Format results
+        status_emoji = "✅" if result.get("status") == "completed" else "❌"
+        success_rate = result.get("success_rate", 0.0)
+        success_emoji = "🎉" if success_rate >= 0.8 else ("👍" if success_rate >= 0.5 else "😓")
+
+        response = f"{status_emoji} **Practice Session Complete**\n\n"
+        response += f"**URL:** `{url}`\n"
+        response += f"**Success Rate:** {success_rate:.1%} {success_emoji}\n"
+        response += f"**Items Scraped:** {len(result.get('scraped_data', []))}/{max_items}\n"
+        response += f"**Errors:** {len(result.get('errors', []))}\n\n"
+
+        # Show learnings
+        learnings = result.get("learnings", [])
+        if learnings:
+            response += "**🎓 Learnings:**\n"
+            for learning in learnings[:5]:
+                response += f"• {learning}\n"
+            response += "\n"
+
+        # Show recommendations
+        recommendations = result.get("analysis", {}).get("recommendations", [])
+        if recommendations:
+            response += "**💡 Recommendations:**\n"
+            for rec in recommendations[:3]:
+                response += f"• {rec}\n"
+            response += "\n"
+
+        # Show sample data
+        scraped_data = result.get("scraped_data", [])
+        if scraped_data:
+            response += f"**📦 Sample Data (first item):**\n```json\n{json.dumps(scraped_data[0], indent=2, ensure_ascii=False)[:500]}```\n"
+
+        # Show errors if any
+        errors = result.get("errors", [])
+        if errors:
+            response += f"\n**⚠️ Errors ({len(errors)}):**\n"
+            for error in errors[:3]:
+                response += f"• {error[:100]}\n"
+
+        await message.reply_text(response, parse_mode="Markdown")
+
+    except Exception as e:
+        await message.reply_text(f"❌ Practice session failed:\n`{str(e)}`", parse_mode="Markdown")
+
+
+async def show_practice_stats(message):
+    """Show overall practice statistics"""
+    from src.core.training.daily_practice import DailyPracticeEngine
+
+    try:
+        engine = DailyPracticeEngine()
+        stats = engine.get_practice_stats()
+
+        response = "📊 **Practice Statistics**\n\n"
+        response += f"**Total Sessions:** {stats.get('total_sessions', 0)}\n"
+        response += f"**Avg Success Rate:** {stats.get('avg_success_rate', 0.0):.1%}\n"
+        response += f"**Total Items Scraped:** {stats.get('total_items_scraped', 0)}\n"
+        response += f"**Total Errors:** {stats.get('total_errors', 0)}\n"
+
+        last_session = stats.get('last_session')
+        if last_session:
+            response += f"**Last Session:** {last_session}\n"
+
+        await message.reply_text(response, parse_mode="Markdown")
+
+    except Exception as e:
+        await message.reply_text(f"❌ Failed to get stats:\n`{str(e)}`", parse_mode="Markdown")
+
+
+async def show_practice_history(message, limit: int = 5):
+    """Show recent practice history"""
+    from src.core.training.daily_practice import DailyPracticeEngine
+
+    try:
+        engine = DailyPracticeEngine()
+        history = engine.get_practice_history(limit)
+
+        if not history:
+            await message.reply_text("📜 No practice history yet. Start your first session with `/practice`!")
+            return
+
+        response = f"📜 **Recent Practice History (last {len(history)}):**\n\n"
+
+        for idx, session in enumerate(history, 1):
+            url = session.get('url', 'Unknown')
+            success_rate = session.get('success_rate', 0.0)
+            status = session.get('status', 'unknown')
+            timestamp = session.get('timestamp', 'Unknown')
+
+            status_emoji = "✅" if status == "completed" else "❌"
+
+            response += f"**{idx}. {status_emoji} {url[:50]}**\n"
+            response += f"   Success: {success_rate:.1%} | {timestamp[:10]}\n\n"
+
+        await message.reply_text(response, parse_mode="Markdown")
+
+    except Exception as e:
+        await message.reply_text(f"❌ Failed to get history:\n`{str(e)}`", parse_mode="Markdown")
+
+
+async def show_competition_leaderboard(message):
+    """Show competition leaderboard"""
+    from src.core.competition.speed_race import SpeedRace
+
+    try:
+        engine = SpeedRace()
+        leaderboard = engine.get_leaderboard()
+
+        if not leaderboard:
+            await message.reply_text("🏆 No races yet. Run your first speed race!")
+            return
+
+        response = "🏆 **Speed Race Leaderboard**\n\n"
+
+        for idx, entry in enumerate(leaderboard[:10], 1):
+            task_name = entry.get('task_name', 'Unknown')
+            best_time = entry.get('best_time', 0.0)
+            avg_time = entry.get('avg_time', 0.0)
+            timestamp = entry.get('timestamp', 'Unknown')
+
+            medal = "🥇" if idx == 1 else ("🥈" if idx == 2 else ("🥉" if idx == 3 else f"{idx}."))
+
+            response += f"{medal} **{task_name}**\n"
+            response += f"   Best: {best_time:.2f}s | Avg: {avg_time:.2f}s\n"
+            response += f"   Date: {timestamp[:10]}\n\n"
+
+        await message.reply_text(response, parse_mode="Markdown")
+
+    except Exception as e:
+        await message.reply_text(f"❌ Failed to get leaderboard:\n`{str(e)}`", parse_mode="Markdown")
+
+
+async def show_competition_history(message, limit: int = 5):
+    """Show recent competition history"""
+    from src.core.competition.speed_race import SpeedRace
+
+    try:
+        engine = SpeedRace()
+        history = engine.get_race_history(limit=limit)
+
+        if not history:
+            await message.reply_text("📊 No race history yet. Start your first competition!")
+            return
+
+        response = f"📊 **Recent Race History (last {len(history)}):**\n\n"
+
+        for idx, race in enumerate(history, 1):
+            task_name = race.get('task_name', 'Unknown')
+            status = race.get('status', 'unknown')
+            timestamp = race.get('timestamp', 'Unknown')
+
+            status_emoji = "✅" if status == "completed" else "❌"
+
+            stats = race.get('stats', {})
+            best_time = stats.get('best_time', 0.0)
+            avg_time = stats.get('avg_time', 0.0)
+
+            response += f"**{idx}. {status_emoji} {task_name}**\n"
+            if status == "completed":
+                response += f"   Best: {best_time:.2f}s | Avg: {avg_time:.2f}s\n"
+            response += f"   {timestamp[:10]}\n\n"
+
+        await message.reply_text(response, parse_mode="Markdown")
+
+    except Exception as e:
+        await message.reply_text(f"❌ Failed to get history:\n`{str(e)}`", parse_mode="Markdown")
+
+
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle free-form conversation"""
     if not is_authorized(update):
@@ -770,6 +1000,21 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     session = state.get_session(user_id)
     message_text = update.message.text
+
+    # Handle practice URL input flow
+    if state.pending_practice_url_input:
+        if message_text == "/cancel":
+            state.pending_practice_url_input = False
+            await update.message.reply_text("❌ Practice session cancelled.")
+            return
+
+        # Validate URL
+        if message_text.startswith("http://") or message_text.startswith("https://"):
+            state.pending_practice_url_input = False
+            await execute_practice_session(update.message, message_text, max_items=10)
+        else:
+            await update.message.reply_text("❌ Invalid URL. Please provide a valid URL starting with http:// or https://\n\nOr send `/cancel` to abort.", parse_mode="Markdown")
+        return
 
     # Handle token collection flow
     if state.pending_test_token_collection:
@@ -805,6 +1050,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Quick replies
     if message_text == "🧪 Run Tests":
         await run_tests_command(update, context)
+        return
+    elif message_text == "🏋️ Practice":
+        await practice_command(update, context)
+        return
+    elif message_text == "🏁 Competition":
+        await competition_command(update, context)
         return
     elif message_text == "📚 Analyze Docs":
         await analyze_docs_command(update, context)
@@ -867,6 +1118,37 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     user_id = query.from_user.id
     session = state.get_session(user_id)
+
+    # Competition callbacks
+    if query.data == "comp_speed_race":
+        await query.edit_message_text("🏁 **Speed Race**\n\nSpeed races are not yet implemented via Telegram UI.\n\nYou can run them via workflow:\n```yaml\n- module: competition.speed_race.run\n  params:\n    task_name: \"my_task\"\n    workflow_path: \"path/to/workflow.yaml\"\n    rounds: 5\n```", parse_mode="Markdown")
+        return
+
+    if query.data == "comp_leaderboard":
+        await query.message.delete()
+        await show_competition_leaderboard(query.message)
+        return
+
+    if query.data == "comp_history":
+        await query.message.delete()
+        await show_competition_history(query.message, limit=5)
+        return
+
+    # Practice callbacks
+    if query.data == "practice_start":
+        await query.edit_message_text("🎯 **Start Practice Session**\n\nPlease send me the URL of a website to practice on.\n\nExample:\n`https://example.com`\n\nSend `/cancel` to abort.", parse_mode="Markdown")
+        state.pending_practice_url_input = True
+        return
+
+    if query.data == "practice_stats":
+        await query.message.delete()
+        await show_practice_stats(query.message)
+        return
+
+    if query.data == "practice_history":
+        await query.message.delete()
+        await show_practice_history(query.message, limit=5)
+        return
 
     # Test with tokens flow
     if query.data == "test_with_tokens":
@@ -963,6 +1245,8 @@ def main():
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("test", run_tests_command))
     app.add_handler(CommandHandler("docs", analyze_docs_command))
+    app.add_handler(CommandHandler("practice", practice_command))
+    app.add_handler(CommandHandler("competition", competition_command))
     app.add_handler(CommandHandler("auto", toggle_auto_mode))
     app.add_handler(CommandHandler("status", show_status))
 
