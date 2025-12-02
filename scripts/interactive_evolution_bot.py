@@ -28,6 +28,9 @@ from typing import Dict, List, Optional, Tuple, Any
 
 from dotenv import load_dotenv
 from telegram import Update, ReplyKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup
+
+# 記憶系統整合
+from src.core.memory.conversation_memory import get_memory, clear_memory
 from telegram.ext import (
     Application,
     CommandHandler,
@@ -1205,6 +1208,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     session = state.get_session(user_id)
     message_text = update.message.text
 
+    # ===== 記憶系統整合 =====
+    memory = get_memory(str(user_id))
+    memory.add_message("user", message_text)
+
     # Check for task intent first
     task_intent = await detect_task_intent(message_text)
     if task_intent:
@@ -1288,22 +1295,39 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await propose_command(update, context)
         return
 
-    # Check if user is requesting a new tool/module
+    # ===== 使用智能意圖檢測 (LLM-based, 不用 regex) =====
+    from src.core.intelligence.intent_detector import IntelligentIntentDetector
     from scripts.auto_tool_creator import AutoToolCreator
 
-    tool_creator = AutoToolCreator(PROJECT_ROOT)
-    tool_request = tool_creator.detect_tool_request(message_text)
+    intent_detector = IntelligentIntentDetector()
 
-    if tool_request:
+    # 取得對話歷史用於意圖檢測
+    conversation_history = memory.get_recent_history(limit=3)
+    history_text = "\n".join([
+        f"{'使用者' if msg['role'] == 'user' else '助手'}: {msg['content']}"
+        for msg in conversation_history
+    ])
+
+    # 智能判斷使用者意圖
+    intent_data = await intent_detector.detect_intent(message_text, conversation_history=history_text)
+
+    print(f"🧠 Intent detected: {intent_data['intent']} (confidence: {intent_data['confidence']:.0%})")
+    print(f"   Reasoning: {intent_data.get('reasoning', 'N/A')}")
+
+    # 根據意圖執行對應動作
+    if intent_detector.should_create_tool(intent_data):
+        tool_description = intent_detector.get_tool_description(intent_data) or message_text
+
         await update.message.reply_text(
             f"🤖 **Detected new tool request!**\n\n"
-            f"Description: {tool_request['description']}\n\n"
+            f"Description: {tool_description}\n\n"
             f"I'll automatically create this module for you using Ollama...\n\n"
             f"This may take 1-2 minutes ⏳"
         )
 
         # Create tool automatically
-        creation_result = await tool_creator.create_tool_from_description(tool_request['description'])
+        tool_creator = AutoToolCreator(PROJECT_ROOT)
+        creation_result = await tool_creator.create_tool_from_description(tool_description)
 
         if creation_result['success']:
             response = f"✅ **Module created successfully!**\n\n"
@@ -1327,9 +1351,36 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             # Fall through to normal Ollama conversation
 
-    # General conversation with Ollama
-    if not tool_request or not creation_result.get('success'):
+    # 處理搜尋意圖
+    elif intent_detector.should_search(intent_data):
+        search_query = intent_detector.get_search_query(intent_data) or message_text
+        await update.message.reply_text(f"🔍 Searching for: {search_query}")
+
+        # Trigger search command
+        from src.core.search.web_search import WebSearch
+        searcher = WebSearch()
+        search_results = await searcher.search(search_query, max_results=5)
+
+        if search_results:
+            response = f"🔍 **Search Results for '{search_query}'**:\n\n"
+            for i, result in enumerate(search_results[:3], 1):
+                response += f"{i}. [{result['title']}]({result['url']})\n"
+                response += f"   {result['snippet']}\n\n"
+
+            await update.message.reply_text(response, parse_mode="Markdown")
+            return
+        else:
+            await update.message.reply_text("❌ No search results found. Let me help you instead...")
+
+    # General conversation with Ollama (for all other intents)
+    if intent_data['intent'] in ['conversation', 'help'] or not intent_detector.should_create_tool(intent_data):
         await update.message.reply_text("🤔 Thinking...")
+
+    # ===== 取得完整對話記憶 (短期 + 長期 RAG) =====
+    conversation_context = memory.get_context_for_ollama(
+        current_query=message_text,
+        include_rag=True  # 啟用 RAG 檢索
+    )
 
     system_prompt = """You are an AI assistant for the Flyto2 workflow automation project.
 
@@ -1345,11 +1396,21 @@ Key principles:
 - Pure functions preferred
 - Always maintain backward compatibility
 
-Current context: {context}
-""".format(context=session['context'])
+# Conversation Memory (對話記憶 - 包含短期和 RAG 檢索的長期記憶):
+{memory_context}
+
+# Current Session Context:
+{session_context}
+""".format(
+    memory_context=conversation_context,
+    session_context=session['context']
+)
 
     response, confidence = await ask_ollama(message_text, system_prompt)
     session['stats']['ollama_queries'] += 1
+
+    # ===== 儲存助手回應到記憶 =====
+    memory.add_message("assistant", response, metadata={"confidence": confidence})
 
     # Auto-escalation: very low confidence -> jump directly to OpenAI
     auto_escalate_threshold = state.config['auto_escalate_threshold']

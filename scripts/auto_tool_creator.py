@@ -30,18 +30,24 @@ class AutoToolCreator:
         self.agent = ImplementationAgent(use_ollama=True)
 
         # Patterns to detect tool creation requests
+        # More flexible patterns to catch various phrasings
         self.patterns = [
-            # Chinese patterns
-            (r'(?:建立|創建|新增|做|寫).*?(?:模組|工具|功能)', 'create_tool'),
-            (r'(?:需要|想要).*?(?:模組|工具|功能)', 'need_tool'),
+            # Chinese patterns - more flexible
+            (r'(?:建立|創建|新增|做|寫)(?:一個|個)?(.+?)(?:模組|工具|功能|的模組|的工具|的功能)', 'create_tool'),
+            (r'(?:建立|創建|新增|做|寫)(?:一個|個)?(.+)', 'create_tool'),  # Fallback without 模組/工具
+            (r'(?:需要|想要)(?:一個|個)?(.+?)(?:模組|工具|功能)', 'need_tool'),
             (r'(?:嘗試|試試)(?:看看)?(.+)', 'try_tool'),
-            (r'(?:能不能|可以)(?:做|建立|創建)(.+)', 'can_create'),
+            (r'(?:能不能|可以|可否)(?:做|建立|創建|幫我|幫忙)(?:一個|個)?(.+)', 'can_create'),
 
-            # English patterns
-            (r'create (a|an) (\w+) (?:module|tool|feature)', 'create_tool'),
-            (r'I need (a|an) (\w+) (?:module|tool)', 'need_tool'),
+            # English patterns - more flexible
+            (r'create (?:a|an) (.+?)(?:module|tool|feature)', 'create_tool'),
+            (r'create (?:a|an) (.+)', 'create_tool'),  # Fallback without module/tool
+            (r'I need (?:a|an) (.+?)(?:module|tool|feature)', 'need_tool'),
+            (r'I need (?:a|an )?(?:tool to |module to |feature to )?(.+)', 'need_tool'),
+            (r'make (?:a|an) (.+?)(?:module|tool|feature)', 'create_tool'),
+            (r'build (?:a|an) (.+?)(?:module|tool|feature)', 'create_tool'),
             (r'try (?:to )?(.+)', 'try_tool'),
-            (r'can you (?:create|make|build) (.+)', 'can_create'),
+            (r'can you (?:create|make|build) (?:a|an )?(.+)', 'can_create'),
         ]
 
     def detect_tool_request(self, message: str) -> Optional[Dict[str, Any]]:
