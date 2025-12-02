@@ -45,6 +45,7 @@ class IntentDetector:
 
         # URL patterns
         self.url_pattern = r'https?://[^\s]+'
+        self.domain_pattern = r'\b([a-z0-9-]+\.)+[a-z]{2,}\b'  # Detect domains like amazon.com
 
     def detect(self, message: str) -> Dict[str, Any]:
         """
@@ -65,11 +66,18 @@ class IntentDetector:
             "params": {}
         }
 
-        # Check for URLs (strong signal for task)
+        # Check for full URLs (strong signal for task)
         urls = re.findall(self.url_pattern, message)
         if urls:
             result["params"]["urls"] = urls
-            result["confidence"] += 0.4
+            result["confidence"] += 0.5
+
+        # Check for domain names without protocol (e.g., "爬 amazon.com")
+        domains = re.findall(self.domain_pattern, message_lower)
+        if domains and not urls:
+            # Has domain but no full URL - add https://
+            result["params"]["urls"] = [f"https://{domain}" for domain in domains]
+            result["confidence"] += 0.5
 
         # Check for task keywords
         task_matches = 0
@@ -78,7 +86,7 @@ class IntentDetector:
                 task_matches += 1
 
         if task_matches > 0:
-            result["confidence"] += 0.3 * min(task_matches, 2)
+            result["confidence"] += 0.4 * min(task_matches, 2)  # Increased from 0.3
 
         # Determine if it's a task
         if result["confidence"] >= 0.4:

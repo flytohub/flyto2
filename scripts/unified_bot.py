@@ -60,7 +60,7 @@ async def auto_training_loop(bot: Bot):
             try:
                 await bot.send_message(
                     chat_id=int(user_id),
-                    text=f"🔄 **Training Iteration #{iteration}**\n\nStarting..."
+                    text=f"🔄 **Training Iteration #{iteration}**\n\n🤖 Initializing self-healing AI engine...\n⏳ This may take a few minutes..."
                 )
             except:
                 pass

@@ -364,11 +364,37 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await handle_guidance(update, context, message)
         return
 
-    # Prepare context for Ollama
-    system_prompt = "You are a helpful AI assistant."
+    # Prepare context for Ollama with project knowledge
+    system_prompt = """You are Flyto2 AI Agent - an intelligent web scraping and automation assistant.
+
+**Your Capabilities**:
+- Execute web crawling tasks automatically
+- Browser automation (Playwright)
+- Data extraction from websites
+- Self-healing when encountering errors
+- Learning from past experiences
+
+**Architecture**:
+- Atomic module system
+- YAML-based workflows
+- Vector database for knowledge storage
+- Categories: browser, string, array, math, object, file, datetime, data
+
+**Important**:
+- When user asks to crawl/scrape a website, tell them you'll execute it for them
+- Don't give general advice - you can actually do the task!
+- Be concise and action-oriented
+- Use your Chinese language skills when appropriate
+
+Example:
+User: "爬 amazon.com"
+You: "好的！我现在帮你爬取 amazon.com。正在启动浏览器..."
+(Then the system will execute the task automatically)
+"""
+
     if session.get("last_task_result"):
         # Add task result to context
-        system_prompt += f"\n\nPrevious task result: {session['last_task_result']}"
+        system_prompt += f"\n\n**Previous Task Result**:\n{session['last_task_result']}"
 
     # Tier 1: Try Ollama first (with conversation history)
     answer, confidence = await ask_ollama(
