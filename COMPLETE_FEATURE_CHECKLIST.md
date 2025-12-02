@@ -1517,7 +1517,7 @@ async with ConnectionPool() as pool:
 
 ---
 
-## 🧠 9. Vector Database and Long-term Memory System (4/8 = 50%)
+## 🧠 9. Vector Database and Long-term Memory System (5/8 = 63%)
 
 **目標**: 解決 AI 失憶問題，建立持久化知識庫，避免依賴長 Token
 
@@ -1709,52 +1709,70 @@ trigger.on_practice_complete(website, result)
 
 **Status**: ✅ COMPLETE
 
-### ❌ 9.5 智能記憶檢索 (RAG)
-**目標**: AI 決策時自動檢索相關記憶
+### ✅ 9.5 Intelligent Memory Retrieval (RAG)
+**Goal**: Automatically retrieve relevant memories for AI decision making
 
-**使用場景**:
-- [ ] **提案新模組時** - 檢索類似模組的經驗
-- [ ] **分析錯誤時** - 檢索類似錯誤的解決方案
-- [ ] **優化效能時** - 檢索成功的優化案例
-- [ ] **Daily Practice 時** - 檢索該網站的歷史經驗
+**Implementation**: `src/core/modules/atomic/vector/rag.py`
 
-**RAG 流程**:
-```yaml
-# 範例: 優化模組時使用 RAG
-steps:
-  # 1. 生成查詢向量
-  - module: vector.embed.ollama
-    params:
-      text: "Optimize browser.click timeout handling"
+**Classes**:
+1. **RAGRetriever**: Retrieves relevant memories for different scenarios
+   - retrieve_for_module_proposal(): When proposing new modules
+   - retrieve_for_error_analysis(): When analyzing errors
+   - retrieve_for_optimization(): When optimizing performance
+   - retrieve_for_website_practice(): When practicing on websites
+   - retrieve_multi_category(): Multi-category retrieval
 
-  # 2. 檢索相關記憶
-  - module: vector.search
-    params:
-      embedding: "{{ steps[0].output.vector }}"
-      top_k: 10
-      filter:
-        category: ["error", "success"]
-        module_id: "browser.click"
+2. **RAGFormatter**: Formats memories for AI prompts
+   - format_for_prompt(): Markdown, JSON, or text format
+   - format_by_category(): Category-grouped formatting
 
-  # 3. 將檢索結果注入 AI prompt
-  - module: ai.ollama.chat
-    params:
-      system_message: |
-        You are optimizing the browser.click module.
+3. **RAGPipeline**: Complete RAG workflow
+   - augment_context(): Retrieve + format in one call
+   - build_augmented_prompt(): Build complete prompt with memories
 
-        **Relevant Past Experiences**:
-        {% for memory in steps[1].output.results %}
-        - {{ memory.content }} (similarity: {{ memory.score }})
-        {% endfor %}
-      user_message: "Propose optimization for timeout handling"
+**Use Cases**:
+- **Module Proposal**: Retrieve similar modules and past experiences
+- **Error Analysis**: Find similar errors and solutions
+- **Performance Optimization**: Retrieve successful optimization patterns
+- **Daily Practice**: Access historical experiences for same website
+
+**RAG Workflow**:
+```python
+pipeline = RAGPipeline(knowledge_store)
+
+# Augment AI prompt with relevant memories
+augmented_prompt = pipeline.build_augmented_prompt(
+    base_prompt="How to optimize browser.click timeout?",
+    query="browser.click timeout handling",
+    context_type="error",
+    top_k=5
+)
+
+# AI now has access to past experiences
+ai_response = ai_client.chat(augmented_prompt)
 ```
 
-**Atomic Modules**:
-- [ ] `vector.rag.retrieve` - RAG 檢索流程
-- [ ] `vector.rag.format` - 格式化記憶為 prompt
+**Output Formats**:
+- Markdown: Structured with headers and metadata
+- JSON: Machine-readable format
+- Text: Plain text for simple consumption
 
-**優先級**: P2
-**狀態**: ❌ NOT STARTED
+**Benefits**:
+- AI makes informed decisions based on past experiences
+- Reduces repetitive mistakes
+- Accelerates problem solving with historical solutions
+- Enables continuous learning and improvement
+
+**Tests**: `tests/test_rag.py` (all passed)
+- Module proposal retrieval ✓
+- Error analysis retrieval ✓
+- Optimization retrieval ✓
+- Website practice retrieval ✓
+- Multi-category retrieval ✓
+- Markdown/JSON/text formatting ✓
+- Complete RAG pipeline ✓
+
+**Status**: ✅ COMPLETE
 
 ### ❌ 9.6 知識庫管理與維護
 **目標**: 管理、清理、優化向量資料庫
