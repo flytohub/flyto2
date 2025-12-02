@@ -309,62 +309,71 @@ echo ━━━━━━━━━━━━━━━━━━━━━━━━━
 echo 5️⃣  Checking Environment Variables...
 echo ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-if not exist .env (
-    echo ⚠️  .env file not found
+REM Check if .env exists
+if not exist .env goto :create_env
+goto :check_token
 
-    if exist .env.example (
-        echo.
-        echo 💡 Found .env.example - copying to .env...
-        copy .env.example .env >nul
-        echo ✅ Created .env from .env.example
-        echo    Please verify the configuration is correct
-        set "ENV_CONFIGURED=1"
-    ) else (
-        echo    Creating template .env file...
+:create_env
+echo ⚠️  .env file not found
 
-        (
-            echo # Telegram Bot
-            echo TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here
-            echo.
-            echo # OpenAI
-            echo OPENAI_API_KEY=your_openai_api_key_here
-            echo.
-            echo # Qdrant Cloud
-            echo QDRANT_URL=your_qdrant_url_here
-            echo QDRANT_API_KEY=your_qdrant_api_key_here
-            echo.
-            echo # Ollama (optional^)
-            echo OLLAMA_BASE_URL=http://localhost:11434
-            echo OLLAMA_MODEL=llama3.2:3b
-            echo.
-            echo # GitHub (optional, for auto PR creation^)
-            echo GITHUB_TOKEN=your_github_token_here
-        ) > .env
-
-        echo ✅ Template .env created
-        echo    ⚠️  Please edit .env and add your API keys
-        set "ENV_CONFIGURED=0"
-    )
-) else (
-    echo ✓ .env file exists
-
-    REM Check for required keys (simplified check)
-    findstr /B "TELEGRAM_BOT_TOKEN=" .env >nul 2>nul
-    if errorlevel 1 (
-        echo    ⚠️  TELEGRAM_BOT_TOKEN not found
-        set "ENV_CONFIGURED=0"
-    ) else (
-        REM Check if it's a placeholder
-        findstr /C:"TELEGRAM_BOT_TOKEN=your_" .env >nul 2>nul
-        if errorlevel 1 (
-            echo    ✓ TELEGRAM_BOT_TOKEN configured
-            set "ENV_CONFIGURED=1"
-        ) else (
-            echo    ⚠️  TELEGRAM_BOT_TOKEN is placeholder
-            set "ENV_CONFIGURED=0"
-        )
-    )
+if exist .env.example (
+    echo.
+    echo 💡 Found .env.example - copying to .env...
+    copy .env.example .env >nul
+    echo ✅ Created .env from .env.example
+    echo    Please verify the configuration is correct
+    set "ENV_CONFIGURED=1"
+    goto :env_done
 )
+
+echo    Creating template .env file...
+(
+    echo # Telegram Bot
+    echo TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here
+    echo.
+    echo # OpenAI
+    echo OPENAI_API_KEY=your_openai_api_key_here
+    echo.
+    echo # Qdrant Cloud
+    echo QDRANT_URL=your_qdrant_url_here
+    echo QDRANT_API_KEY=your_qdrant_api_key_here
+    echo.
+    echo # Ollama (optional^)
+    echo OLLAMA_BASE_URL=http://localhost:11434
+    echo OLLAMA_MODEL=llama3.2:3b
+    echo.
+    echo # GitHub (optional, for auto PR creation^)
+    echo GITHUB_TOKEN=your_github_token_here
+) > .env
+
+echo ✅ Template .env created
+echo    ⚠️  Please edit .env and add your API keys
+set "ENV_CONFIGURED=0"
+goto :env_done
+
+:check_token
+echo ✓ .env file exists
+
+REM Check for required keys
+findstr /B "TELEGRAM_BOT_TOKEN=" .env >nul 2>nul
+if errorlevel 1 (
+    echo    ⚠️  TELEGRAM_BOT_TOKEN not found
+    set "ENV_CONFIGURED=0"
+    goto :env_done
+)
+
+REM Check if it's a placeholder
+findstr /C:"TELEGRAM_BOT_TOKEN=your_" .env >nul 2>nul
+if errorlevel 1 (
+    echo    ✓ TELEGRAM_BOT_TOKEN configured
+    set "ENV_CONFIGURED=1"
+    goto :env_done
+)
+
+echo    ⚠️  TELEGRAM_BOT_TOKEN is placeholder
+set "ENV_CONFIGURED=0"
+
+:env_done
 
 REM Test System
 echo.
