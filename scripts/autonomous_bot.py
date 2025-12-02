@@ -80,20 +80,36 @@ async def auto_training_loop(bot: Bot):
                 "https://httpbin.org/html"
             ]
 
+            success_count = 0
+            error_count = 0
+
             for site in test_sites:
                 result = await engine.analyze_website(site)
 
-                msg = f"📊 **Analyzed**: {site}\n"
                 if result['errors']:
-                    msg += f"⚠️ Errors: {len(result['errors'])}\n"
+                    error_count += 1
+                    msg = f"📊 **Analyzed**: {site}\n⚠️ Errors:\n"
+                    for err in result['errors'][:2]:  # Show first 2 errors
+                        msg += f"  • {err}\n"
                 else:
-                    msg += "✅ Success!\n"
+                    success_count += 1
+                    msg = f"📊 **Analyzed**: {site}\n✅ Success!\n"
+                    if result.get('structure', {}).get('title'):
+                        msg += f"  Title: {result['structure']['title'][:50]}\n"
 
                 for user_id in TELEGRAM_ALLOWED_USERS:
                     try:
                         await bot.send_message(chat_id=int(user_id), text=msg)
                     except:
                         pass
+
+            # Summary
+            summary_msg = f"\n📈 **Crawler Summary**\n✅ Success: {success_count}\n⚠️ Errors: {error_count}"
+            for user_id in TELEGRAM_ALLOWED_USERS:
+                try:
+                    await bot.send_message(chat_id=int(user_id), text=summary_msg)
+                except:
+                    pass
 
         except Exception as e:
             for user_id in TELEGRAM_ALLOWED_USERS:
@@ -157,21 +173,26 @@ async def auto_training_loop(bot: Bot):
             print(f"Knowledge aggregation error: {e}")
 
         # Report completion
+        # Configurable interval (default: 1 hour)
+        interval_minutes = int(os.getenv('TRAINING_INTERVAL_MINUTES', '60'))
+        interval_seconds = interval_minutes * 60
+
         for user_id in TELEGRAM_ALLOWED_USERS:
             try:
                 await bot.send_message(
                     chat_id=int(user_id),
                     text=(
                         f"✅ **Iteration #{iteration} Complete!**\n\n"
-                        f"Next training in 1 hour...\n"
+                        f"Next training in {interval_minutes} minutes...\n"
+                        f"(Set TRAINING_INTERVAL_MINUTES in .env to change)\n"
                         f"(Send /stop to pause autonomous mode)"
                     )
                 )
             except:
                 pass
 
-        # Wait 1 hour
-        await asyncio.sleep(3600)
+        # Wait for configured interval
+        await asyncio.sleep(interval_seconds)
 
 
 async def main():
