@@ -1,0 +1,2 @@
+{"timestamp": "2025-12-02T13:30:22.315749Z", "ticket_id": "6d043bb7-654", "trigger": "manual", "status": "pr_created", "error_signature": null}
+{"timestamp": "2025-12-02T14:16:06.259283Z", "ticket_id": "90244c86-efc", "trigger": "error_signature", "status": "pr_created", "error_signature": "314b6cf588f7"}

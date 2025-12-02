@@ -92,16 +92,27 @@ class RAGRetriever:
 
         # Step 3: Search vector DB
         try:
-            # Get knowledge store directly (bypasses manager)
-            from src.core.modules.atomic.vector import VectorDBConnector, KnowledgeStore
+            # Get knowledge store with cloud connector from env
+            from src.core.modules.atomic.vector import get_connector, KnowledgeStore
+            import os
 
-            connector = VectorDBConnector(mode="local")
-            connector.connect()
+            # Use cloud Qdrant if configured in environment
+            qdrant_url = os.getenv("QDRANT_URL")
+            qdrant_api_key = os.getenv("QDRANT_API_KEY")
+            openai_api_key = os.getenv("OPENAI_API_KEY")
+
+            if qdrant_url and qdrant_api_key:
+                connector = get_connector(mode="cloud", url=qdrant_url, api_key=qdrant_api_key)
+                # Use OpenAI embeddings if API key is available
+                embedding_provider = "openai" if openai_api_key else "local"
+            else:
+                connector = get_connector(mode="local")
+                embedding_provider = "local"
 
             store = KnowledgeStore(
                 connector=connector,
                 collection_name=collection_name,
-                embedding_provider="local"
+                embedding_provider=embedding_provider
             )
 
             # Search with language-bridged query
