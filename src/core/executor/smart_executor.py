@@ -95,7 +95,32 @@ class SmartExecutor:
                 await self._notify(notify_callback, f"❌ Error: {error_msg}")
 
                 if attempt < self.max_retries:
-                    # Step 3: Analyze error and prepare solution
+                    # USE AI ERROR SOLVER
+                    await self._notify(notify_callback, "
+🤖 Consulting AI for solution...")
+
+                    from src.core.healing.ai_error_solver import AIErrorSolver
+
+                    solver = AIErrorSolver(project_root=self.project_root)
+
+                    error_context = {
+                        "operation": "workflow_generation" if not attempt_result["workflow_generated"] else "workflow_execution",
+                        "task_description": task_description,
+                        "attempt": attempt,
+                        "workflow": workflow if workflow else None
+                    }
+
+                    solution_result = await solver.solve_error(
+                        Exception(error_msg),
+                        error_context,
+                        notify_callback
+                    )
+
+                    if solution_result.get("success"):
+                        await self._notify(notify_callback, "✅ AI solved it, retrying...")
+                        continue
+
+                    # Fallback: Step 3: Analyze error and prepare solution
                     await self._notify(notify_callback, "\n🔍 Analyzing error...")
                     analysis = await self._analyze_error(error_msg, task_description, workflow)
 
