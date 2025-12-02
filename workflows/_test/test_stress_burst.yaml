@@ -81,6 +81,3 @@ outputs:
   result:
     source: verify_concurrent_safety.result
     description: "Stress test completed - 100 concurrent operations"
-  success_rate:
-    value: "100%"
-    description: "Expected success rate >= 95%"
