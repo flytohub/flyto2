@@ -1075,25 +1075,58 @@ async def run_race(
 **模組**: `competition.speed_race.compare`
 **狀態**: ✅ PASS
 
-### ❌ 5.5 Accuracy Race (精準度競賽)
-**測試目標**: 比誰抓得最準確
+### ✅ 5.5 Accuracy Race
+**Goal**: Compete on extraction accuracy
 
-**狀態**: ❌ NOT STARTED
+**Implementation**: `src/core/competition/race_types.py` - AccuracyRace class
 
-### ❌ 5.6 Strategy Race (策略競賽)
-**測試目標**: Fast/Balanced/Safe 三種策略對比
+**Features**:
+- Compare actual vs expected results across test cases
+- Calculate accuracy percentage per round
+- Track average and best accuracy
+- Results saved to metrics/accuracy_races.json
 
-**狀態**: ❌ NOT STARTED
+**Status**: ✅ COMPLETE
 
-### ❌ 5.7 Module Battle (模組對決)
-**測試目標**: 兩個模組同時執行，比較結果
+### ✅ 5.6 Strategy Race
+**Goal**: Compare Fast/Balanced/Safe strategies
 
-**狀態**: ❌ NOT STARTED
+**Implementation**: `src/core/competition/race_types.py` - StrategyRace class
 
-### ❌ 5.8 Stress Race (壓力競賽)
-**測試目標**: 在高並發下誰能保持穩定
+**Features**:
+- Three strategies: fast (no retries), balanced (2 retries), safe (5 retries)
+- Compare success rate and speed for each strategy
+- Automatic winner determination based on score
+- Results saved to metrics/strategy_races.json
 
-**狀態**: ❌ NOT STARTED
+**Status**: ✅ COMPLETE
+
+### ✅ 5.7 Module Battle
+**Goal**: Head-to-head module comparison
+
+**Implementation**: `src/core/competition/race_types.py` - ModuleBattle class
+
+**Features**:
+- Run two modules concurrently on same task
+- Winner determined by success and speed
+- Round-by-round results tracking
+- Overall winner calculation
+- Results saved to metrics/module_battles.json
+
+**Status**: ✅ COMPLETE
+
+### ✅ 5.8 Stress Race
+**Goal**: Stability under high concurrency
+
+**Implementation**: `src/core/competition/race_types.py` - StressRace class
+
+**Features**:
+- Test multiple concurrency levels (10, 50, 100)
+- Calculate success rate and throughput at each level
+- Find maximum stable concurrency (>95% success)
+- Results saved to metrics/stress_races.json
+
+**Status**: ✅ COMPLETE
 
 ---
 
