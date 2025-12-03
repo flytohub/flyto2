@@ -831,7 +831,39 @@ Respond in JSON format:
         except Exception as e:
             print(f"⚠️ Ollama failed: {e}")
 
-        # Fallback: create basic spec
+        # Fallback to OpenAI (more reliable JSON generation)
+        try:
+            from openai import OpenAI
+            import os
+            import json
+
+            openai_api_key = os.getenv("OPENAI_API_KEY")
+            if openai_api_key:
+                print(f"🔄 Falling back to OpenAI for {module_name}")
+                client = OpenAI(api_key=openai_api_key)
+
+                response = client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=[
+                        {"role": "system", "content": "You are an expert Python developer. Respond with valid JSON only."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    response_format={"type": "json_object"},
+                    timeout=30
+                )
+
+                spec = json.loads(response.choices[0].message.content)
+
+                # Validate required fields
+                required = ["module_id", "category", "description", "params", "returns"]
+                if all(k in spec for k in required):
+                    print(f"✅ OpenAI designed module: {spec['module_id']}")
+                    return spec
+
+        except Exception as e2:
+            print(f"⚠️ OpenAI also failed: {e2}")
+
+        # Last resort: create basic spec
         print(f"⚠️ Using fallback basic spec for {module_name}")
         return self._create_fallback_spec(module_name, reason)
 
