@@ -779,40 +779,81 @@ Return ONLY valid JSON, no markdown or explanations."""
 
         print(f"🤖 Using GPT-4o to generate high-quality module: {module_name}")
 
-        prompt = f"""You are an expert Python developer creating a production-ready module for the Flyto2 workflow automation system.
+        prompt = f"""You are a SENIOR Python developer creating PRODUCTION-READY code for the Flyto2 automation system.
 
 Task: Create module '{module_name}'
 Reason: {reason}
 
-Requirements:
-1. Module must inherit from BaseModule
-2. Must have @register_module('{module_name}') decorator
-3. Must implement validate_params() and async execute() methods
-4. Provide COMPLETE, WORKING implementation (not placeholders or TODOs)
-5. Include all necessary imports
-6. Handle errors properly
-7. Return structured results
+CRITICAL REQUIREMENTS:
+1. implementation_code must contain ACTUAL WORKING PYTHON CODE
+2. NO placeholders like "# TODO", "# Implementation here", or generic descriptions
+3. NO nested function definitions (no 'def' or 'async def' inside implementation_code)
+4. NO text descriptions - ONLY executable Python code
+5. Use proper async/await syntax
+6. Include all necessary error handling
+7. Return structured dict with status and data
 
-Example modules for reference:
-- image.download: Download images from URLs using httpx, save to filesystem
-- image.svg_convert: Convert images to SVG format using libraries like cairosvg, pillow
-- file operations: Use pathlib.Path, handle file I/O properly
+EXAMPLES OF WHAT TO GENERATE:
 
-Provide comprehensive JSON specification:
+Good example for image.download:
+```python
+import httpx
+from pathlib import Path
+
+async with httpx.AsyncClient() as client:
+    response = await client.get(self.url, timeout=30.0)
+    response.raise_for_status()
+
+    path = Path(self.save_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    path.write_bytes(response.content)
+
+    return {{
+        "status": "success",
+        "path": str(path),
+        "size": len(response.content),
+        "url": self.url
+    }}
+```
+
+Good example for file.read:
+```python
+from pathlib import Path
+
+path = Path(self.file_path)
+if not path.exists():
+    raise FileNotFoundError(f"File not found: {{self.file_path}}")
+
+content = path.read_text(encoding='utf-8')
+
+return {{
+    "status": "success",
+    "content": content,
+    "size": len(content)
+}}
+```
+
+Return JSON specification:
 {{
   "module_id": "{module_name}",
-  "category": "<category from: file, image, string, array, utility, data, browser>",
-  "description": "Clear one-sentence description",
+  "category": "image|file|string|array|utility|data|browser|api|ai",
+  "description": "One clear sentence",
   "params": {{
-    "param_name": "type - description (e.g., 'str - URL to download from')"
+    "param_name": "type - description"
   }},
-  "returns": "Detailed description of return value structure",
-  "implementation_hint": "Detailed implementation strategy with specific libraries to use",
-  "suggested_imports": ["import statement 1", "import statement 2"],
-  "implementation_code": "Complete working Python code for the execute() method body, including error handling and actual logic"
+  "returns": "Dict structure description",
+  "suggested_imports": ["import httpx", "from pathlib import Path"],
+  "implementation_code": "COMPLETE EXECUTABLE PYTHON CODE - NO PLACEHOLDERS OR NESTED FUNCTIONS"
 }}
 
-CRITICAL: implementation_code must be complete, production-ready Python that actually works, not "# TODO" or generic placeholders."""
+VALIDATION RULES:
+- implementation_code must NOT contain: "TODO", "placeholder", "implement", nested "def/async def"
+- implementation_code MUST contain: actual library calls, error handling, return statement
+- Code must be indented correctly for method body (will be indented by 12 spaces)
+- Must use self.param_name to access validated parameters
+
+Generate PRODUCTION-READY code NOW."""
 
         try:
             client = OpenAI(api_key=openai_api_key)
@@ -832,12 +873,36 @@ CRITICAL: implementation_code must be complete, production-ready Python that act
 
             # Validate required fields
             required = ["module_id", "category", "description", "params", "returns"]
-            if all(k in spec for k in required):
-                print(f"✅ GPT-4o designed high-quality module: {spec['module_id']}")
-                return spec
-            else:
+            if not all(k in spec for k in required):
                 print(f"⚠️ GPT-4o response missing required fields")
                 return self._create_fallback_spec(module_name, reason)
+
+            # Validate implementation_code quality
+            impl_code = spec.get("implementation_code", "")
+            if not impl_code or len(impl_code.strip()) < 50:
+                print(f"❌ implementation_code too short or missing")
+                return self._create_fallback_spec(module_name, reason)
+
+            # Check for bad patterns
+            bad_patterns = ["TODO", "placeholder", "implement here", "Complete working", "nested def"]
+            impl_lower = impl_code.lower()
+            for pattern in bad_patterns:
+                if pattern.lower() in impl_lower:
+                    print(f"❌ Found bad pattern in code: {pattern}")
+                    return self._create_fallback_spec(module_name, reason)
+
+            # Check for nested function definitions
+            if "async def " in impl_code or "\ndef " in impl_code or "\n    def " in impl_code:
+                print(f"❌ Found nested function definition in implementation_code")
+                return self._create_fallback_spec(module_name, reason)
+
+            # Check for return statement
+            if "return " not in impl_code:
+                print(f"❌ No return statement in implementation_code")
+                return self._create_fallback_spec(module_name, reason)
+
+            print(f"✅ GPT-4o designed high-quality module: {spec['module_id']}")
+            return spec
 
         except Exception as e:
             print(f"❌ GPT-4o failed: {e}")
