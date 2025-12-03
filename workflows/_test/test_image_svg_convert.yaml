@@ -1,0 +1,18 @@
+name: "Test image.svg_convert"
+description: "Converts SVG files to various image formats. - Auto-generated test"
+
+steps:
+  - id: test_svg_convert_basic
+    module: image.svg_convert
+    params:
+      input_file: "test_value"
+      output_format: "test_value"
+      output_file: "test_value"
+    description: "Basic functionality test"
+
+  - id: verify_result
+    module: test.assert_not_null
+    params:
+      value: "${test_svg_convert_basic.result}"
+      message: "image.svg_convert should return a result"
+
