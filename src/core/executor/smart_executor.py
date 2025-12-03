@@ -193,7 +193,7 @@ class SmartExecutor:
             store = KnowledgeStore(
                 connector=connector,
                 collection_name="flyto2_project_knowledge",
-                embedding_provider="local"
+                embedding_provider="openai"
             )
 
             # Then create KnowledgeSearch with the store
@@ -1219,7 +1219,7 @@ SmartExecutor AI Agent - Self-healing task execution system
             store = KnowledgeStore(
                 connector=connector,
                 collection_name="flyto2_project_knowledge",
-                embedding_provider="local"
+                embedding_provider="openai"
             )
 
             # Create comprehensive knowledge entry (ALL IN ENGLISH)
