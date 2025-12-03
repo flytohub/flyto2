@@ -68,15 +68,18 @@ class SmartExecutor:
                 # Step 2: Execute workflow
                 await self._notify(notify_callback, "▶️ Executing workflow...")
                 exec_result = await self._execute_workflow(workflow)
-                attempt_result["steps"].append({"step": "execute_workflow", "status": "success", "result": exec_result})
+
+                # Clean exec_result for JSON serialization (remove non-serializable objects)
+                clean_result = self._clean_result_for_json(exec_result)
+                attempt_result["steps"].append({"step": "execute_workflow", "status": "success", "result": clean_result})
 
                 # Success!
                 result["status"] = "success"
-                result["final_result"] = exec_result
+                result["final_result"] = clean_result
                 result["attempts"].append(attempt_result)
 
                 await self._notify(notify_callback, f"\n✅ Task completed successfully!")
-                await self._notify(notify_callback, f"\n📊 Results:\n{self._format_result(exec_result)}")
+                await self._notify(notify_callback, f"\n📊 Results:\n{self._format_result(clean_result)}")
 
                 return result
 
@@ -627,6 +630,36 @@ Return ONLY valid JSON, no markdown or explanations."""
                 "status": "error",
                 "error": str(e)
             }
+
+    def _clean_result_for_json(self, result: Any) -> Any:
+        """
+        Clean result to make it JSON serializable
+        Removes non-serializable objects like BrowserDriver
+        """
+        if result is None:
+            return None
+
+        if isinstance(result, (str, int, float, bool)):
+            return result
+
+        if isinstance(result, dict):
+            cleaned = {}
+            for key, value in result.items():
+                # Skip browser driver and other non-serializable objects
+                if key == "browser" or hasattr(value, '__class__') and 'Driver' in value.__class__.__name__:
+                    continue
+                cleaned[key] = self._clean_result_for_json(value)
+            return cleaned
+
+        if isinstance(result, (list, tuple)):
+            return [self._clean_result_for_json(item) for item in result]
+
+        # For other objects, try to convert to string
+        try:
+            json.dumps(result)
+            return result
+        except (TypeError, ValueError):
+            return str(result)
 
     def _format_result(self, result: Dict[str, Any]) -> str:
         """Format result for display"""
