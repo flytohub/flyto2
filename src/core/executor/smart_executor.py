@@ -484,6 +484,23 @@ Return ONLY valid JSON, no markdown or explanations."""
             "improved_task": None
         }
 
+        # PROACTIVE: Scan workflow for unregistered modules
+        if workflow and isinstance(workflow, dict) and "steps" in workflow:
+            from src.core.modules.registry import ModuleRegistry
+
+            for step in workflow["steps"]:
+                if "module" in step:
+                    module_name = step["module"]
+
+                    # Check if module is registered
+                    if not ModuleRegistry.has_module(module_name):
+                        # Module is NOT registered - needs to be generated
+                        analysis["missing_modules"].append({
+                            "name": module_name,
+                            "reason": f"Module '{module_name}' used in workflow but not registered",
+                            "step_id": step.get("id", "unknown")
+                        })
+
         # Pattern matching for common errors
         error_lower = error_msg.lower()
 
@@ -493,10 +510,12 @@ Return ONLY valid JSON, no markdown or explanations."""
             match = re.search(r"module[:\s]+['\"]?([a-z._]+)['\"]?", error_lower)
             if match:
                 module_name = match.group(1)
-                analysis["missing_modules"].append({
-                    "name": module_name,
-                    "reason": "Module not found in registry"
-                })
+                # Only add if not already found by workflow scan
+                if not any(m["name"] == module_name for m in analysis["missing_modules"]):
+                    analysis["missing_modules"].append({
+                        "name": module_name,
+                        "reason": "Module not found in registry"
+                    })
 
         # 2. URL detection errors
         if "no url found" in error_lower:
