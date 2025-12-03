@@ -65,6 +65,24 @@ class SmartExecutor:
                 attempt_result["steps"].append({"step": "generate_workflow", "status": "success"})
                 attempt_result["workflow_generated"] = True
 
+                # Step 1.5: Check for missing modules BEFORE execution
+                missing_modules = self._check_missing_modules(workflow)
+                if missing_modules:
+                    await self._notify(notify_callback, f"🔍 Detected {len(missing_modules)} missing module(s)")
+                    for module in missing_modules:
+                        await self._notify(notify_callback, f"  - {module['name']}")
+
+                    # Trigger module generation
+                    for module_info in missing_modules:
+                        await self._notify(notify_callback, f"\n🤖 Generating module: {module_info['name']}")
+                        gen_result = await self._generate_module(module_info)
+
+                        if gen_result.get("status") == "success":
+                            result["generated_modules"].append(gen_result)
+                            await self._notify(notify_callback, f"✅ Module generated successfully!")
+                        else:
+                            raise Exception(f"Failed to generate module {module_info['name']}: {gen_result.get('error')}")
+
                 # Step 2: Execute workflow
                 await self._notify(notify_callback, "▶️ Executing workflow...")
                 exec_result = await self._execute_workflow(workflow)
@@ -570,6 +588,34 @@ Return ONLY valid JSON, no markdown or explanations."""
                 analysis["recommendations"].append("Try: /crawl <url> or natural language with clear URL")
 
         return analysis
+
+    def _check_missing_modules(self, workflow: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """
+        Check workflow for unregistered modules BEFORE execution
+
+        Returns:
+            List of missing module info dicts
+        """
+        missing = []
+
+        if not workflow or not isinstance(workflow, dict) or "steps" not in workflow:
+            return missing
+
+        from src.core.modules.registry import ModuleRegistry
+
+        for step in workflow["steps"]:
+            if "module" in step:
+                module_name = step["module"]
+
+                # Check if module is registered
+                if not ModuleRegistry.has_module(module_name):
+                    missing.append({
+                        "name": module_name,
+                        "reason": f"Module '{module_name}' used in workflow but not registered",
+                        "step_id": step.get("id", "unknown")
+                    })
+
+        return missing
 
     async def _generate_module(self, module_spec: Dict[str, Any]) -> Dict[str, Any]:
         """
