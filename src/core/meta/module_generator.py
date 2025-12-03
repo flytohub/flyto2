@@ -295,12 +295,29 @@ steps:
         return yaml_content
 
     def _generate_default_params(self, params: Dict[str, str]) -> Dict[str, Any]:
-        """Generate default parameter values for testing"""
+        """Generate realistic parameter values for testing"""
         defaults = {}
 
         for param_name, param_type in params.items():
             if "string" in param_type.lower() or "str" in param_type.lower():
-                defaults[param_name] = "test_value"
+                # Generate realistic values based on parameter name
+                param_lower = param_name.lower()
+                if "url" in param_lower or "link" in param_lower:
+                    # Use a reliable test image URL
+                    defaults[param_name] = "https://httpbin.org/image/jpeg"
+                elif "path" in param_lower or "file" in param_lower:
+                    # Use /tmp for test files
+                    defaults[param_name] = f"/tmp/test_{param_name}.dat"
+                elif "email" in param_lower:
+                    defaults[param_name] = "test@example.com"
+                elif "name" in param_lower:
+                    defaults[param_name] = "TestName"
+                elif "query" in param_lower or "search" in param_lower:
+                    defaults[param_name] = "test search query"
+                elif "text" in param_lower or "content" in param_lower:
+                    defaults[param_name] = "Test content"
+                else:
+                    defaults[param_name] = "test_value"
             elif "int" in param_type.lower():
                 defaults[param_name] = 42
             elif "float" in param_type.lower():
