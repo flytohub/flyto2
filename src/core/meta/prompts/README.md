@@ -391,12 +391,12 @@ metrics = {
 
 ### Planned for V3.0:
 
-- [ ] **Auto-refine**: If score < 9.8, automatically fix issues and regenerate
+- [x] **Auto-refine**: If score < 9.8, automatically fix issues and regenerate ✅ Implemented in AutoRefiner
 - [ ] **Multi-model support**: Test with Claude, Gemini, Llama
 - [ ] **Gradual rollout**: A/B test new prompts before full deployment
 - [ ] **Metrics dashboard**: Real-time quality tracking
 - [ ] **Custom validators**: Plugin system for domain-specific checks
-- [ ] **Test execution**: Auto-run generated tests in Flyto2 Engine
+- [ ] **Test execution**: Auto-run generated tests in Flyto2 Engine (In Progress)
 - [ ] **Performance benchmarks**: Track execution time, memory usage
 - [ ] **Code coverage**: Ensure tests cover all code paths
 
