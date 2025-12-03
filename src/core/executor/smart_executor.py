@@ -815,6 +815,34 @@ CRITICAL REQUIREMENTS:
 6. Include all necessary error handling
 7. Return structured dict with status and data
 
+❌ WRONG - Nested function definition (THIS WILL BE REJECTED):
+```python
+async def execute():  # ❌ NO! This is a nested function definition
+    result = await do_something()
+    return {{"status": "success"}}
+```
+
+✅ CORRECT - Direct implementation code (NO nested function):
+```python
+import httpx
+from pathlib import Path
+
+async with httpx.AsyncClient() as client:
+    response = await client.get(self.url, timeout=30.0)
+    response.raise_for_status()
+
+    path = Path(self.save_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(response.content)
+
+    return {{
+        "status": "success",
+        "path": str(path),
+        "size": len(response.content),
+        "url": self.url
+    }}
+```
+
 EXAMPLES OF WHAT TO GENERATE:
 
 Good example for image.download:
@@ -883,11 +911,11 @@ Generate PRODUCTION-READY code NOW."""
             response = client.chat.completions.create(
                 model="gpt-4o",
                 messages=[
-                    {"role": "system", "content": "You are a senior Python developer. Generate COMPLETE working code with NO nested functions, NO placeholders, NO TODOs. Code must be directly executable."},
+                    {"role": "system", "content": "You are a senior Python developer. Generate COMPLETE working code with NO nested functions (no 'def' or 'async def' inside implementation_code), NO placeholders, NO TODOs. The implementation_code field must contain ONLY the method body code that will be directly placed inside an execute() method. Do NOT write the entire execute() function definition - only the code that goes INSIDE it."},
                     {"role": "user", "content": prompt}
                 ],
                 response_format={"type": "json_object"},
-                temperature=0.2,  # Even lower for more consistent output
+                temperature=0.1,  # Lower for consistency
                 timeout=60
             )
 
@@ -897,13 +925,13 @@ Generate PRODUCTION-READY code NOW."""
             required = ["module_id", "category", "description", "params", "returns"]
             if not all(k in spec for k in required):
                 print(f"⚠️ GPT-4o response missing required fields")
-                return self._create_fallback_spec(module_name, reason)
+                return None  # Return None to trigger retry
 
             # Validate implementation_code quality
             impl_code = spec.get("implementation_code", "")
             if not impl_code or len(impl_code.strip()) < 50:
                 print(f"❌ implementation_code too short or missing")
-                return self._create_fallback_spec(module_name, reason)
+                return None  # Return None to trigger retry
 
             # Check for bad patterns
             bad_patterns = ["TODO", "placeholder", "implement here", "Complete working", "nested def"]
@@ -911,24 +939,24 @@ Generate PRODUCTION-READY code NOW."""
             for pattern in bad_patterns:
                 if pattern.lower() in impl_lower:
                     print(f"❌ Found bad pattern in code: {pattern}")
-                    return self._create_fallback_spec(module_name, reason)
+                    return None  # Return None to trigger retry
 
             # Check for nested function definitions
             if "async def " in impl_code or "\ndef " in impl_code or "\n    def " in impl_code:
                 print(f"❌ Found nested function definition in implementation_code")
-                return self._create_fallback_spec(module_name, reason)
+                return None  # Return None to trigger retry
 
             # Check for return statement
             if "return " not in impl_code:
                 print(f"❌ No return statement in implementation_code")
-                return self._create_fallback_spec(module_name, reason)
+                return None  # Return None to trigger retry
 
             print(f"✅ GPT-4o designed high-quality module: {spec['module_id']}")
             return spec
 
         except Exception as e:
             print(f"❌ GPT-4o failed: {e}")
-            return self._create_fallback_spec(module_name, reason)
+            return None  # Return None to trigger retry
 
     def _create_fallback_spec(self, module_name: str, reason: str) -> Dict[str, Any]:
         """Create a basic spec when LLM fails"""
