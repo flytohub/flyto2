@@ -405,51 +405,45 @@ class SmartExecutor:
 
                 prompt = f"""Generate a workflow to: {task_description}
 
-AVAILABLE MODULES (use these ONLY):
+AVAILABLE MODULES (commonly used):
 Browser: core.browser.launch, core.browser.goto, core.browser.click, core.browser.type, core.browser.extract, core.browser.screenshot
 API: core.api.http_get, core.api.http_post
 File: file.write, file.read, file.copy, file.delete
 Data: data.json.parse, data.json.stringify
+Image: image.compress, image.convert, image.resize
 
-IMPORTANT RULES:
-1. ONLY use modules from the list above
-2. Reference previous step results using: ${{step_id.result}} or ${{step_id.field_name}}
-3. For browser tasks, always start with core.browser.launch
-4. Use browser automation (not API) for web scraping and image downloads
-5. Keep workflows simple and practical
+IMPORTANT RULES FOR AUTO-EVOLUTION:
+1. You CAN use modules that don't exist yet! If you need functionality not in the list, define the module name you need.
+2. Use descriptive module names like: image.svg_convert, image.download, pdf.extract, etc.
+3. The system will AUTO-GENERATE any missing modules for you!
+4. Reference previous step results using: ${{step_id.result}} or ${{step_id.field_name}}
+5. For browser tasks, always start with core.browser.launch
+6. Design workflows that FULLY solve the task, even if it requires new modules
 
-Example for image download task:
+Example for image conversion task:
 {{
-  "workflow_name": "Download Images",
+  "workflow_name": "Download and Convert Image",
   "steps": [
     {{
-      "step_id": "launch",
-      "module": "core.browser.launch",
-      "params": {{}}
-    }},
-    {{
-      "step_id": "search",
-      "module": "core.browser.goto",
+      "step_id": "download",
+      "module": "image.download",
       "params": {{
-        "url": "https://www.google.com/search?tbm=isch&q=dogs",
-        "wait_until": "networkidle"
+        "query": "dog",
+        "count": 1
       }}
     }},
     {{
-      "step_id": "screenshot",
-      "module": "core.browser.screenshot",
+      "step_id": "convert",
+      "module": "image.svg_convert",
       "params": {{
-        "path": "dog_images_search.png",
-        "full_page": false
+        "input_path": "${{download.image_path}}",
+        "output_path": "dog.svg"
       }}
     }}
   ]
 }}
 
-IMPORTANT: For tasks involving "download images and convert to SVG" - SVG conversion is complex image vectorization. A simple workflow can:
-1. Take a screenshot of image search results
-2. Or download one image via HTTP
-But cannot do actual SVG conversion (requires specialized tools). Keep it simple and practical.
+CRITICAL: Design the BEST workflow to fully solve the task. If you need a module that doesn't exist (like image.svg_convert), USE IT ANYWAY - the system will generate it!
 
 Now generate the workflow for: {task_description}
 Return ONLY valid JSON, no markdown or explanations."""
