@@ -186,7 +186,7 @@ class SmartExecutor:
         try:
             from src.core.modules.atomic.vector import VectorDBConnector, KnowledgeStore, KnowledgeSearch
 
-            connector = VectorDBConnector(mode="local")
+            connector = VectorDBConnector()
             connector.connect()
 
             # Create KnowledgeStore first
@@ -1213,7 +1213,7 @@ SmartExecutor AI Agent - Self-healing task execution system
                 context="code"
             )
 
-            connector = VectorDBConnector(mode="local")
+            connector = VectorDBConnector()
             connector.connect()
 
             store = KnowledgeStore(

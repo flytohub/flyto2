@@ -1,5 +1,5 @@
 name: "Test image.download"
-description: "Downloads an image from a given URL and saves it to a specified path. - Auto-generated test"
+description: "Downloads an image from a URL and saves it to a specified path. - Auto-generated test"
 
 steps:
   - id: test_download_basic
