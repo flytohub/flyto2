@@ -779,6 +779,28 @@ Return ONLY valid JSON, no markdown or explanations."""
 
         print(f"🤖 Using GPT-4o to generate high-quality module: {module_name}")
 
+        # Retry up to 3 times if validation fails
+        for attempt in range(3):
+            if attempt > 0:
+                print(f"🔄 Retry #{attempt + 1} for {module_name}")
+
+            spec = await self._try_design_module_with_gpt4o(module_name, reason)
+            if spec:  # Validation passed
+                return spec
+
+        print(f"❌ Failed after 3 attempts, using fallback")
+        return self._create_fallback_spec(module_name, reason)
+
+    async def _try_design_module_with_gpt4o(self, module_name: str, reason: str) -> Optional[Dict[str, Any]]:
+        """Single attempt to design module with GPT-4o"""
+        from openai import OpenAI
+        import os
+        import json
+
+        openai_api_key = os.getenv("OPENAI_API_KEY")
+        if not openai_api_key:
+            return None
+
         prompt = f"""You are a SENIOR Python developer creating PRODUCTION-READY code for the Flyto2 automation system.
 
 Task: Create module '{module_name}'
@@ -859,13 +881,13 @@ Generate PRODUCTION-READY code NOW."""
             client = OpenAI(api_key=openai_api_key)
 
             response = client.chat.completions.create(
-                model="gpt-4o",  # Use GPT-4o for highest quality
+                model="gpt-4o",
                 messages=[
-                    {"role": "system", "content": "You are a senior Python developer specializing in production-ready code generation. Always provide complete, working implementations."},
+                    {"role": "system", "content": "You are a senior Python developer. Generate COMPLETE working code with NO nested functions, NO placeholders, NO TODOs. Code must be directly executable."},
                     {"role": "user", "content": prompt}
                 ],
                 response_format={"type": "json_object"},
-                temperature=0.3,  # Lower temperature for more deterministic, focused code
+                temperature=0.2,  # Even lower for more consistent output
                 timeout=60
             )
 
