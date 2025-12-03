@@ -1,12 +1,12 @@
 name: "Test image.download"
-description: "Downloads an image from a specified URL and saves it to a given path. - Auto-generated test"
+description: "Downloads an image from a given URL and saves it to a specified path. - Auto-generated test"
 
 steps:
   - id: test_download_basic
     module: image.download
     params:
-      url: "test_value"
-      save_path: "test_value"
+      url: "https://httpbin.org/image/jpeg"
+      save_path: "/tmp/test_save_path.dat"
     description: "Basic functionality test"
 
   - id: verify_result

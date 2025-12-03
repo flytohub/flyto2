@@ -5,6 +5,10 @@ Manages connection to Qdrant vector database (local or cloud)
 from typing import Optional, Dict, Any, List
 from pathlib import Path
 import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 
 class VectorDBConnector:
@@ -15,24 +19,26 @@ class VectorDBConnector:
 
     def __init__(
         self,
-        mode: str = "local",
+        mode: Optional[str] = None,
         url: Optional[str] = None,
         api_key: Optional[str] = None,
         path: Optional[str] = None
     ):
         """
         Initialize vector database connector
+        Automatically reads from environment variables if not provided
 
         Args:
-            mode: 'local' or 'cloud'
-            url: Cloud Qdrant URL
-            api_key: Cloud Qdrant API key
+            mode: 'local' or 'cloud' (reads from QDRANT_MODE env var if not provided)
+            url: Cloud Qdrant URL (reads from QDRANT_URL env var if not provided)
+            api_key: Cloud Qdrant API key (reads from QDRANT_API_KEY env var if not provided)
             path: Local storage path (for local mode)
         """
-        self.mode = mode
-        self.url = url
-        self.api_key = api_key
-        self.path = path or "./qdrant_storage"
+        # Read from environment variables if not provided
+        self.mode = mode or os.getenv("QDRANT_MODE", "cloud")  # Default to cloud, not local
+        self.url = url or os.getenv("QDRANT_URL")
+        self.api_key = api_key or os.getenv("QDRANT_API_KEY")
+        self.path = path or os.getenv("QDRANT_PATH", "./qdrant_storage")
         self.client = None
         self._connected = False
 

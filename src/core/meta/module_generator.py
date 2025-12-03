@@ -343,6 +343,11 @@ steps:
         category_dir = self.modules_dir / category
         category_dir.mkdir(parents=True, exist_ok=True)
 
+        # Create __init__.py if it doesn't exist (makes directory a Python package)
+        init_file = category_dir / "__init__.py"
+        if not init_file.exists():
+            init_file.write_text(f'"""\n{category.capitalize()} modules\n"""\n')
+
         return category_dir / f"{name}.py"
 
     def _get_test_path(self, spec: Dict[str, Any]) -> Path:
