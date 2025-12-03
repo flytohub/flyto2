@@ -506,16 +506,16 @@ Done (no validation, no refinement)
 
 When creating prompts for LLMs:
 
-- [ ] ✅ Provide explicit library whitelist
-- [ ] ✅ Show exact format with complete examples
-- [ ] ✅ Include negative examples (❌ WRONG vs ✅ CORRECT)
-- [ ] ✅ Use MANDATORY/MUST keywords for critical requirements
-- [ ] ✅ State prohibitions with consequences (deduction points)
-- [ ] ✅ Repeat critical requirements at START, MIDDLE, END
-- [ ] ✅ Break complex rules into numbered single-responsibility instructions
-- [ ] ✅ Use `response_format={"type": "json_object"}` and low temperature
-- [ ] ✅ Validate output after generation
-- [ ] ✅ Implement progressive refinement (generate → validate → refine)
+- [x] ✅ Provide explicit library whitelist - Applied in EnhancedModuleGenerator
+- [x] ✅ Show exact format with complete examples - Applied in EnhancedModuleGenerator
+- [x] ✅ Include negative examples (❌ WRONG vs ✅ CORRECT) - Applied in EnhancedModuleGenerator
+- [x] ✅ Use MANDATORY/MUST keywords for critical requirements - Applied in EnhancedModuleGenerator
+- [x] ✅ State prohibitions with consequences (deduction points) - Applied in QualityCheckerV2
+- [x] ✅ Repeat critical requirements at START, MIDDLE, END - Applied in EnhancedModuleGenerator
+- [x] ✅ Break complex rules into numbered single-responsibility instructions - Applied in prompts
+- [x] ✅ Use `response_format={"type": "json_object"}` and low temperature - Applied in EnhancedModuleGenerator
+- [x] ✅ Validate output after generation - Applied in EnhancedModuleGenerator._generate_module_spec()
+- [x] ✅ Implement progressive refinement (generate → validate → refine) - Applied in system architecture
 
 ---
 

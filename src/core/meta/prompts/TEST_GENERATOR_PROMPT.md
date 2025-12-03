@@ -336,16 +336,16 @@ steps:
 
 Before submitting the test:
 
-- [ ] Has at least 5 test steps
-- [ ] Tests both success (ok=true) and error (ok=false) cases
-- [ ] Verifies return format (ok, output, error, meta)
-- [ ] Uses variable references (${step.result})
-- [ ] Every step has a clear description
-- [ ] No hardcoded assertions on dynamic data
-- [ ] Tests security validations (if applicable)
-- [ ] Tests performance (if applicable)
-- [ ] Valid YAML syntax
-- [ ] Can be executed by Flyto2 Engine
+- [x] Has at least 5 test steps ✅ Implemented in TestGenerator
+- [x] Tests both success (ok=true) and error (ok=false) cases ✅ Implemented in TestGenerator
+- [x] Verifies return format (ok, output, error, meta) ✅ Implemented in TestGenerator
+- [x] Uses variable references (${step.result}) ✅ Implemented in TestGenerator
+- [x] Every step has a clear description ✅ Implemented in TestGenerator
+- [x] No hardcoded assertions on dynamic data ✅ Uses variable references
+- [x] Tests security validations (if applicable) ✅ Module-specific
+- [x] Tests performance (if applicable) ✅ Module-specific
+- [x] Valid YAML syntax ✅ Validated in TestGenerator.validate_test()
+- [x] Can be executed by Flyto2 Engine ✅ YAML format compatible
 
 ---
 
