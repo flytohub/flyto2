@@ -281,8 +281,8 @@ async def retrieve_knowledge(
     Quick knowledge retrieval with language bridge
 
     Example:
-        # Chinese query
-        results = await retrieve_knowledge("如何修復 timeout 錯誤？")
+        # Query example
+        results = await retrieve_knowledge("How to fix timeout error?")
         # → Automatically translates to EN → searches → returns results
 
         # English query

@@ -28,17 +28,17 @@ from typing import Dict, List, Optional, Tuple, Any
 
 from dotenv import load_dotenv
 
-# ===== 載入環境變數 =====
+# ===== Load environment variables =====
 load_dotenv()
 
-# ===== 設置 Python 路徑 (必須在 import src 之前！) =====
+# ===== Setup Python path (must be before importing src!) =====
 PROJECT_ROOT = Path(__file__).parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from telegram import Update, ReplyKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup
 
-# 記憶系統整合
+# Memory system integration
 from src.core.memory.conversation_memory import get_memory, clear_memory
 from telegram.ext import (
     Application,
@@ -1084,10 +1084,10 @@ async def detect_task_intent(message: str) -> Optional[Dict[str, Any]]:
 
     # Search intent patterns
     search_patterns = [
-        (r'(?:用|使用)?(?:google|谷歌).*?(?:搜索|搜尋|search)\s*["""\'](.*?)["""\']\s*(?:看|查|找)(?:在)?第幾頁', 'search_with_page'),
-        (r'(?:用|使用)?(?:google|谷歌).*?(?:搜索|搜尋|search)\s+(.+?)(?:\s+|$)', 'search_simple'),
-        (r'(?:搜索|搜尋|search)\s*["""\'](.*?)["""\']\s*(?:看|查|找)(?:在)?第幾頁', 'search_with_page'),
-        (r'(?:搜索|搜尋|search)\s+(.+?)$', 'search_simple'),
+        (r'(?:use )?google.*?search\s*["""\'](.*?)["""\']\s*(?:find|check).*?page', 'search_with_page'),
+        (r'(?:use )?google.*?search\s+(.+?)(?:\s+|$)', 'search_simple'),
+        (r'search\s*["""\'](.*?)["""\']\s*(?:find|check).*?page', 'search_with_page'),
+        (r'search\s+(.+?)$', 'search_simple'),
     ]
 
     for pattern, intent_type in search_patterns:
@@ -1107,7 +1107,7 @@ async def detect_task_intent(message: str) -> Optional[Dict[str, Any]]:
 async def execute_search_task(update: Update, keyword: str, find_page_rank: bool = False, target_url: str = None):
     """Execute Google search task and optionally find page rank"""
 
-    await update.message.reply_text(f"🔍 正在搜尋: `{keyword}`...", parse_mode="Markdown")
+    await update.message.reply_text(f"🔍 Searching: `{keyword}`...", parse_mode="Markdown")
 
     try:
         import aiohttp
@@ -1117,11 +1117,11 @@ async def execute_search_task(update: Update, keyword: str, find_page_rank: bool
 
         if not serpapi_key:
             await update.message.reply_text(
-                "⚠️ **需要設置 API Key**\n\n"
-                "請設置環境變數:\n"
+                "⚠️ **API Key Required**\n\n"
+                "Please set environment variable:\n"
                 "`SERPAPI_KEY=your_key_here`\n\n"
-                "免費註冊: https://serpapi.com/\n"
-                "(每月 100 次免費搜尋)",
+                "Free signup: https://serpapi.com/\n"
+                "(100 free searches per month)",
                 parse_mode="Markdown"
             )
             return
@@ -1141,7 +1141,7 @@ async def execute_search_task(update: Update, keyword: str, find_page_rank: bool
             async with session.get(api_url, params=params) as response:
                 if response.status != 200:
                     await update.message.reply_text(
-                        f"❌ API 錯誤: HTTP {response.status}",
+                        f"❌ API Error: HTTP {response.status}",
                         parse_mode="Markdown"
                     )
                     return
@@ -1153,7 +1153,7 @@ async def execute_search_task(update: Update, keyword: str, find_page_rank: bool
 
                 if not results:
                     await update.message.reply_text(
-                        f"📭 找不到結果: `{keyword}`",
+                        f"📭 No results found: `{keyword}`",
                         parse_mode="Markdown"
                     )
                     return
@@ -1166,26 +1166,26 @@ async def execute_search_task(update: Update, keyword: str, find_page_rank: bool
                             page = (idx - 1) // 10 + 1
                             position = (idx - 1) % 10 + 1
                             await update.message.reply_text(
-                                f"🎯 **找到了！**\n\n"
-                                f"關鍵字: `{keyword}`\n"
-                                f"頁數: **第 {page} 頁**\n"
-                                f"位置: **第 {position} 個結果**\n\n"
+                                f"🎯 **Found!**\n\n"
+                                f"Keyword: `{keyword}`\n"
+                                f"Page: **Page {page}**\n"
+                                f"Position: **Result #{position}**\n\n"
                                 f"🔗 {url}",
                                 parse_mode="Markdown"
                             )
                             return
 
                     await update.message.reply_text(
-                        f"❌ 在前 {num_results} 個結果中找不到目標網址\n\n"
-                        f"關鍵字: `{keyword}`\n"
-                        f"搜尋結果數: {len(results)}",
+                        f"❌ Target URL not found in top {num_results} results\n\n"
+                        f"Keyword: `{keyword}`\n"
+                        f"Results checked: {len(results)}",
                         parse_mode="Markdown"
                     )
                     return
 
                 # Show top results
-                response_text = f"✅ **搜尋結果**: `{keyword}`\n\n"
-                response_text += f"找到 {len(results)} 個結果\n\n"
+                response_text = f"✅ **Search Results**: `{keyword}`\n\n"
+                response_text += f"Found {len(results)} results\n\n"
 
                 for idx, item in enumerate(results[:10], 1):
                     title = item.get('title', 'No title')
@@ -1196,7 +1196,7 @@ async def execute_search_task(update: Update, keyword: str, find_page_rank: bool
 
     except Exception as e:
         await update.message.reply_text(
-            f"❌ 執行失敗:\n`{str(e)}`",
+            f"❌ Execution failed:\n`{str(e)}`",
             parse_mode="Markdown"
         )
 
@@ -1210,7 +1210,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     session = state.get_session(user_id)
     message_text = update.message.text
 
-    # ===== 記憶系統整合 =====
+    # ===== Memory system integration =====
     memory = get_memory(str(user_id))
     memory.add_message("user", message_text)
 
@@ -1297,26 +1297,26 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await propose_command(update, context)
         return
 
-    # ===== 使用智能意圖檢測 (LLM-based, 不用 regex) =====
+    # ===== Use intelligent intent detection (LLM-based, no regex) =====
     from src.core.intelligence.intent_detector import IntelligentIntentDetector
     from scripts.auto_tool_creator import AutoToolCreator
 
     intent_detector = IntelligentIntentDetector()
 
-    # 取得對話歷史用於意圖檢測
+    # Get conversation history for intent detection
     conversation_history = memory.get_recent_history(limit=3)
     history_text = "\n".join([
-        f"{'使用者' if msg['role'] == 'user' else '助手'}: {msg['content']}"
+        f"{'User' if msg['role'] == 'user' else 'Assistant'}: {msg['content']}"
         for msg in conversation_history
     ])
 
-    # 智能判斷使用者意圖
+    # Intelligently determine user intent
     intent_data = await intent_detector.detect_intent(message_text, conversation_history=history_text)
 
     print(f"🧠 Intent detected: {intent_data['intent']} (confidence: {intent_data['confidence']:.0%})")
     print(f"   Reasoning: {intent_data.get('reasoning', 'N/A')}")
 
-    # 根據意圖執行對應動作
+    # Execute corresponding action based on intent
     if intent_detector.should_create_tool(intent_data):
         tool_description = intent_detector.get_tool_description(intent_data) or message_text
 
@@ -1353,7 +1353,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             # Fall through to normal Ollama conversation
 
-    # 處理搜尋意圖
+    # Handle search intent
     elif intent_detector.should_search(intent_data):
         search_query = intent_detector.get_search_query(intent_data) or message_text
         await update.message.reply_text(f"🔍 Searching for: {search_query}")
@@ -1374,14 +1374,50 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             await update.message.reply_text("❌ No search results found. Let me help you instead...")
 
+    # Handle task execution intent (NEW: Direct task execution)
+    elif intent_data['intent'] in ['task_execution', 'automation', 'download', 'scrape', 'extract']:
+        await update.message.reply_text("🚀 **Executing task...**\n\nGenerating workflow and running...")
+
+        try:
+            from src.core.executor.smart_executor import SmartExecutor
+
+            executor = SmartExecutor()
+            executor.max_retries = 2
+            result = await executor.execute_task(
+                task_description=message_text
+            )
+
+            if result.get('status') == 'success':
+                await update.message.reply_text(
+                    f"✅ **Task completed successfully!**\n\n"
+                    f"**Result:**\n{result.get('result', 'Done')}\n\n"
+                    f"**Attempts:** {result.get('attempts', 1)}"
+                )
+            else:
+                error_msg = result.get('error', 'Unknown error')
+                await update.message.reply_text(
+                    f"❌ **Task failed**\n\n"
+                    f"Error: {error_msg}\n\n"
+                    f"Attempts: {result.get('attempts', 1)}"
+                )
+        except Exception as e:
+            await update.message.reply_text(
+                f"❌ **Execution error**\n\n"
+                f"Error: {str(e)}\n\n"
+                f"I'll provide guidance instead..."
+            )
+            # Fall through to Ollama conversation
+        else:
+            return  # Successfully executed, done!
+
     # General conversation with Ollama (for all other intents)
     if intent_data['intent'] in ['conversation', 'help'] or not intent_detector.should_create_tool(intent_data):
         await update.message.reply_text("🤔 Thinking...")
 
-    # ===== 取得完整對話記憶 (短期 + 長期 RAG) =====
+    # ===== Get complete conversation memory (short-term + long-term RAG) =====
     conversation_context = memory.get_context_for_ollama(
         current_query=message_text,
-        include_rag=True  # 啟用 RAG 檢索
+        include_rag=True  # Enable RAG retrieval
     )
 
     system_prompt = """You are an AI assistant for the Flyto2 workflow automation project.
@@ -1398,7 +1434,7 @@ Key principles:
 - Pure functions preferred
 - Always maintain backward compatibility
 
-# Conversation Memory (對話記憶 - 包含短期和 RAG 檢索的長期記憶):
+# Conversation Memory (includes short-term and RAG-retrieved long-term memory):
 {memory_context}
 
 # Current Session Context:
@@ -1411,7 +1447,7 @@ Key principles:
     response, confidence = await ask_ollama(message_text, system_prompt)
     session['stats']['ollama_queries'] += 1
 
-    # ===== 儲存助手回應到記憶 =====
+    # ===== Store assistant response to memory =====
     memory.add_message("assistant", response, metadata={"confidence": confidence})
 
     # Auto-escalation: very low confidence -> jump directly to OpenAI

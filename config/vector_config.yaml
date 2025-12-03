@@ -1,0 +1,150 @@
+# Flyto2 Vector Database Configuration
+# For RAG (Retrieval Augmented Generation)
+
+# Vector database settings
+# IMPORTANT: Must use cloud Qdrant, local Qdrant is NOT supported
+vector_db:
+  type: qdrant
+  # Use environment variable QDRANT_URL (must be set in .env)
+  # Example: https://xxx.us-east-1-1.aws.cloud.qdrant.io:6333
+  url: ${QDRANT_URL}
+  api_key: ${QDRANT_API_KEY}
+  collection_name: flyto2_memory
+
+  # Vector parameters
+  vector:
+    model: nomic-embed-text  # Ollama embedding model
+    dimension: 768           # nomic-embed-text actual dimension is 768, not 384
+    distance: cosine
+
+# Chunk design
+chunk:
+  # Single chunk size (tokens)
+  size: 600
+
+  # Overlap size (tokens)
+  overlap: 100
+
+  # Splitting strategy
+  strategy: semantic  # semantic | fixed | paragraph
+
+  # Min/max chunk size
+  min_size: 100
+  max_size: 1000
+
+# Metadata classification and isolation
+metadata:
+  # Required fields
+  required:
+    - project     # Project name
+    - type        # Content type
+    - user_id     # User ID
+    - timestamp   # Timestamp
+
+  # Content type definitions
+  types:
+    conversation:
+      description: "Conversation memory"
+      searchable: true
+      ttl: null  # Permanent retention
+
+    spec:
+      description: "Module specification documents"
+      searchable: true
+      ttl: null
+
+    code:
+      description: "Code examples"
+      searchable: true
+      ttl: null
+
+    doc:
+      description: "Documentation"
+      searchable: true
+      ttl: null
+
+    log:
+      description: "Execution logs"
+      searchable: false
+      ttl: 2592000  # 30 days
+
+  # Project definitions
+  projects:
+    - flyto2
+    - tickets
+    - other
+
+# Retrieval strategy
+retrieval:
+  # Retrieval method
+  method: hybrid  # hybrid | vector_only | keyword_only
+
+  # Top-K settings
+  top_k: 5  # Initial retrieval count
+
+  # Similarity threshold
+  score_threshold: 0.5  # 0.0-1.0, results below this score are filtered (lower for better recall)
+
+  # MMR (Maximal Marginal Relevance) deduplication
+  mmr:
+    enabled: true
+    diversity: 0.3  # 0.0-1.0, higher means more diverse
+    final_k: 3      # Count retained after MMR
+
+  # Reranking
+  rerank:
+    enabled: false  # Requires additional model
+    model: null
+
+  # Query rewriting
+  query_rewrite:
+    enabled: true
+    strategies:
+      - expand_keywords    # Expand keywords
+      - add_context       # Add context information
+      - specify_type      # Specify type explicitly
+
+# Prompt template settings
+prompt:
+  # System prompt template file
+  template_file: config/prompts/ollama_system_prompt.txt
+
+  # Context organization method
+  context_format: structured  # structured | simple | detailed
+
+  # Citation format
+  citation:
+    enabled: true
+    format: "[{index}] {type}:{project} ({timestamp})"
+
+  # Maximum context length (tokens)
+  max_context_tokens: 2000
+
+# Logging and debugging
+logging:
+  # Log retrieval process
+  log_retrieval: true
+
+  # Log prompt assembly
+  log_prompt: true
+
+  # Log model response
+  log_response: true
+
+  # Log file
+  file: logs/rag_debug.log
+
+  # Log level
+  level: INFO  # DEBUG | INFO | WARNING | ERROR
+
+# Performance optimization
+performance:
+  # Embedding cache
+  cache_embeddings: true
+  cache_ttl: 3600  # seconds
+
+  # Batch processing
+  batch_size: 10
+
+  # Concurrent requests
+  max_concurrent: 5

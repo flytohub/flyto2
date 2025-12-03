@@ -14,8 +14,6 @@ class IntentDetector:
         # Task keywords that indicate user wants action
         self.task_keywords = [
             # Crawling/scraping
-            r'爬[取得]?',
-            r'抓[取]?',
             r'scrape',
             r'crawl',
             r'fetch',
@@ -23,16 +21,11 @@ class IntentDetector:
             r'extract.*from',
 
             # Searching
-            r'搜[尋索]',
-            r'找[尋]?',
-            r'查[找詢]?',
             r'search',
             r'find',
             r'look.*for',
 
             # Actions
-            r'幫我',
-            r'請',
             r'help me',
             r'can you',
             r'could you',
@@ -72,7 +65,7 @@ class IntentDetector:
             result["params"]["urls"] = urls
             result["confidence"] += 0.5
 
-        # Check for domain names without protocol (e.g., "爬 amazon.com")
+        # Check for domain names without protocol (e.g., "scrape amazon.com")
         domains = re.findall(self.domain_pattern, message_lower)
         if domains and not urls:
             # Has domain but no full URL - add https://
@@ -93,11 +86,11 @@ class IntentDetector:
             result["type"] = "task"
 
             # Determine task type
-            if any(re.search(p, message_lower) for p in [r'爬', r'抓', r'crawl', r'scrape']):
+            if any(re.search(p, message_lower) for p in [r'crawl', r'scrape']):
                 result["task_type"] = "crawl"
-            elif any(re.search(p, message_lower) for p in [r'搜', r'找', r'查', r'search', r'find']):
+            elif any(re.search(p, message_lower) for p in [r'search', r'find']):
                 result["task_type"] = "search"
-            elif any(re.search(p, message_lower) for p in [r'download', r'下載']):
+            elif any(re.search(p, message_lower) for p in [r'download']):
                 result["task_type"] = "download"
             else:
                 result["task_type"] = "general"
@@ -106,8 +99,8 @@ class IntentDetector:
             if result["task_type"] in ["search", "crawl"]:
                 # Try to extract what to search for
                 search_patterns = [
-                    r'(?:找|搜|search|find|look for)\s*(?:商品|product)?\s*[：:"]?\s*(.+?)(?:\s|$)',
-                    r'(?:查|find)\s+(.+?)(?:\s+in\s+|\s+on\s+|$)',
+                    r'(?:search|find|look for)\s*(?:product)?\s*[:]?\s*(.+?)(?:\s|$)',
+                    r'(?:find)\s+(.+?)(?:\s+in\s+|\s+on\s+|$)',
                 ]
 
                 for pattern in search_patterns:

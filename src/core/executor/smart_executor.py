@@ -363,7 +363,92 @@ class SmartExecutor:
             return workflow
 
         else:
-            raise ValueError(f"Unable to understand task: {task_description}")
+            # Use OpenAI to generate workflow for any other task
+            print(f"🤖 Using OpenAI to generate workflow for: {task_description}")
+            try:
+                from openai import OpenAI
+                import os
+                from src.core.modules.registry import ModuleRegistry
+
+                client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+                # Get available modules
+                available_modules = list(ModuleRegistry.list_all().keys())
+                modules_list = ", ".join(sorted(available_modules)[:30])  # First 30 for brevity
+
+                prompt = f"""Generate a workflow to: {task_description}
+
+AVAILABLE MODULES (use these ONLY):
+Browser: core.browser.launch, core.browser.goto, core.browser.click, core.browser.type, core.browser.extract, core.browser.screenshot
+API: core.api.http_get, core.api.http_post
+File: file.write, file.read, file.copy, file.delete
+Data: data.json.parse, data.json.stringify
+
+IMPORTANT RULES:
+1. ONLY use modules from the list above
+2. Reference previous step results using: ${{step_id.result}} or ${{step_id.field_name}}
+3. For browser tasks, always start with core.browser.launch
+4. Use browser automation (not API) for web scraping and image downloads
+5. Keep workflows simple and practical
+
+Example for image download task:
+{{
+  "workflow_name": "Download Images",
+  "steps": [
+    {{
+      "step_id": "launch",
+      "module": "core.browser.launch",
+      "params": {{}}
+    }},
+    {{
+      "step_id": "search",
+      "module": "core.browser.goto",
+      "params": {{
+        "url": "https://www.google.com/search?tbm=isch&q=dogs",
+        "wait_until": "networkidle"
+      }}
+    }},
+    {{
+      "step_id": "screenshot",
+      "module": "core.browser.screenshot",
+      "params": {{
+        "path": "dog_images_search.png",
+        "full_page": false
+      }}
+    }}
+  ]
+}}
+
+IMPORTANT: For tasks involving "download images and convert to SVG" - SVG conversion is complex image vectorization. A simple workflow can:
+1. Take a screenshot of image search results
+2. Or download one image via HTTP
+But cannot do actual SVG conversion (requires specialized tools). Keep it simple and practical.
+
+Now generate the workflow for: {task_description}
+Return ONLY valid JSON, no markdown or explanations."""
+
+                response = client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.3,
+                    response_format={"type": "json_object"}
+                )
+
+                workflow_text = response.choices[0].message.content.strip()
+
+                # Extract JSON from markdown code blocks if present
+                import re
+                json_match = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', workflow_text, re.DOTALL)
+                if json_match:
+                    workflow_text = json_match.group(1)
+
+                workflow = json.loads(workflow_text)
+                print(f"✅ Generated workflow with {len(workflow.get('steps', []))} steps")
+                return workflow
+
+            except Exception as e:
+                print(f"❌ OpenAI workflow generation failed: {e}")
+                raise ValueError(f"Unable to generate workflow: {str(e)}")
 
     async def _execute_workflow(self, workflow: Dict[str, Any]) -> Dict[str, Any]:
         """Execute workflow using WorkflowEngine"""
@@ -452,10 +537,10 @@ class SmartExecutor:
             # Try to infer intent from task description
             task_lower = task_description.lower()
 
-            if any(word in task_lower for word in ['爬', '抓', 'crawl', 'scrape', 'fetch']):
+            if any(word in task_lower for word in ['crawl', 'scrape', 'fetch']):
                 analysis["recommendations"].append("Task detected as: web crawling")
                 analysis["recommendations"].append("Please include a URL in your request")
-            elif any(word in task_lower for word in ['搜', '找', 'search', 'find']):
+            elif any(word in task_lower for word in ['search', 'find']):
                 analysis["recommendations"].append("Task detected as: search")
                 analysis["recommendations"].append("Please specify where to search (e.g., 'search amazon.com for laptops')")
             else:

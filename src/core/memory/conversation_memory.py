@@ -1,9 +1,10 @@
 """
-對話記憶系統 - 短期 + 長期記憶
-使用 Qdrant 向量資料庫做 RAG
+Conversation Memory System - Short-term + Long-term Memory
+Uses Qdrant vector database for RAG
 """
 import os
 import json
+import yaml
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 from pathlib import Path
@@ -14,73 +15,132 @@ try:
     QDRANT_AVAILABLE = True
 except ImportError:
     QDRANT_AVAILABLE = False
-    print("⚠️ Qdrant not installed. Memory features will be limited.")
+    print("Warning: Qdrant not installed. Memory features will be limited.")
+
+# Enhanced retrieval module
+try:
+    from src.core.retrieval.enhanced_retrieval import EnhancedRetrieval
+    ENHANCED_RETRIEVAL_AVAILABLE = True
+except ImportError:
+    ENHANCED_RETRIEVAL_AVAILABLE = False
+    print("Warning: Enhanced retrieval not available.")
 
 
 class ConversationMemory:
     """
-    完整的對話記憶系統
-    - 短期記憶: 當前會話的對話歷史
-    - 長期記憶: 持久化到 Qdrant 向量資料庫
+    Complete conversation memory system
+    - Short-term memory: Current session conversation history
+    - Long-term memory: Persisted to Qdrant vector database
     """
 
     def __init__(self, user_id: str, use_qdrant: bool = True):
         self.user_id = user_id
         self.use_qdrant = use_qdrant and QDRANT_AVAILABLE
 
-        # 短期記憶 (session memory)
+        # Short-term memory (session memory)
         self.conversation_history: List[Dict[str, str]] = []
-        self.max_short_term = 10  # 保留最近 10 條訊息
+        self.max_short_term = 10  # Keep last 10 messages
 
-        # Qdrant 客戶端 (長期記憶)
+        # Load configuration
+        config_path = Path(__file__).parent.parent.parent.parent / "config" / "vector_config.yaml"
+        self.config = None
+        if config_path.exists():
+            with open(config_path, 'r', encoding='utf-8') as f:
+                self.config = yaml.safe_load(f)
+
+        # Qdrant client (long-term memory)
         self.qdrant_client = None
-        self.collection_name = f"user_{user_id}_conversations"
+        self.collection_name = "flyto2_memory"  # Unified collection name
+
+        # Enhanced retriever
+        self.enhanced_retrieval = None
+        if ENHANCED_RETRIEVAL_AVAILABLE and self.config:
+            try:
+                self.enhanced_retrieval = EnhancedRetrieval(config_path)
+            except Exception as e:
+                print(f"Warning: Failed to initialize enhanced retrieval: {e}")
+
+        # System Prompt template
+        self.system_prompt_template = self._load_system_prompt_template()
 
         if self.use_qdrant:
             self._init_qdrant()
 
+    def _load_system_prompt_template(self) -> str:
+        """Load System Prompt template"""
+        template_path = Path(__file__).parent.parent.parent.parent / "config" / "prompts" / "ollama_system_prompt.txt"
+
+        if template_path.exists():
+            with open(template_path, 'r', encoding='utf-8') as f:
+                return f.read()
+        else:
+            # Default template
+            return """You are Flyto2 Bot assistant.
+
+Basic rules:
+- Answer honestly
+- If you don't know something, say "I'm not sure"
+- Don't fabricate information
+- Keep it concise
+
+Conversation memory:
+{context}
+"""
+
     def _init_qdrant(self):
-        """初始化 Qdrant 向量資料庫"""
+        """Initialize Qdrant vector database (cloud only - local Qdrant is NOT supported)"""
         try:
-            # 檢查環境變數
-            qdrant_url = os.getenv("QDRANT_URL", "http://localhost:6333")
+            # Check environment variables (cloud Qdrant required)
+            qdrant_url = os.getenv("QDRANT_URL")
             qdrant_api_key = os.getenv("QDRANT_API_KEY")
 
-            # 連接 Qdrant
-            if qdrant_api_key:
-                self.qdrant_client = QdrantClient(
-                    url=qdrant_url,
-                    api_key=qdrant_api_key
-                )
-            else:
-                # 本地 Qdrant (無需 API key)
-                self.qdrant_client = QdrantClient(url=qdrant_url)
+            if not qdrant_url:
+                print("⚠️ Warning: QDRANT_URL not set. Memory features will be limited.")
+                print("   Local Qdrant is NOT supported. Please set up cloud Qdrant.")
+                self.use_qdrant = False
+                return
 
-            # 建立 collection (如果不存在)
+            if not qdrant_api_key:
+                print("⚠️ Warning: QDRANT_API_KEY not set. Memory features will be limited.")
+                self.use_qdrant = False
+                return
+
+            # Connect to cloud Qdrant
+            self.qdrant_client = QdrantClient(
+                url=qdrant_url,
+                api_key=qdrant_api_key
+            )
+
+            # Create collection (if doesn't exist)
             collections = self.qdrant_client.get_collections().collections
             collection_names = [c.name for c in collections]
 
             if self.collection_name not in collection_names:
+                # Get vector dimension from config
+                vector_dim = 384  # Default
+                if self.config and 'vector_db' in self.config:
+                    vector_dim = self.config['vector_db']['vector'].get('dimension', 384)
+
                 self.qdrant_client.create_collection(
                     collection_name=self.collection_name,
                     vectors_config=VectorParams(
-                        size=384,  # nomic-embed-text 的維度
+                        size=vector_dim,
                         distance=Distance.COSINE
                     )
                 )
-                print(f"✅ Created Qdrant collection: {self.collection_name}")
+                print(f"Created Qdrant collection: {self.collection_name}")
 
         except Exception as e:
-            print(f"⚠️ Qdrant initialization failed: {e}")
+            print(f"Warning: Qdrant initialization failed: {e}")
             self.qdrant_client = None
             self.use_qdrant = False
 
     def add_message(self, role: str, content: str, metadata: Optional[Dict] = None):
         """
-        添加訊息到記憶
+        Add message to memory
         role: 'user' or 'assistant'
-        content: 訊息內容
-        metadata: 額外的元數據
+        content: Message content
+        metadata: Additional metadata
         """
         message = {
             "role": role,
@@ -89,27 +149,38 @@ class ConversationMemory:
             "metadata": metadata or {}
         }
 
-        # 短期記憶
+        # Short-term memory
         self.conversation_history.append(message)
 
-        # 限制短期記憶大小
+        # Limit short-term memory size
         if len(self.conversation_history) > self.max_short_term:
             self.conversation_history = self.conversation_history[-self.max_short_term:]
 
-        # 長期記憶 (向量資料庫)
-        if self.use_qdrant and self.qdrant_client:
+        # Long-term memory (vector database)
+        # Filter user questions: only store statements and assistant responses, not questions
+        is_user_question = (
+            role == "user" and
+            (content.endswith('?') or content.endswith('?'))
+        )
+
+        if self.use_qdrant and self.qdrant_client and not is_user_question:
             self._store_to_qdrant(message)
 
     def _store_to_qdrant(self, message: Dict[str, str]):
-        """儲存訊息到 Qdrant 向量資料庫"""
+        """Store message to Qdrant vector database"""
         try:
-            # 生成 embedding (使用 Ollama 的 embedding 模型)
+            # Generate embedding (using Ollama's embedding model)
             import requests
+
+            # Get embedding model from config
+            embed_model = "nomic-embed-text"  # Default
+            if self.config and 'vector_db' in self.config:
+                embed_model = self.config['vector_db']['vector'].get('model', 'nomic-embed-text')
 
             embed_response = requests.post(
                 "http://localhost:11434/api/embeddings",
                 json={
-                    "model": "nomic-embed-text",
+                    "model": embed_model,
                     "prompt": message['content']
                 },
                 timeout=10
@@ -118,8 +189,20 @@ class ConversationMemory:
             if embed_response.status_code == 200:
                 embedding = embed_response.json()['embedding']
 
-                # 儲存到 Qdrant
+                # Store to Qdrant (with full metadata)
                 point_id = hash(message['timestamp'] + message['content']) % (10 ** 8)
+
+                # Build standard metadata
+                payload_metadata = {
+                    "project": "flyto2",
+                    "type": "conversation",
+                    "user_id": self.user_id,
+                    "timestamp": message['timestamp']
+                }
+
+                # Merge custom metadata
+                if message.get('metadata'):
+                    payload_metadata.update(message['metadata'])
 
                 self.qdrant_client.upsert(
                     collection_name=self.collection_name,
@@ -128,31 +211,30 @@ class ConversationMemory:
                             id=point_id,
                             vector=embedding,
                             payload={
-                                "role": message['role'],
                                 "content": message['content'],
-                                "timestamp": message['timestamp'],
-                                "metadata": message.get('metadata', {})
+                                "role": message['role'],
+                                "metadata": payload_metadata
                             }
                         )
                     ]
                 )
         except Exception as e:
-            print(f"⚠️ Failed to store to Qdrant: {e}")
+            print(f"Warning: Failed to store to Qdrant: {e}")
 
     def get_recent_history(self, limit: int = 5) -> List[Dict[str, str]]:
-        """取得最近的對話歷史 (短期記憶)"""
+        """Get recent conversation history (short-term memory)"""
         return self.conversation_history[-limit:]
 
     def search_similar(self, query: str, limit: int = 3) -> List[Dict[str, Any]]:
         """
-        搜尋相似的歷史對話 (長期記憶 RAG)
-        使用向量相似度搜尋
+        Search similar historical conversations (long-term memory RAG)
+        Using vector similarity search
         """
         if not self.use_qdrant or not self.qdrant_client:
             return []
 
         try:
-            # 生成 query embedding
+            # Generate query embedding
             import requests
 
             embed_response = requests.post(
@@ -169,14 +251,14 @@ class ConversationMemory:
 
             query_embedding = embed_response.json()['embedding']
 
-            # 向量搜尋
-            search_results = self.qdrant_client.search(
+            # Vector search (Qdrant v1.16+ uses query_points instead of search)
+            search_results = self.qdrant_client.query_points(
                 collection_name=self.collection_name,
-                query_vector=query_embedding,
+                query=query_embedding,
                 limit=limit
-            )
+            ).points
 
-            # 轉換結果
+            # Convert results
             similar_messages = []
             for result in search_results:
                 similar_messages.append({
@@ -189,41 +271,111 @@ class ConversationMemory:
             return similar_messages
 
         except Exception as e:
-            print(f"⚠️ Qdrant search failed: {e}")
+            print(f"Warning: Qdrant search failed: {e}")
             return []
 
     def get_context_for_ollama(self, current_query: str, include_rag: bool = True) -> str:
         """
-        為 Ollama 準備完整的上下文
-        包含：短期記憶 + RAG 檢索的長期記憶
+        Prepare complete context for Ollama
+        Includes: short-term memory + RAG-retrieved long-term memory
         """
         context_parts = []
 
-        # 1. 短期記憶 (最近的對話)
+        # 1. Short-term memory (recent conversations)
         recent = self.get_recent_history(limit=5)
         if recent:
-            context_parts.append("最近的對話:")
+            context_parts.append("Recent conversations:")
             for msg in recent:
-                role_name = "使用者" if msg['role'] == 'user' else "助手"
+                role_name = "User" if msg['role'] == 'user' else "Assistant"
                 context_parts.append(f"{role_name}: {msg['content']}")
 
-        # 2. 長期記憶 RAG (相關的歷史對話)
+        # 2. Long-term memory RAG (related historical conversations)
         if include_rag:
-            similar = self.search_similar(current_query, limit=3)
-            if similar:
-                context_parts.append("\n相關的歷史對話:")
-                for msg in similar:
-                    role_name = "使用者" if msg['role'] == 'user' else "助手"
-                    context_parts.append(f"{role_name}: {msg['content']} (相似度: {msg['score']:.2f})")
+            if self.enhanced_retrieval and self.qdrant_client:
+                # Use enhanced retrieval
+                try:
+                    # Metadata filter (only retrieve current user's conversations)
+                    metadata_filter = {
+                        "user_id": self.user_id,
+                        "type": "conversation"
+                    }
+
+                    # Embedding function
+                    def embed_fn(text: str) -> List[float]:
+                        import requests
+                        embed_model = "nomic-embed-text"
+                        if self.config and 'vector_db' in self.config:
+                            embed_model = self.config['vector_db']['vector'].get('model', 'nomic-embed-text')
+
+                        response = requests.post(
+                            "http://localhost:11434/api/embeddings",
+                            json={"model": embed_model, "prompt": text},
+                            timeout=10
+                        )
+                        if response.status_code == 200:
+                            return response.json()['embedding']
+                        return []
+
+                    # Execute enhanced retrieval
+                    recent_context = "\n".join([f"{m['role']}: {m['content']}" for m in recent])
+
+                    results = self.enhanced_retrieval.retrieve(
+                        query=current_query,
+                        qdrant_client=self.qdrant_client,
+                        collection_name=self.collection_name,
+                        embedding_function=embed_fn,
+                        context=recent_context,
+                        metadata_filter=metadata_filter
+                    )
+
+                    if results:
+                        context_parts.append("\nRelated historical memories:")
+                        for result in results:
+                            content = result.get('content', '')
+                            score = result.get('score', 0.0)
+                            context_parts.append(f"- {content} (relevance: {score:.2f})")
+
+                except Exception as e:
+                    print(f"Warning: Enhanced retrieval failed, falling back to simple search: {e}")
+                    # Fallback to simple search
+                    similar = self.search_similar(current_query, limit=3)
+                    if similar:
+                        context_parts.append("\nRelated historical conversations:")
+                        for msg in similar:
+                            role_name = "User" if msg['role'] == 'user' else "Assistant"
+                            context_parts.append(f"{role_name}: {msg['content']} (similarity: {msg['score']:.2f})")
+            else:
+                # Fallback to original simple search
+                similar = self.search_similar(current_query, limit=3)
+                if similar:
+                    context_parts.append("\nRelated historical conversations:")
+                    for msg in similar:
+                        role_name = "User" if msg['role'] == 'user' else "Assistant"
+                        context_parts.append(f"{role_name}: {msg['content']} (similarity: {msg['score']:.2f})")
 
         return "\n".join(context_parts)
 
+    def get_system_prompt(self, current_query: str, include_rag: bool = True) -> str:
+        """
+        Get complete System Prompt (template + context)
+
+        Returns:
+            Complete system prompt string
+        """
+        # Get context
+        context = self.get_context_for_ollama(current_query, include_rag)
+
+        # Fill in template
+        system_prompt = self.system_prompt_template.replace("{context}", context)
+
+        return system_prompt
+
     def clear_short_term(self):
-        """清除短期記憶"""
+        """Clear short-term memory"""
         self.conversation_history = []
 
     def get_stats(self) -> Dict[str, Any]:
-        """取得記憶統計資訊"""
+        """Get memory statistics"""
         stats = {
             "short_term_messages": len(self.conversation_history),
             "qdrant_enabled": self.use_qdrant,
@@ -239,18 +391,18 @@ class ConversationMemory:
         return stats
 
 
-# 全域記憶管理器
+# Global memory manager
 _memory_instances: Dict[str, ConversationMemory] = {}
 
 
 def get_memory(user_id: str) -> ConversationMemory:
-    """取得或建立使用者的記憶實例"""
+    """Get or create user's memory instance"""
     if user_id not in _memory_instances:
         _memory_instances[user_id] = ConversationMemory(user_id)
     return _memory_instances[user_id]
 
 
 def clear_memory(user_id: str):
-    """清除使用者的記憶"""
+    """Clear user's memory"""
     if user_id in _memory_instances:
         _memory_instances[user_id].clear_short_term()

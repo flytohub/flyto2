@@ -7,7 +7,7 @@ Enterprise-grade knowledge management system with:
 - Quality metrics and validation
 - Incremental updates with deduplication
 - Batch operations with rollback
-- Multi-language support (English + 中文)
+- Multi-language support (English)
 - Metadata enrichment
 - Performance monitoring
 """
@@ -267,7 +267,7 @@ class EnterpriseKBManager:
         return hashlib.sha256(content.encode('utf-8')).hexdigest()
 
     def _detect_language(self, content: str) -> str:
-        """Detect primary language (English or 中文)"""
+        """Detect primary language (English or Chinese)"""
         chinese_chars = sum(1 for char in content if '\u4e00' <= char <= '\u9fff')
         english_words = len([w for w in content.split() if w.isascii()])
 

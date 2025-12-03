@@ -1313,6 +1313,618 @@ Ready for review!
                 await asyncio.sleep(interval_hours * 3600)
 
 
+# ============================================================
+# Phase 5.1: Module Spec Generator (Atomic Component)
+# ============================================================
+
+class SpecGenerator:
+    """
+    Generate module specifications using LLM (Phase 5.1)
+    Analyzes task context and creates structured module specs
+    """
+
+    def __init__(self, ollama_endpoint: str = "http://localhost:11434"):
+        self.ollama_endpoint = ollama_endpoint
+        self.model = "qwen2.5:32b"
+        self.logger = logging.getLogger(__name__)
+
+    async def generate_spec(
+        self,
+        module_id: str,
+        task_context: str,
+        similar_modules: List[Dict] = None
+    ) -> Dict:
+        """
+        Generate specification for new module
+
+        Args:
+            module_id: Desired module ID (e.g., "excel.read")
+            task_context: Why this module is needed
+            similar_modules: Similar existing modules for reference
+
+        Returns:
+            Module specification dict
+        """
+
+        # Build prompt with examples
+        prompt = self._build_spec_prompt(module_id, task_context, similar_modules or [])
+
+        # Call LLM
+        response = self._call_llm(prompt)
+
+        # Parse response
+        try:
+            spec = json.loads(response)
+
+            # Validate spec structure
+            required_fields = ['module_id', 'description', 'parameters', 'returns']
+            if not all(field in spec for field in required_fields):
+                raise ValueError(f"Spec missing required fields: {required_fields}")
+
+            return spec
+
+        except json.JSONDecodeError as e:
+            self.logger.error(f"Failed to parse spec JSON: {e}")
+            raise
+
+    def _build_spec_prompt(
+        self,
+        module_id: str,
+        task_context: str,
+        similar_modules: List[Dict]
+    ) -> str:
+        """Build prompt for spec generation"""
+
+        prompt_parts = [
+            "Generate a module specification in JSON format.",
+            "",
+            f"Module ID: {module_id}",
+            f"Context: {task_context}",
+            ""
+        ]
+
+        # Add examples from similar modules
+        if similar_modules:
+            prompt_parts.append("Similar existing modules for reference:")
+            for mod in similar_modules[:2]:
+                metadata = mod.get('metadata', {})
+                mod_id = metadata.get('module_id', 'unknown')
+                desc = metadata.get('description', '')
+                params = metadata.get('parameters', {})
+
+                prompt_parts.append(f"  Module: {mod_id}")
+                prompt_parts.append(f"  Description: {desc}")
+                prompt_parts.append(f"  Parameters: {json.dumps(params, indent=4)}")
+                prompt_parts.append("")
+
+        prompt_parts.append("Generate spec in this JSON format:")
+        prompt_parts.append("""{
+    "module_id": "excel.read",
+    "category": "data",
+    "description": "Read data from Excel file",
+    "parameters": {
+        "filepath": {
+            "type": "string",
+            "description": "Path to Excel file",
+            "required": true
+        }
+    },
+    "returns": {
+        "data": {
+            "type": "array",
+            "description": "Array of row objects"
+        }
+    },
+    "dependencies": ["openpyxl"]
+}""")
+
+        prompt_parts.append("\nOutput ONLY the JSON, no explanations.")
+
+        return "\n".join(prompt_parts)
+
+    def _call_llm(self, prompt: str) -> str:
+        """Call Ollama LLM"""
+        import requests
+
+        try:
+            response = requests.post(
+                f"{self.ollama_endpoint}/api/generate",
+                json={
+                    "model": self.model,
+                    "prompt": prompt,
+                    "stream": False,
+                    "options": {
+                        "temperature": 0.3,
+                        "num_predict": 1024
+                    }
+                },
+                timeout=60
+            )
+
+            if response.status_code != 200:
+                raise Exception(f"LLM API error: {response.status_code}")
+
+            return response.json().get('response', '').strip()
+
+        except Exception as e:
+            self.logger.error(f"LLM call failed: {e}")
+            raise
+
+
+# Global instance
+_spec_generator = None
+
+
+def get_spec_generator() -> SpecGenerator:
+    """Get global spec generator (singleton)"""
+    global _spec_generator
+    if _spec_generator is None:
+        _spec_generator = SpecGenerator()
+    return _spec_generator
+
+
+# ============================================================
+# Phase 5.2: Code Generator (Atomic Component)
+# ============================================================
+
+class CodeGenerator:
+    """
+    Generate Python code from module spec (Phase 5.2)
+    Uses code-specialized LLM model
+    """
+
+    def __init__(self, ollama_endpoint: str = "http://localhost:11434"):
+        self.ollama_endpoint = ollama_endpoint
+        self.model = "qwen2.5-coder:32b"
+        self.logger = logging.getLogger(__name__)
+
+    async def generate_code(self, spec: Dict) -> str:
+        """
+        Generate Python code from spec
+
+        Args:
+            spec: Module specification
+
+        Returns:
+            Python code as string
+        """
+
+        # Build prompt
+        prompt = self._build_code_prompt(spec)
+
+        # Generate code
+        code = self._call_llm(prompt)
+
+        return code
+
+    def _build_code_prompt(self, spec: Dict) -> str:
+        """Build code generation prompt"""
+
+        prompt_parts = [
+            "Generate Python code for a module based on this specification:",
+            "",
+            f"Spec: {json.dumps(spec, indent=2)}",
+            "",
+            "Requirements:",
+            "1. Inherit from BaseModule",
+            "2. Implement validate_params() and execute() methods",
+            "3. Use async/await for execute()",
+            "4. Add proper error handling",
+            "5. Include docstrings",
+            "6. NEVER hardcode API keys or secrets",
+            "",
+            "Generate complete Python module code:"
+        ]
+
+        return "\n".join(prompt_parts)
+
+    def _call_llm(self, prompt: str) -> str:
+        """Call Ollama code model"""
+        import requests
+
+        try:
+            response = requests.post(
+                f"{self.ollama_endpoint}/api/generate",
+                json={
+                    "model": self.model,
+                    "prompt": prompt,
+                    "stream": False,
+                    "options": {
+                        "temperature": 0.2,
+                        "num_predict": 2048
+                    }
+                },
+                timeout=120
+            )
+
+            if response.status_code != 200:
+                raise Exception(f"LLM API error: {response.status_code}")
+
+            code = response.json().get('response', '').strip()
+
+            # Extract code from markdown if present
+            if '```python' in code:
+                code = code.split('```python')[1].split('```')[0].strip()
+
+            return code
+
+        except Exception as e:
+            self.logger.error(f"Code generation failed: {e}")
+            raise
+
+
+# Global instance
+_code_generator = None
+
+
+def get_code_generator() -> CodeGenerator:
+    """Get global code generator (singleton)"""
+    global _code_generator
+    if _code_generator is None:
+        _code_generator = CodeGenerator()
+    return _code_generator
+
+
+# ============================================================
+# Phase 5.2: Quality Gates (Atomic Component)
+# ============================================================
+
+import ast
+import tempfile
+from typing import Tuple
+
+class QualityGates:
+    """
+    Run quality checks on generated code (Phase 5.2)
+
+    Gates:
+    1. AST parse check (syntax valid?)
+    2. Bandit security scan
+    3. Pylint code quality
+    """
+
+    def __init__(self):
+        self.bandit_severity_threshold = "LOW"
+        self.logger = logging.getLogger(__name__)
+
+    def check_all(self, code: str) -> Tuple[bool, List[str]]:
+        """
+        Run all quality gates
+
+        Args:
+            code: Python code to check
+
+        Returns:
+            (passed, list_of_issues)
+        """
+        issues = []
+
+        # Gate 1: AST parse
+        ast_ok, ast_errors = self.check_ast(code)
+        if not ast_ok:
+            issues.extend([f"AST: {e}" for e in ast_errors])
+
+        # Gate 2: Security scan
+        bandit_ok, bandit_issues = self.check_security(code)
+        if not bandit_ok:
+            issues.extend([f"Security: {i}" for i in bandit_issues])
+
+        # Gate 3: Code quality
+        pylint_ok, pylint_issues = self.check_quality(code)
+        if not pylint_ok:
+            issues.extend([f"Quality: {i}" for i in pylint_issues])
+
+        passed = len(issues) == 0
+
+        return (passed, issues)
+
+    def check_ast(self, code: str) -> Tuple[bool, List[str]]:
+        """Check if code parses as valid Python"""
+        try:
+            ast.parse(code)
+            return (True, [])
+        except SyntaxError as e:
+            return (False, [f"Line {e.lineno}: {e.msg}"])
+
+    def check_security(self, code: str) -> Tuple[bool, List[str]]:
+        """Run Bandit security scanner"""
+        try:
+            # Write code to temp file
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+                f.write(code)
+                temp_path = f.name
+
+            # Run Bandit
+            result = subprocess.run(
+                ['bandit', '-f', 'json', temp_path],
+                capture_output=True,
+                text=True,
+                timeout=30
+            )
+
+            # Parse results
+            try:
+                data = json.loads(result.stdout)
+                results = data.get('results', [])
+
+                # Filter by severity
+                critical_issues = [
+                    f"{r['issue_text']} (Line {r['line_number']})"
+                    for r in results
+                    if r['issue_severity'] in ['HIGH', 'MEDIUM', 'LOW']
+                ]
+
+                return (len(critical_issues) == 0, critical_issues)
+
+            except json.JSONDecodeError:
+                self.logger.error("Failed to parse Bandit output")
+                return (True, [])
+
+        except Exception as e:
+            self.logger.error(f"Bandit check failed: {e}")
+            return (True, [])
+
+    def check_quality(self, code: str) -> Tuple[bool, List[str]]:
+        """Run Pylint code quality check"""
+        try:
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+                f.write(code)
+                temp_path = f.name
+
+            # Run Pylint
+            result = subprocess.run(
+                ['pylint', '--output-format=json', temp_path],
+                capture_output=True,
+                text=True,
+                timeout=30
+            )
+
+            # Parse results
+            try:
+                messages = json.loads(result.stdout)
+
+                # Filter critical issues
+                critical = [
+                    f"{m['message']} (Line {m['line']})"
+                    for m in messages
+                    if m['type'] in ['error', 'warning']
+                ]
+
+                return (len(critical) == 0, critical)
+
+            except json.JSONDecodeError:
+                return (True, [])
+
+        except Exception as e:
+            self.logger.error(f"Pylint check failed: {e}")
+            return (True, [])
+
+
+# Global instance
+_quality_gates = None
+
+
+def get_quality_gates() -> QualityGates:
+    """Get global quality gates (singleton)"""
+    global _quality_gates
+    if _quality_gates is None:
+        _quality_gates = QualityGates()
+    return _quality_gates
+
+
+# ============================================================
+# Phase 6.1: Lesson Extractor (Atomic Component)
+# ============================================================
+
+class LessonExtractor:
+    """
+    Extract lessons from recurring errors (Phase 6.1)
+    Learns from failures and stores knowledge
+    """
+
+    def __init__(self, ollama_endpoint: str = "http://localhost:11434"):
+        self.ollama_endpoint = ollama_endpoint
+        self.model = "qwen2.5:32b"
+        self.logger = logging.getLogger(__name__)
+
+    async def extract_lesson(
+        self,
+        error_pattern: str,
+        occurrences: List[Dict],
+        successful_workarounds: List[Dict] = None
+    ) -> Dict:
+        """
+        Extract lesson from recurring error
+
+        Args:
+            error_pattern: Error pattern (e.g., "browser.goto:TimeoutError")
+            occurrences: List of error occurrences with job_ids
+            successful_workarounds: List of successful fixes (if any)
+
+        Returns:
+            Lesson dict with problem, solution, and recommendations
+        """
+
+        # Build analysis prompt
+        prompt = self._build_lesson_prompt(error_pattern, occurrences, successful_workarounds or [])
+
+        # Call LLM to analyze
+        response = self._call_llm(prompt)
+
+        # Parse lesson
+        try:
+            lesson = json.loads(response)
+
+            # Validate lesson structure
+            required_fields = ['problem_description', 'root_cause', 'solution', 'recommendations']
+            if not all(field in lesson for field in required_fields):
+                raise ValueError(f"Lesson missing required fields: {required_fields}")
+
+            # Add metadata
+            lesson['error_pattern'] = error_pattern
+            lesson['occurrences_count'] = len(occurrences)
+            lesson['has_workaround'] = len(successful_workarounds or []) > 0
+            lesson['extracted_at'] = datetime.now().isoformat()
+
+            return lesson
+
+        except json.JSONDecodeError as e:
+            self.logger.error(f"Failed to parse lesson JSON: {e}")
+            raise
+
+    def _build_lesson_prompt(
+        self,
+        error_pattern: str,
+        occurrences: List[Dict],
+        workarounds: List[Dict]
+    ) -> str:
+        """Build lesson extraction prompt"""
+
+        prompt_parts = [
+            "Analyze this recurring error pattern and extract a lesson.",
+            "",
+            f"Error Pattern: {error_pattern}",
+            f"Occurrences: {len(occurrences)} times",
+            "",
+            "Sample error messages:"
+        ]
+
+        # Add sample error messages (max 3)
+        for i, occ in enumerate(occurrences[:3]):
+            prompt_parts.append(f"  {i+1}. {occ.get('message', 'No message')[:100]}")
+
+        prompt_parts.append("")
+
+        # Add workarounds if available
+        if workarounds:
+            prompt_parts.append("Successful workarounds found:")
+            for i, wa in enumerate(workarounds[:2]):
+                prompt_parts.append(f"  {i+1}. {wa.get('solution', 'No solution')[:100]}")
+            prompt_parts.append("")
+
+        prompt_parts.append("Extract lesson in this JSON format:")
+        prompt_parts.append("""{
+    "problem_description": "Clear description of the problem",
+    "root_cause": "Why this error happens",
+    "solution": "How to fix or prevent it",
+    "recommendations": [
+        "Specific actionable recommendation 1",
+        "Specific actionable recommendation 2"
+    ],
+    "prevention_strategy": "How to avoid this in the future"
+}""")
+
+        prompt_parts.append("\nOutput ONLY the JSON, no explanations.")
+
+        return "\n".join(prompt_parts)
+
+    def _call_llm(self, prompt: str) -> str:
+        """Call Ollama LLM"""
+        import requests
+
+        try:
+            response = requests.post(
+                f"{self.ollama_endpoint}/api/generate",
+                json={
+                    "model": self.model,
+                    "prompt": prompt,
+                    "stream": False,
+                    "options": {
+                        "temperature": 0.3,
+                        "num_predict": 1024
+                    }
+                },
+                timeout=60
+            )
+
+            if response.status_code != 200:
+                raise Exception(f"LLM API error: {response.status_code}")
+
+            return response.json().get('response', '').strip()
+
+        except Exception as e:
+            self.logger.error(f"Lesson extraction failed: {e}")
+            raise
+
+    async def store_lesson(self, lesson: Dict) -> str:
+        """
+        Store lesson in knowledge base
+
+        Args:
+            lesson: Lesson dict
+
+        Returns:
+            Knowledge ID
+        """
+        try:
+            from src.core.memory.knowledge_extractor import get_knowledge_extractor
+
+            knowledge = get_knowledge_extractor()
+
+            # Format lesson content
+            content = f"""
+Lesson Learned from Recurring Error
+
+Problem: {lesson['problem_description']}
+Root Cause: {lesson['root_cause']}
+
+Solution:
+{lesson['solution']}
+
+Recommendations:
+{chr(10).join('- ' + r for r in lesson['recommendations'])}
+
+Prevention Strategy:
+{lesson['prevention_strategy']}
+
+Pattern: {lesson['error_pattern']}
+Occurrences: {lesson['occurrences_count']}
+"""
+
+            # Store in knowledge base
+            knowledge_id = f"lesson_{lesson['error_pattern'].replace(':', '_')}_{datetime.now().strftime('%Y%m%d')}"
+
+            # Use KnowledgeType.LESSON if available
+            try:
+                from src.core.memory.knowledge_extractor import KnowledgeType
+                knowledge_type = KnowledgeType.LESSON
+            except (ImportError, AttributeError):
+                knowledge_type = "lesson"
+
+            metadata = {
+                'knowledge_type': knowledge_type,
+                'error_pattern': lesson['error_pattern'],
+                'occurrences_count': lesson['occurrences_count'],
+                'has_workaround': lesson.get('has_workaround', False),
+                'extracted_at': lesson['extracted_at']
+            }
+
+            result = knowledge._store_knowledge(knowledge_id, content, metadata)
+
+            self.logger.info(f"Stored lesson: {knowledge_id}")
+            return result
+
+        except Exception as e:
+            self.logger.error(f"Failed to store lesson: {e}")
+            raise
+
+
+# Global instance
+_lesson_extractor = None
+
+
+def get_lesson_extractor() -> LessonExtractor:
+    """Get global lesson extractor (singleton)"""
+    global _lesson_extractor
+    if _lesson_extractor is None:
+        _lesson_extractor = LessonExtractor()
+    return _lesson_extractor
+
+
+# ============================================================
+# Main Entry Point
+# ============================================================
+
 async def main():
     """Main execution"""
     engine = AutoEvolutionEngine()

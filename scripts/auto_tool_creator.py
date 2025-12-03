@@ -32,13 +32,6 @@ class AutoToolCreator:
         # Patterns to detect tool creation requests
         # More flexible patterns to catch various phrasings
         self.patterns = [
-            # Chinese patterns - more flexible
-            (r'(?:建立|創建|新增|做|寫)(?:一個|個)?(.+?)(?:模組|工具|功能|的模組|的工具|的功能)', 'create_tool'),
-            (r'(?:建立|創建|新增|做|寫)(?:一個|個)?(.+)', 'create_tool'),  # Fallback without 模組/工具
-            (r'(?:需要|想要)(?:一個|個)?(.+?)(?:模組|工具|功能)', 'need_tool'),
-            (r'(?:嘗試|試試)(?:看看)?(.+)', 'try_tool'),
-            (r'(?:能不能|可以|可否)(?:做|建立|創建|幫我|幫忙)(?:一個|個)?(.+)', 'can_create'),
-
             # English patterns - more flexible
             (r'create (?:a|an) (.+?)(?:module|tool|feature)', 'create_tool'),
             (r'create (?:a|an) (.+)', 'create_tool'),  # Fallback without module/tool
@@ -317,10 +310,10 @@ async def test():
 
     # Test detection
     test_messages = [
-        "嘗試看看下載圖片",
+        "try downloading images",
         "create a CSV parser module",
         "I need a tool to compress images",
-        "能不能做一個JSON validator"
+        "can you make a JSON validator"
     ]
 
     print("Testing detection:")

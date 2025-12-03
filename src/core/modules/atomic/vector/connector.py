@@ -38,7 +38,7 @@ class VectorDBConnector:
 
     def connect(self) -> bool:
         """
-        Connect to vector database
+        Connect to vector database (cloud only - local Qdrant is NOT supported)
 
         Returns:
             True if connected successfully
@@ -46,17 +46,30 @@ class VectorDBConnector:
         try:
             from qdrant_client import QdrantClient
 
-            if self.mode == "cloud":
-                if not self.url or not self.api_key:
-                    raise ValueError("Cloud mode requires url and api_key")
-
-                self.client = QdrantClient(
-                    url=self.url,
-                    api_key=self.api_key
+            # Local mode is NOT supported - force cloud mode
+            if self.mode == "local":
+                raise ValueError(
+                    "Local Qdrant is NOT supported! "
+                    "Please use cloud mode with QDRANT_URL and QDRANT_API_KEY environment variables."
                 )
-            else:
-                # Local mode
-                self.client = QdrantClient(path=self.path)
+
+            if not self.url or not self.api_key:
+                raise ValueError(
+                    "Cloud Qdrant requires url and api_key. "
+                    "Set QDRANT_URL and QDRANT_API_KEY environment variables."
+                )
+
+            # Validate URL is not localhost
+            if "localhost" in self.url or "127.0.0.1" in self.url:
+                raise ValueError(
+                    "Local Qdrant (localhost) is NOT supported! "
+                    "Please use Qdrant Cloud or a remote server."
+                )
+
+            self.client = QdrantClient(
+                url=self.url,
+                api_key=self.api_key
+            )
 
             # Test connection
             self.client.get_collections()

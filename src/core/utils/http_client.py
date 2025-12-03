@@ -276,19 +276,19 @@ class HTTPClient:
         response_lower = response.lower()
 
         # High confidence indicators
-        if any(word in response_lower for word in ['definitely', 'certain', 'sure', '確定', '肯定']):
+        if any(word in response_lower for word in ['definitely', 'certain', 'sure']):
             return 0.9
 
         # Medium confidence
-        if any(word in response_lower for word in ['probably', 'likely', '可能', '應該']):
+        if any(word in response_lower for word in ['probably', 'likely']):
             return 0.7
 
         # Low confidence
-        if any(word in response_lower for word in ['maybe', 'perhaps', 'might', '也許', '或許']):
+        if any(word in response_lower for word in ['maybe', 'perhaps', 'might']):
             return 0.5
 
         # Uncertain
-        if any(word in response_lower for word in ['don\'t know', 'unsure', 'unclear', '不確定', '不清楚']):
+        if any(word in response_lower for word in ["don't know", 'unsure', 'unclear']):
             return 0.3
 
         # Default medium-high confidence

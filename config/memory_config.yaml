@@ -1,0 +1,284 @@
+# Flyto2 Two-Layer Memory Configuration
+# Two-Layer Memory Architecture Configuration
+
+# ============================================================
+# Layer 1: JobMemory (Short-term Task Memory)
+# ============================================================
+job_memory:
+  # Storage backend type (CLOUD-BASED ONLY)
+  backend: postgres  # postgres (recommended for production) | mysql | sqlite (NOT recommended)
+
+  # Database connection configuration
+  connection:
+    # PostgreSQL (REQUIRED for production - use cloud provider)
+    # Recommended: Neon (https://neon.tech), Supabase, Railway
+    postgres:
+      host: ${POSTGRES_HOST}  # Cloud PostgreSQL host (required)
+      port: ${POSTGRES_PORT:5432}  # Default 5432
+      database: ${POSTGRES_DB:flyto2_jobs}
+      user: ${POSTGRES_USER}  # Database user (required)
+      password: ${POSTGRES_PASSWORD}  # Database password (required)
+      ssl_mode: require  # SSL required for cloud databases
+
+    # MySQL (alternative option)
+    mysql:
+      host: ${MYSQL_HOST:localhost}
+      port: ${MYSQL_PORT:3306}
+      database: ${MYSQL_DB:flyto2_jobs}
+      user: ${MYSQL_USER:root}
+      password: ${MYSQL_PASSWORD:password}
+      charset: utf8mb4
+
+    # SQLite (DEPRECATED - for testing only, not recommended)
+    # WARNING: SQLite is not suitable for production use
+    # Use cloud PostgreSQL instead
+    sqlite:
+      path: data/job_memory.db
+      check_same_thread: false
+
+  # Task memory retention policy
+  retention:
+    # Days to retain completed jobs
+    completed_jobs_days: 7
+
+    # Days to retain failed jobs
+    failed_jobs_days: 30
+
+    # Timeout days for in-progress tasks (exceeding is considered failed)
+    in_progress_timeout_days: 3
+
+    # Auto cleanup interval (seconds)
+    cleanup_interval: 86400  # Once per day
+
+  # Conversation memory limits
+  conversation:
+    # Maximum messages per job
+    max_messages_per_job: 500
+
+    # Messages returned per retrieval
+    context_limit: 20
+
+    # Whether to compress old messages (summarization)
+    compress_old_messages: false
+    compression_threshold: 100  # Start compressing after 100 messages
+
+# ============================================================
+# Layer 2: Knowledge (Long-term Knowledge Base)
+# ============================================================
+knowledge:
+  # Vector database configuration (CLOUD-BASED ONLY)
+  vector_db:
+    type: qdrant
+    url: ${QDRANT_URL}  # Qdrant Cloud URL (required) - https://cloud.qdrant.io
+    api_key: ${QDRANT_API_KEY}  # Qdrant API key (required)
+    collection_name: flyto2_knowledge
+
+    # Vector configuration
+    vector:
+      model: nomic-embed-text  # Ollama embedding model
+      dimension: 768
+      distance: cosine
+
+  # Knowledge type definitions
+  knowledge_types:
+    # Module specifications
+    spec:
+      description: "Module specification documents (MODULE_SPEC)"
+      searchable: true
+      permanent: true
+      metadata_required:
+        - module_name
+        - category  # atomic | third_party | composite
+        - version
+
+    # Atomic modules
+    module:
+      description: "Atomic module implementations"
+      searchable: true
+      permanent: true
+      metadata_required:
+        - module_id
+        - category
+        - subcategory  # browser | array | string | file etc.
+        - parameters
+        - returns
+
+    # Lessons learned
+    lesson:
+      description: "Experience from approved PRs"
+      searchable: true
+      permanent: true
+      metadata_required:
+        - task_description
+        - modules_used
+        - pr_url
+        - success_metrics
+
+    # Error logs
+    error_log:
+      description: "Failure case analysis"
+      searchable: true
+      permanent: false  # Periodic cleanup
+      ttl_days: 90
+      metadata_required:
+        - error_type
+        - failed_modules
+        - root_cause
+
+  # Retrieval strategy
+  retrieval:
+    # Retrieval method
+    method: hybrid  # hybrid | vector_only | keyword_only
+
+    # Top-K settings
+    top_k: 10
+
+    # Similarity threshold
+    score_threshold: 0.6
+
+    # MMR deduplication
+    mmr:
+      enabled: true
+      diversity: 0.3
+      final_k: 5
+
+    # Query rewriting
+    query_rewrite:
+      enabled: true
+      strategies:
+        - expand_keywords
+        - add_context
+        - specify_type
+
+  # Knowledge extraction rules
+  extraction:
+    # Extract knowledge from successful tasks
+    from_successful_tasks:
+      enabled: true
+      min_quality_score: 0.8  # Only extract high-quality tasks
+      extract_patterns:
+        - module_combinations
+        - parameter_best_practices
+        - error_handling_strategies
+
+    # Extract knowledge from PR reviews
+    from_pr_reviews:
+      enabled: true
+      extract_patterns:
+        - code_quality_lessons
+        - testing_strategies
+        - performance_optimizations
+
+    # Extract knowledge from failures
+    from_failures:
+      enabled: true
+      extract_patterns:
+        - common_errors
+        - missing_modules
+        - capability_gaps
+
+# ============================================================
+# Memory Coordination Configuration
+# ============================================================
+coordination:
+  # When to promote from JobMemory to Knowledge
+  promotion_rules:
+    # Task completed successfully
+    on_task_success:
+      enabled: true
+      criteria:
+        - pr_approved: true
+        - quality_score_min: 0.8
+        - has_tests: true
+
+    # Module created successfully
+    on_module_created:
+      enabled: true
+      extract_to_knowledge:
+        - module_spec
+        - usage_examples
+        - test_cases
+
+    # Critical bug fix
+    on_critical_fix:
+      enabled: true
+      criteria:
+        - severity: high
+        - affects_multiple_users: true
+
+  # JobMemory cleanup rules
+  cleanup_rules:
+    # After task completion
+    after_task_completion:
+      # Promote knowledge first
+      promote_knowledge: true
+      # Keep original conversation N days
+      keep_conversation_days: 7
+      # Then delete completely
+      delete_after_days: 7
+
+    # After task failure
+    after_task_failure:
+      # Extract failure experience
+      extract_error_log: true
+      # Keep longer for analysis
+      keep_conversation_days: 30
+
+# ============================================================
+# Embedding and Prompt Configuration
+# ============================================================
+embedding:
+  # Ollama embedding service
+  service: ollama
+  endpoint: http://localhost:11434/api/embeddings
+  model: nomic-embed-text
+  timeout: 10
+
+  # Cache configuration
+  cache:
+    enabled: true
+    ttl: 3600  # seconds
+    max_size: 10000  # Maximum 10000 cached embeddings
+
+prompts:
+  # System prompt template paths
+  templates:
+    job_memory: config/prompts/job_memory_system_prompt.txt
+    knowledge: config/prompts/knowledge_system_prompt.txt
+
+  # Context organization
+  context_format: structured  # structured | simple | detailed
+  max_context_tokens: 4000
+
+# ============================================================
+# Logging and Monitoring
+# ============================================================
+logging:
+  level: INFO  # DEBUG | INFO | WARNING | ERROR
+
+  # Log files
+  files:
+    job_memory: logs/job_memory.log
+    knowledge: logs/knowledge.log
+    coordination: logs/memory_coordination.log
+
+  # What to log
+  log_retrieval: true
+  log_promotion: true
+  log_cleanup: true
+
+# ============================================================
+# Performance Optimization
+# ============================================================
+performance:
+  # Connection pool settings
+  connection_pool:
+    min_size: 2
+    max_size: 10
+    timeout: 30
+
+  # Batch processing
+  batch_size: 50
+
+  # Concurrency limit
+  max_concurrent_queries: 10

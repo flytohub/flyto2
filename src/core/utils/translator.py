@@ -120,10 +120,6 @@ Preserve:
 - Module names
 - Stack traces
 - Technical terms
-
-Example:
-Input: "錯誤：找不到模組 'playwright'"
-Output: "Error: Module 'playwright' not found"
 """,
             "solution": """
 Translate solution descriptions to English.
@@ -133,10 +129,6 @@ Preserve:
 - File paths
 - Configuration keys
 - Code snippets
-
-Example:
-Input: "運行命令：playwright install chromium"
-Output: "Run command: playwright install chromium"
 """,
             "conversation": """
 Translate conversational text to English.
@@ -145,10 +137,6 @@ Keep it natural but preserve:
 - Product names
 - URLs
 - Specific names
-
-Example:
-Input: "我想爬取 Amazon 的商品資料"
-Output: "I want to scrape product data from Amazon"
 """,
             "code": """
 Translate code comments and descriptions to English.
@@ -157,10 +145,6 @@ DO NOT translate:
 - Function names
 - Class names
 - Code syntax
-
-Example:
-Input: "# 啟動瀏覽器"
-Output: "# Launch browser"
 """
         }
 

@@ -1,5 +1,5 @@
 """
-Language Bridge Layer (LBL) - 語言橋接層
+Language Bridge Layer (LBL)
 
 Purpose: Bridge Chinese ↔ English for vector search
 - Detect language automatically

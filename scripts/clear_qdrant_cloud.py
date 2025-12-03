@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-清空雲端 Qdrant - NO CHINESE ALLOWED
+Clear Cloud Qdrant - NO CHINESE ALLOWED
 """
 import os
 import sys

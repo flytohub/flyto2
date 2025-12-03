@@ -35,6 +35,26 @@ except Exception as error:
 
 ## ⚡ Quick Start
 
+### One-Click Auto Install & Start
+
+**Automatic installation of ALL dependencies** including GitHub CLI for PR creation:
+
+```bash
+# macOS / Linux
+./START_BOT_AUTO.sh
+
+# Windows
+START_BOT_AUTO.bat
+```
+
+These scripts will automatically:
+- ✅ Install GitHub CLI (`gh`)
+- ✅ Install Python dependencies
+- ✅ Install Playwright browsers
+- ✅ Setup `.env` template
+- ✅ Test system
+- ✅ Start bot
+
 ### Prerequisites (CRITICAL)
 
 **Ollama MUST be running** - Without it, AI features won't work:
@@ -116,23 +136,23 @@ python3 scripts/telegram_bot_perfect.py
 **Usage Example**:
 
 ```
-You: 爬蟲 google.com
+You: crawl google.com
 
-Bot: 🤔 收到任務，正在思考...
-     ✅ 理解任務
-        類型: crawl
-        信心: 90%
-     📝 正在生成 YAML workflow...
-     ✅ 生成 workflow: [shows YAML]
-     🧪 測試執行 (嘗試 1/3)...
-     ✅ 測試成功！
+Bot: 🤔 Received task, thinking...
+     ✅ Understood task
+        Type: crawl
+        Confidence: 90%
+     📝 Generating YAML workflow...
+     ✅ Generated workflow: [shows YAML]
+     🧪 Test execution (attempt 1/3)...
+     ✅ Test passed!
 
-     結果:
+     Result:
      { "title": "Google", "url": "https://google.com" }
 
-     🎉 Workflow 測試成功！接下來要做什麼？
+     🎉 Workflow test passed! What would you like to do next?
 
-     [發 PR 給我驗證] [直接使用]
+     [Create PR for review] [Use directly]
 ```
 
 If the workflow fails, you get 3 options:
@@ -314,13 +334,13 @@ if result.success:
 ```bash
 $ python3 test_end_to_end.py
 
-測試總結
+Test Summary
 ============================================================
 ✅ intent - Intent detection working
 ❌ workflow - Status naming mismatch
 ❌ crawl - Ollama not running (blocker)
 
-通過: 1/3
+Passed: 1/3
 ```
 
 **Actual Usability**:
@@ -328,8 +348,7 @@ $ python3 test_end_to_end.py
 - Code Completeness: ⭐⭐⭐⭐⭐⭐⭐⭐☆☆ (8/10)
 - Actual Functionality: ⭐⭐⭐☆☆☆☆☆☆☆ (3/10) - Blocked by Ollama
 
-**Quote from testing**: "沒有 Ollama，這個專案就像沒有引擎的車"
-(Without Ollama, this project is like a car without an engine)
+**Quote from testing**: "Without Ollama, this project is like a car without an engine"
 
 See [REAL_STATUS.md](REAL_STATUS.md) for detailed analysis.
 
@@ -513,8 +532,8 @@ We value **honest assessment** over optimism. Before contributing:
 ## 🙏 Acknowledgments
 
 **User Feedback** (that made this better):
-- "你這專案 超級不AI的" → Led to AI Error Solver integration
-- "很多你實際覺得可以行 但都不行" → Led to REAL_STATUS.md and honest testing
+- "This project is not AI-like at all" → Led to AI Error Solver integration
+- "Many things you think work actually don't" → Led to REAL_STATUS.md and honest testing
 
 **Built with**:
 - [Playwright](https://playwright.dev/) - Browser automation

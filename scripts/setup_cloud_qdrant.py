@@ -16,13 +16,15 @@ def create_env_file():
     print("🌐 Qdrant Cloud Setup")
     print("=" * 60)
     print()
+    print("⚠️  IMPORTANT: Local Qdrant is NOT supported!")
+    print("   You MUST use Qdrant Cloud or a remote Qdrant server.")
+    print()
     print("Choose Qdrant mode:")
-    print("  1. Qdrant Cloud (https://cloud.qdrant.io/)")
-    print("  2. Docker Qdrant Server (local but supports concurrency)")
-    print("  3. Custom Qdrant Server")
+    print("  1. Qdrant Cloud (https://cloud.qdrant.io/) [Recommended]")
+    print("  2. Custom Remote Qdrant Server")
     print()
 
-    choice = input("Enter choice (1-3): ").strip()
+    choice = input("Enter choice (1-2): ").strip()
 
     if choice == "1":
         print("\n📝 Qdrant Cloud Configuration")
@@ -39,24 +41,29 @@ def create_env_file():
             print("❌ URL and API key are required!")
             return False
 
+        # Validate URL is not localhost
+        if "localhost" in url or "127.0.0.1" in url:
+            print("❌ Local Qdrant is NOT supported!")
+            print("   Please use Qdrant Cloud or a remote server.")
+            return False
+
     elif choice == "2":
-        print("\n🐳 Docker Qdrant Server")
+        print("\n⚙️ Custom Remote Qdrant Server")
         print("-" * 60)
-        print("Run this command to start Qdrant Server:")
-        print("  docker run -p 6333:6333 -p 6334:6334 qdrant/qdrant")
+        print("⚠️  Note: localhost/127.0.0.1 is NOT supported!")
         print()
 
-        input("Press Enter after starting the server...")
+        url = input("Enter Qdrant URL (e.g., https://your-server:6333): ").strip()
+        api_key = input("Enter API Key: ").strip()
 
-        url = "http://localhost:6333"
-        api_key = ""  # No API key for local server
+        # Validate URL is not localhost
+        if "localhost" in url or "127.0.0.1" in url:
+            print("❌ Local Qdrant is NOT supported!")
+            print("   Please use Qdrant Cloud or a remote server.")
+            return False
 
-    elif choice == "3":
-        print("\n⚙️ Custom Qdrant Server")
-        print("-" * 60)
-
-        url = input("Enter Qdrant URL (e.g., http://your-server:6333): ").strip()
-        api_key = input("Enter API Key (leave empty if none): ").strip()
+        if not api_key:
+            print("⚠️  Warning: API key is strongly recommended for security.")
 
     else:
         print("❌ Invalid choice!")
