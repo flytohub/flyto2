@@ -27,6 +27,15 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Any
 
 from dotenv import load_dotenv
+
+# ===== 載入環境變數 =====
+load_dotenv()
+
+# ===== 設置 Python 路徑 (必須在 import src 之前！) =====
+PROJECT_ROOT = Path(__file__).parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
 from telegram import Update, ReplyKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup
 
 # 記憶系統整合
@@ -39,13 +48,6 @@ from telegram.ext import (
     filters,
     ContextTypes
 )
-
-load_dotenv()
-
-# Add project root to sys.path BEFORE any imports from src
-PROJECT_ROOT = Path(__file__).parent.parent
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
 
 TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 TELEGRAM_ALLOWED_USERS = os.getenv('TELEGRAM_ALLOWED_USERS', '').split(',')
