@@ -116,16 +116,26 @@ class AutoRefiner:
         """Extract issues that can be automatically fixed."""
         fixable = []
 
-        for check in pr_result.get("checks", []):
-            if not check.get("passed", True):
-                check_name = check.get("name", "").lower()
-                description = check.get("description", "").lower()
-                combined = f"{check_name} {description}"
+        # Check the "issues" array from QualityCheckerV2
+        for issue in pr_result.get("issues", []):
+            issue_message = issue.get("message", "").lower()
 
-                for fixable_pattern in self.fixable_issues:
-                    if fixable_pattern in combined:
-                        fixable.append(check.get("description", check_name))
-                        break
+            # Map specific issue messages to fixable patterns
+            fixable_mappings = {
+                "generic exception handler": "Only generic Exception handler",
+                "error returns missing": "Error returns missing 'error' field",
+                "missing parameter documentation": "Missing parameter documentation",
+                "duplicate imports": "Duplicate imports found",
+                "missing self prefix": "Missing self. prefix on variables",
+                "nested function": "Nested function definitions",
+                "placeholder code": "Placeholder or TODO code found",
+                "inconsistent return": "Inconsistent return format"
+            }
+
+            for pattern_key, full_message in fixable_mappings.items():
+                if pattern_key in issue_message:
+                    fixable.append(issue.get("message"))
+                    break
 
         return fixable
 
@@ -133,10 +143,9 @@ class AutoRefiner:
         """Get issues that cannot be automatically fixed."""
         all_issues = []
 
-        for check in pr_result.get("checks", []):
-            if not check.get("passed", True):
-                desc = check.get("description", check.get("name", ""))
-                all_issues.append(desc)
+        for issue in pr_result.get("issues", []):
+            issue_message = issue.get("message", "")
+            all_issues.append(issue_message)
 
         return [issue for issue in all_issues if issue not in fixed]
 
@@ -147,31 +156,65 @@ class AutoRefiner:
         openai_api_key: str
     ) -> Optional[str]:
         """Generate fixed code using GPT-4o."""
-        prompt = f"""You are a code refactoring expert. Fix ONLY the following issues in the code below:
+        # Build specific fix instructions for each issue
+        fix_instructions = {
+            "Only generic Exception handler": """
+- Replace generic 'except Exception' with specific exception types (ValueError, TypeError, IOError, etc.)
+- Keep ONE final 'except Exception' that raises RuntimeError with module name
+- Example:
+  try:
+      ...
+  except ValueError as e:
+      return {"ok": False, "output": {}, "error": {"message": f"Invalid value: {e}"}, "meta": {}}
+  except TypeError as e:
+      return {"ok": False, "output": {}, "error": {"message": f"Invalid type: {e}"}, "meta": {}}
+  except Exception as e:
+      raise RuntimeError(f"{self.module_name} execution failed: {e}")
+""",
+            "Error returns missing 'error' field": """
+- Ensure ALL returns with "ok": False have an "error" field with a {"message": "..."} dict
+- NEVER use {"error": None} when "ok": False
+- Example: {"ok": False, "output": {}, "error": {"message": "description"}, "meta": {}}
+""",
+            "Missing parameter documentation": """
+- Add complete parameter documentation in the class docstring
+- Format: param_name (type): Clear description
+- Example:
+  Parameters:
+      text (str): The input text string to be reversed
+      case_sensitive (bool, optional): Whether to preserve case. Defaults to True.
+"""
+        }
+
+        fix_details = []
+        for issue in issues:
+            for pattern, instruction in fix_instructions.items():
+                if pattern in issue:
+                    fix_details.append(instruction)
+                    break
+
+        prompt = f"""You are a SENIOR Python code refactoring expert. Fix the issues in the code below with SURGICAL PRECISION.
 
 ISSUES TO FIX:
 {chr(10).join(f'- {issue}' for issue in issues)}
+
+SPECIFIC FIX INSTRUCTIONS:
+{chr(10).join(fix_details)}
 
 ORIGINAL CODE:
 ```python
 {original_code}
 ```
 
-REQUIREMENTS:
-1. Fix ONLY the listed issues
-2. Preserve all functionality
-3. Maintain code structure
-4. Keep all comments and docstrings
-5. Return ONLY the fixed code (no explanations)
+CRITICAL REQUIREMENTS:
+1. Fix ONLY the listed issues - DO NOT add features or refactor unnecessarily
+2. PRESERVE all functionality exactly
+3. Maintain EXACT code structure and indentation
+4. Keep ALL comments and docstrings unchanged (except when fixing documentation)
+5. Do NOT remove nested try-except - instead flatten it properly
+6. Return ONLY the complete fixed Python code (no markdown, no explanations)
 
-COMMON FIXES:
-- Duplicate imports: Move all imports to file top
-- Missing self prefix: Add self. to all instance variables
-- Nested functions: Move functions to class level
-- Placeholder code: Remove TODO, pass, NotImplementedError
-- Inconsistent return format: Use {{"ok": bool, "output": {{}}, "error": None/Dict, "meta": {{}}}}
-
-Return the fixed code:"""
+Return the fixed code now:"""
 
         try:
             client = OpenAI(api_key=openai_api_key)
@@ -181,7 +224,7 @@ Return the fixed code:"""
                 messages=[
                     {
                         "role": "system",
-                        "content": "You are a code refactoring expert. Return ONLY the fixed code, no explanations or markdown."
+                        "content": "You are a Python code refactoring expert. Return ONLY the complete fixed Python code with no markdown formatting or explanations. Make minimal, targeted changes to fix the specific issues."
                     },
                     {"role": "user", "content": prompt}
                 ],
@@ -194,8 +237,14 @@ Return the fixed code:"""
             # Remove markdown code blocks if present
             refined_code = re.sub(r'^```python\s*\n', '', refined_code)
             refined_code = re.sub(r'\n```\s*$', '', refined_code)
+            refined_code = refined_code.strip()
 
-            return refined_code.strip()
+            # Sanity check - code should have similar length
+            if len(refined_code) < len(original_code) * 0.8:
+                print(f"Warning: Refined code suspiciously short ({len(refined_code)} vs {len(original_code)} chars)")
+                return None
+
+            return refined_code
 
         except Exception as e:
             print(f"Failed to generate fixes: {e}")

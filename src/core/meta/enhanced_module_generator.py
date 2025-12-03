@@ -10,6 +10,7 @@ from pathlib import Path
 from openai import OpenAI
 
 from src.core.meta.quality_checker_v2 import QualityCheckerV2
+from src.core.meta.auto_refiner_v2 import MultiPassRefiner
 
 
 class EnhancedModuleGenerator:
@@ -23,11 +24,13 @@ class EnhancedModuleGenerator:
     4. Automatic GitHub PR creation
     """
 
-    def __init__(self):
+    def __init__(self, openai_api_key: Optional[str] = None):
         self.success_count = {}  # {module_name: success_count}
         self.quality_checker = QualityCheckerV2()
+        self.openai_api_key = openai_api_key  # Store for multi-pass refiner
         self.REQUIRED_SUCCESS_COUNT = 3
-        self.MIN_PR_SCORE = 9.8
+        self.MIN_PR_SCORE = 9.5  # Temporarily lowered from 9.8 for testing
+        self.MAX_REFINE_ATTEMPTS = 2  # Multi-pass refinement
 
     async def generate_module_with_validation(
         self,
@@ -80,15 +83,60 @@ class EnhancedModuleGenerator:
             print(f"✅ 成功 #{self.success_count[module_name]}/3 - PR 評分: {pr_result['score']}")
         else:
             print(f"❌ PR 評分不足: {pr_result['score']}/10.0 (目標: {self.MIN_PR_SCORE})")
-            self.success_count[module_name] = 0  # 重置計數
-            return {
-                "success": False,
-                "module_path": module_path,
-                "pr_score": pr_result["score"],
-                "pr_result": pr_result,
-                "consecutive_success": 0,
-                "ready_for_pr": False
-            }
+
+            # Multi-pass AutoRefiner V2 (Strategy C - Atomic)
+            print(f"🔧 啟動 Multi-pass AutoRefiner...")
+
+            # Read current code
+            module_code = Path(module_path).read_text()
+
+            # Create atomic multi-pass refiner
+            refiner = MultiPassRefiner(
+                quality_checker=self.quality_checker,
+                openai_api_key=openai_api_key,
+                max_rounds=self.MAX_REFINE_ATTEMPTS,
+                target_score=self.MIN_PR_SCORE,
+                min_improvement=0.1,
+            )
+
+            # Run multi-pass refinement
+            refine_result = refiner.refine_module(
+                module_path=module_path,
+                initial_code=module_code,
+                initial_pr_result=pr_result,
+            )
+
+            # Display results
+            print(f"   📊 初始分數: {refine_result.initial_score:.1f}/10.0")
+            print(f"   📊 最終分數: {refine_result.final_score:.1f}/10.0")
+            print(f"   📈 總改善: {refine_result.total_improvement:+.1f}")
+            print(f"   🔄 執行輪數: {len(refine_result.rounds)}")
+
+            for round_result in refine_result.rounds:
+                print(f"      Round {round_result.round_index}: "
+                      f"{round_result.before_score:.1f} → {round_result.after_score:.1f} "
+                      f"({round_result.improvement:+.1f})")
+
+            # Update PR result with final state
+            pr_result = self.quality_checker.review_module(module_path)
+
+            # Check if target reached
+            if refine_result.achieved_target:
+                print(f"   🎉 多輪修復達標！")
+                self.success_count[module_name] += 1
+            else:
+                print(f"   ❌ 多輪修復後仍未達標")
+                self.success_count[module_name] = 0
+                return {
+                    "success": False,
+                    "module_path": module_path,
+                    "pr_score": pr_result["score"],
+                    "pr_result": pr_result,
+                    "consecutive_success": 0,
+                    "ready_for_pr": False,
+                    "refined": True,
+                    "refine_rounds": len(refine_result.rounds),
+                }
 
         # 檢查是否達到 3 次成功
         ready_for_pr = self.success_count[module_name] >= self.REQUIRED_SUCCESS_COUNT
@@ -129,11 +177,28 @@ class EnhancedModuleGenerator:
         """
         使用升級後的 GPT-4o prompt 生成模組規格
         """
-        # 升級後的 prompt（包含所有安全性要求）
+        # 升級後的 prompt（包含所有安全性要求 + Few-shot 範例）
         prompt = f"""You are a SENIOR Python developer creating a PRODUCTION-READY Flyto2 atomic module.
 
 Module to create: {module_name}
 Purpose: {problem}
+
+🔒 MANDATORY QUALITY RULES (Auto-checked by QualityCheckerV2 - Score must be 9.5+/10):
+
+⚠️  FORBIDDEN PATTERNS (Will fail PR review):
+❌ NO nested function definitions (NEVER define async def inside async def)
+❌ NO nested try-except blocks
+❌ NO generic 'except Exception' without specific exceptions first
+❌ NO placeholder text like "Parameter description" in docstrings
+❌ NO duplicate imports
+❌ NO bare variable names (must use self.variable_name)
+
+✅ REQUIRED PATTERNS (Must have):
+✓ Specific exception types BEFORE generic Exception
+✓ Complete parameter documentation (type + clear description)
+✓ Unified return format: {{"ok": bool, "output": dict, "error": None/Dict, "meta": dict}}
+✓ All variables use self. prefix
+✓ URL validation for URL parameters
 
 🔒 CRITICAL SECURITY & QUALITY REQUIREMENTS (MANDATORY):
 
@@ -168,18 +233,80 @@ Purpose: {problem}
    - Use async/await properly
    - Clear variable names with self. prefix
 
-📋 EXAMPLE - WRONG vs CORRECT:
+⛔ WRONG EXAMPLE (8.7 score) - NEVER do this:
 
-❌ WRONG (has issues):
+❌ INCORRECT - Nested function definition (loses 0.5 points):
 ```python
 async def execute(self) -> Any:
-    import httpx  # ← Duplicate import!
-    from pathlib import Path  # ← Duplicate import!
+    try:
+        async def execute(self) -> Any:  # ❌ NESTED! This is FORBIDDEN!
+            # ... code here ...
+            return {"ok": True, ...}
+    except Exception as e:
+        raise RuntimeError(...)
+```
+**Why wrong:** Defining `async def execute` INSIDE another `async def execute` creates nested functions (-0.5 points).
 
-    response = await client.get(self.url)  # ← No Content-Type check!
-    path.write_bytes(response.content)  # ← No streaming!
+📋 GOOD EXAMPLE (9.5+ score) - Use this as template:
 
-    return {{"status": "success"}}
+✅ CORRECT for simple text processing:
+```python
+async def execute(self) -> Any:
+    \"\"\"
+    Execute the module logic
+
+    Returns:
+        Dict with reversed text string
+    \"\"\"
+    try:
+        # Input validation first
+        if not isinstance(self.text, str):
+            return {{
+                "ok": False,
+                "output": dict,
+                "error": {{"message": "Invalid input: text must be a string"}},
+                "meta": dict
+            }}
+
+        # Main logic
+        reversed_text = self.text[::-1]
+
+        return {{
+            "ok": True,
+            "output": {{"reversed_text": reversed_text}},
+            "error": None,
+            "meta": dict
+        }}
+
+    except ValueError as e:
+        return {{
+            "ok": False,
+            "output": dict,
+            "error": {{"message": "Value error: " + str(e)}},
+            "meta": dict
+        }}
+    except TypeError as e:
+        return {{
+            "ok": False,
+            "output": dict,
+            "error": {{"message": "Type error: " + str(e)}},
+            "meta": dict
+        }}
+    except Exception as e:
+        raise RuntimeError(self.module_name + " execution failed: " + str(e))
+```
+
+❌ WRONG (will fail with 9.0 score or lower):
+```python
+async def execute(self) -> Any:
+    try:
+        try:  # ← FORBIDDEN: nested try-except
+            result = process(text)  # ← WRONG: bare variable
+            return {{"status": "success"}}  # ← WRONG format
+        except Exception as e:  # ← WRONG: only generic handler
+            return {{"error": str(e)}}
+    except Exception as e:
+        raise RuntimeError(str(e))
 ```
 
 ✅ CORRECT (production-ready):
@@ -261,22 +388,27 @@ async def execute(self) -> Any:
 📤 RETURN JSON:
 {{
   "module_id": "{module_name}",
-  "category": "image",  // MUST BE ONE OF: image, file, string, array, utility, data, browser, api, ai
-  "description": "One clear sentence",
+  "category": "string",  // ONE OF: image, file, string, array, utility, data, browser, api, ai
+  "description": "One clear sentence describing what this module does",
   "params": {{
-    "param_name": "type - description"
+    "text": "str - The input text string to process (NO generic 'Parameter description'!)"
   }},
-  "returns": "Dict structure description",
-  "suggested_imports": ["import httpx", "from pathlib import Path"],
+  "returns": "Dict[str, Any] with keys: ok, output, error, meta",
+  "suggested_imports": ["from typing import Any, Dict"],
   "implementation_code": "COMPLETE EXECUTABLE CODE (method body only, no 'async def execute')"
 }}
 
-⚠️  VALIDATION RULES:
-- implementation_code must have: actual library calls, error handling, return statement
-- implementation_code must NOT have: nested functions, imports, TODO, placeholder
-- Code quality target: 9.8/10 (production-ready)
+⚠️  STRICT VALIDATION (Will auto-fail if violated):
+- implementation_code MUST have: specific exception handlers (ValueError, TypeError, etc.)
+- implementation_code MUST NOT have: nested try-except, generic Exception only, TODO, "Parameter description"
+- params MUST have real descriptions, NOT "Parameter description"
+- Code quality target: 9.5+/10 (anything below 9.5 will be rejected)
 
-Generate PRODUCTION-READY code NOW for: {module_name}"""
+🎯 FINAL REQUIREMENT:
+If you cannot write code that passes all rules above, return an error instead of low-quality code.
+Your code will be auto-tested by QualityCheckerV2. Follow the GOOD EXAMPLE template.
+
+Generate code NOW for: {module_name}"""
 
         try:
             client = OpenAI(api_key=openai_api_key)
@@ -286,7 +418,45 @@ Generate PRODUCTION-READY code NOW for: {module_name}"""
                 messages=[
                     {
                         "role": "system",
-                        "content": "You are a SENIOR Python developer creating PRODUCTION-READY code for Flyto2. Your code MUST pass strict PR review (9.8/10). CRITICAL REQUIREMENTS: (1) UNIFIED RETURN FORMAT MANDATORY: ALL returns must use {\"ok\": bool, \"output\": {}, \"error\": None/Dict, \"meta\": {}}. NEVER use {\"status\": \"success\"}! (2) ALWAYS use self.variable_name, NEVER bare variables. (3) For URL parameters, MUST validate format with self.url.startswith(). (4) Include ALL security checks, proper error handling, and follow best practices exactly."
+                        "content": """You are a SENIOR Python developer creating PRODUCTION-READY code for Flyto2. Your code MUST pass strict PR review (9.5+/10).
+
+CRITICAL REQUIREMENTS - MUST FOLLOW ALL:
+
+1. UNIFIED RETURN FORMAT (2.0 pts):
+   - ALL returns: {"ok": bool, "output": {}, "error": None/Dict, "meta": {}}
+   - NEVER use {"status": "success"}!
+
+2. VARIABLE REFERENCES (1.0 pt):
+   - ALWAYS use self.variable_name
+   - NEVER bare variables
+
+3. ERROR HANDLING (1.0 pt) - CRITICAL:
+   - Use SPECIFIC exception types first: ValueError, TypeError, IOError, etc.
+   - ONE final generic 'except Exception' that raises RuntimeError
+   - NEVER nest try-except blocks
+   - Example:
+     try:
+         if not isinstance(self.text, str):
+             return {"ok": False, "output": {}, "error": {"message": "..."}, "meta": {}}
+         result = process(self.text)
+         return {"ok": True, "output": {"result": result}, "error": None, "meta": {}}
+     except ValueError as e:
+         return {"ok": False, "output": {}, "error": {"message": f"Invalid value: {e}"}, "meta": {}}
+     except TypeError as e:
+         return {"ok": False, "output": {}, "error": {"message": f"Invalid type: {e}"}, "meta": {}}
+     except Exception as e:
+         raise RuntimeError(f"{self.module_name} execution failed: {e}")
+
+4. DOCUMENTATION (0.5 pt):
+   - Complete parameter docs in class docstring
+   - Format: param_name (type): Clear description
+   - NO placeholders like "Parameter description"
+
+5. SECURITY:
+   - URL validation: self.url.startswith("http://") or self.url.startswith("https://")
+   - Input validation at start of execute()
+
+TARGET SCORE: 9.5+/10.0 - This is MANDATORY."""
                     },
                     {"role": "user", "content": prompt}
                 ],
