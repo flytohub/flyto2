@@ -151,6 +151,15 @@ class ModuleGenerator:
         # Generate example implementation based on category
         implementation = self._generate_implementation_template(spec)
 
+        # Get suggested imports from GPT-4o (if provided)
+        additional_imports = ""
+        if "suggested_imports" in spec and spec["suggested_imports"]:
+            imports_list = spec["suggested_imports"]
+            if isinstance(imports_list, list):
+                additional_imports = "\n" + "\n".join(imports_list)
+            elif isinstance(imports_list, str):
+                additional_imports = "\n" + imports_list
+
         code = f'''"""
 {class_name} Module - {description}
 
@@ -160,7 +169,7 @@ Generated at: {datetime.now().isoformat()}
 
 from src.core.modules.base import BaseModule
 from src.core.modules.registry import register_module
-from typing import Any, Dict
+from typing import Any, Dict{additional_imports}
 
 
 @register_module('{module_id}')
@@ -199,50 +208,18 @@ class {class_name}(BaseModule):
         return code
 
     def _generate_implementation_template(self, spec: Dict[str, Any]) -> str:
-        """Generate implementation template based on category"""
-        category = spec["category"]
-        module_id = spec["module_id"]
+        """Generate implementation template - use GPT-4o code if available"""
 
-        # Category-specific templates
-        if category == "string":
-            return '''            # String operation implementation
-            result = str(self.text)  # Replace with actual logic
+        # First, check if GPT-4o provided actual implementation code
+        if "implementation_code" in spec and spec["implementation_code"]:
+            impl_code = spec["implementation_code"].strip()
+            # Ensure proper indentation (12 spaces for execute method body)
+            lines = impl_code.split('\n')
+            indented_lines = ['            ' + line if line.strip() else '' for line in lines]
+            return '\n'.join(indented_lines)
 
-            return {
-                "result": result,
-                "status": "success"
-            }'''
-
-        elif category == "array":
-            return '''            # Array operation implementation
-            result = list(self.array)  # Replace with actual logic
-
-            return {
-                "result": result,
-                "count": len(result),
-                "status": "success"
-            }'''
-
-        elif category == "math":
-            return '''            # Math operation implementation
-            result = float(self.value)  # Replace with actual logic
-
-            return {
-                "result": result,
-                "status": "success"
-            }'''
-
-        elif category == "object":
-            return '''            # Object operation implementation
-            result = dict(self.obj)  # Replace with actual logic
-
-            return {
-                "result": result,
-                "status": "success"
-            }'''
-
-        else:
-            return '''            # Generic implementation
+        # Fallback: generic placeholder (should rarely happen with GPT-4o)
+        return '''            # Implementation not provided by AI
             # TODO: Implement actual logic here
             result = None
 

@@ -14,9 +14,9 @@ from src.core.utils.notifier import notify
 
 class AIConsulterModule:
     """
-    Consult AI (Ollama/OpenAI/Claude) for error solutions
+    Consult AI (OpenAI GPT-4o) for error solutions
 
-    Single responsibility: AI consultation with fallback logic
+    Single responsibility: AI consultation using OpenAI
     """
 
     @staticmethod
@@ -37,75 +37,30 @@ class AIConsulterModule:
                 "full_response": str,
                 "structured": dict,  # Extracted JSON
                 "summary": str,
-                "source": str  # ollama/openai/claude
+                "source": str  # openai
             }
         """
-        # Try Ollama first (free, local)
-        await notify("🤖 Consulting Ollama...", notify_callback)
-        result = await AIConsulterModule._ask_ollama(prompt, notify_callback)
-
-        if result["success"]:
-            return result
-
-        # Fallback to OpenAI if configured
-        await notify("⚠️ Ollama unavailable, trying OpenAI...", notify_callback)
+        # Use OpenAI GPT-4o only
+        await notify("🤖 Consulting OpenAI GPT-4o...", notify_callback)
         result = await AIConsulterModule._ask_openai(prompt, notify_callback)
 
         if result["success"]:
             return result
 
-        # TODO: Fallback to Claude if configured
-
-        return {"success": False, "error": "All AI services unavailable"}
-
-    @staticmethod
-    async def _ask_ollama(
-        prompt: str,
-        notify_callback: Optional[callable] = None
-    ) -> Dict[str, Any]:
-        """Ask Ollama for solution"""
-        try:
-            system_prompt = "You are an expert DevOps and Python engineer. Always respond with valid JSON."
-
-            response = await HTTPClient.ask_ollama(
-                prompt=prompt,
-                model="llama3.2",
-                system_prompt=system_prompt,
-                timeout=120,
-                extract_json=True
-            )
-
-            if response["success"] and response.get("structured"):
-                structured = response["structured"]
-
-                # Validate required fields
-                if "solution_summary" in structured:
-                    return {
-                        "success": True,
-                        "full_response": response["content"],
-                        "structured": structured,
-                        "summary": structured.get("solution_summary", ""),
-                        "source": "ollama"
-                    }
-
-            return {"success": False, "error": "Invalid response from Ollama"}
-
-        except Exception as e:
-            await notify(f"⚠️ Ollama error: {e}", notify_callback)
-            return {"success": False, "error": str(e)}
+        return {"success": False, "error": "OpenAI service unavailable"}
 
     @staticmethod
     async def _ask_openai(
         prompt: str,
         notify_callback: Optional[callable] = None
     ) -> Dict[str, Any]:
-        """Ask OpenAI for solution"""
+        """Ask OpenAI GPT-4o for solution"""
         try:
             system_prompt = "You are an expert DevOps and Python engineer. Always respond with valid JSON."
 
             response = await HTTPClient.ask_openai(
                 prompt=prompt,
-                model="gpt-4",
+                model="gpt-4o",  # Use GPT-4o for highest quality
                 system_prompt=system_prompt,
                 timeout=60
             )

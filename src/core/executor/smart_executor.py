@@ -757,115 +757,91 @@ Return ONLY valid JSON, no markdown or explanations."""
 
     async def _design_module_with_llm(self, module_spec: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """
-        Use LLM to design intelligent module implementation
+        Use OpenAI GPT-4o to design high-quality module implementation
 
         Args:
             module_spec: Basic spec with name and reason
 
         Returns:
-            Complete module specification for ModuleGenerator
+            Complete module specification for ModuleGenerator with implementation code
         """
-        import requests
         import os
-        import re
+        import json
+        from openai import OpenAI
 
         module_name = module_spec["name"]
         reason = module_spec.get("reason", "")
 
-        # Try Ollama first (free)
-        ollama_url = os.getenv("OLLAMA_URL", "http://localhost:11434")
+        openai_api_key = os.getenv("OPENAI_API_KEY")
+        if not openai_api_key:
+            print(f"❌ No OPENAI_API_KEY found")
+            return self._create_fallback_spec(module_name, reason)
 
-        prompt = f"""Design a Python module for the Flyto2 workflow automation system.
+        print(f"🤖 Using GPT-4o to generate high-quality module: {module_name}")
 
-Module name: {module_name}
-Reason needed: {reason}
+        prompt = f"""You are an expert Python developer creating a production-ready module for the Flyto2 workflow automation system.
 
-Please provide:
-1. module_id (format: category.function_name, e.g., "string.reverse", "browser.wait")
-2. category (one of: string, array, math, object, file, datetime, data, browser, utility, test)
-3. description (concise, one sentence)
-4. params (dict of parameter_name: type_description)
-5. returns (description of return type)
-6. implementation_hint (pseudo-code or description of the logic)
+Task: Create module '{module_name}'
+Reason: {reason}
 
-Respond in JSON format:
+Requirements:
+1. Module must inherit from BaseModule
+2. Must have @register_module('{module_name}') decorator
+3. Must implement validate_params() and async execute() methods
+4. Provide COMPLETE, WORKING implementation (not placeholders or TODOs)
+5. Include all necessary imports
+6. Handle errors properly
+7. Return structured results
+
+Example modules for reference:
+- image.download: Download images from URLs using httpx, save to filesystem
+- image.svg_convert: Convert images to SVG format using libraries like cairosvg, pillow
+- file operations: Use pathlib.Path, handle file I/O properly
+
+Provide comprehensive JSON specification:
 {{
-  "module_id": "category.name",
-  "category": "category",
-  "description": "What this module does",
-  "params": {{"param1": "string", "param2": "int"}},
-  "returns": "Description of return value",
-  "implementation_hint": "Step by step logic"
+  "module_id": "{module_name}",
+  "category": "<category from: file, image, string, array, utility, data, browser>",
+  "description": "Clear one-sentence description",
+  "params": {{
+    "param_name": "type - description (e.g., 'str - URL to download from')"
+  }},
+  "returns": "Detailed description of return value structure",
+  "implementation_hint": "Detailed implementation strategy with specific libraries to use",
+  "suggested_imports": ["import statement 1", "import statement 2"],
+  "implementation_code": "Complete working Python code for the execute() method body, including error handling and actual logic"
 }}
-"""
+
+CRITICAL: implementation_code must be complete, production-ready Python that actually works, not "# TODO" or generic placeholders."""
 
         try:
-            response = requests.post(
-                f"{ollama_url}/api/chat",
-                json={
-                    "model": "llama3.2",
-                    "messages": [
-                        {"role": "system", "content": "You are an expert Python developer. Always respond with valid JSON only."},
-                        {"role": "user", "content": prompt}
-                    ],
-                    "stream": False
-                },
+            client = OpenAI(api_key=openai_api_key)
+
+            response = client.chat.completions.create(
+                model="gpt-4o",  # Use GPT-4o for highest quality
+                messages=[
+                    {"role": "system", "content": "You are a senior Python developer specializing in production-ready code generation. Always provide complete, working implementations."},
+                    {"role": "user", "content": prompt}
+                ],
+                response_format={"type": "json_object"},
+                temperature=0.3,  # Lower temperature for more deterministic, focused code
                 timeout=60
             )
 
-            if response.status_code == 200:
-                content = response.json()['message']['content']
+            spec = json.loads(response.choices[0].message.content)
 
-                # Extract JSON from response
-                json_match = re.search(r'\{[\s\S]*\}', content)
-                if json_match:
-                    import json
-                    spec = json.loads(json_match.group())
-
-                    # Validate required fields
-                    required = ["module_id", "category", "description", "params", "returns"]
-                    if all(k in spec for k in required):
-                        print(f"✅ LLM designed module: {spec['module_id']}")
-                        return spec
+            # Validate required fields
+            required = ["module_id", "category", "description", "params", "returns"]
+            if all(k in spec for k in required):
+                print(f"✅ GPT-4o designed high-quality module: {spec['module_id']}")
+                return spec
+            else:
+                print(f"⚠️ GPT-4o response missing required fields")
+                return self._create_fallback_spec(module_name, reason)
 
         except Exception as e:
-            print(f"⚠️ Ollama failed: {e}")
-
-        # Fallback to OpenAI (more reliable JSON generation)
-        try:
-            from openai import OpenAI
-            import os
-            import json
-
-            openai_api_key = os.getenv("OPENAI_API_KEY")
-            if openai_api_key:
-                print(f"🔄 Falling back to OpenAI for {module_name}")
-                client = OpenAI(api_key=openai_api_key)
-
-                response = client.chat.completions.create(
-                    model="gpt-4o-mini",
-                    messages=[
-                        {"role": "system", "content": "You are an expert Python developer. Respond with valid JSON only."},
-                        {"role": "user", "content": prompt}
-                    ],
-                    response_format={"type": "json_object"},
-                    timeout=30
-                )
-
-                spec = json.loads(response.choices[0].message.content)
-
-                # Validate required fields
-                required = ["module_id", "category", "description", "params", "returns"]
-                if all(k in spec for k in required):
-                    print(f"✅ OpenAI designed module: {spec['module_id']}")
-                    return spec
-
-        except Exception as e2:
-            print(f"⚠️ OpenAI also failed: {e2}")
-
-        # Last resort: create basic spec
-        print(f"⚠️ Using fallback basic spec for {module_name}")
-        return self._create_fallback_spec(module_name, reason)
+            print(f"❌ GPT-4o failed: {e}")
+            return self._create_fallback_spec(module_name, reason)
 
     def _create_fallback_spec(self, module_name: str, reason: str) -> Dict[str, Any]:
         """Create a basic spec when LLM fails"""
