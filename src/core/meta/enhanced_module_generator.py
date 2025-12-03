@@ -9,23 +9,23 @@ from typing import Dict, Any, Optional
 from pathlib import Path
 from openai import OpenAI
 
-from src.core.meta.strict_pr_reviewer import StrictPRReviewer
+from src.core.meta.quality_checker_v2 import QualityCheckerV2
 
 
 class EnhancedModuleGenerator:
     """
-    增強版模組生成器
+    Enhanced Module Generator with Strict Quality Control
 
-    特點：
-    1. 使用升級後的 GPT-4o prompt（包含所有安全性要求）
-    2. 連續 3 次生成成功才通過
-    3. 嚴格 PR 評分（9.8+/10）
-    4. 自動創建 GitHub PR
+    Features:
+    1. Uses enterprise-grade GPT-4o prompt (MODULE_GENERATOR_PROMPT.md v2.0)
+    2. Requires 3 consecutive successful generations
+    3. Strict quality scoring using 10 atomic checks (9.8+/10)
+    4. Automatic GitHub PR creation
     """
 
     def __init__(self):
         self.success_count = {}  # {module_name: success_count}
-        self.reviewer = StrictPRReviewer()
+        self.quality_checker = QualityCheckerV2()
         self.REQUIRED_SUCCESS_COUNT = 3
         self.MIN_PR_SCORE = 9.8
 
@@ -68,11 +68,11 @@ class EnhancedModuleGenerator:
                 "error": "Failed to generate module spec"
             }
 
-        # 生成檔案
+        # Generate module file
         module_path = self._generate_module_file(spec)
 
-        # 嚴格 PR 審查
-        pr_result = self.reviewer.review_module(module_path)
+        # Strict quality check using 10 atomic checks
+        pr_result = self.quality_checker.review_module(module_path)
 
         # 檢查是否通過
         if pr_result["score"] >= self.MIN_PR_SCORE:
@@ -286,7 +286,7 @@ Generate PRODUCTION-READY code NOW for: {module_name}"""
                 messages=[
                     {
                         "role": "system",
-                        "content": "You are a senior Python developer creating PRODUCTION-READY code for Flyto2. Your code MUST pass strict PR review (9.8/10). CRITICAL: (1) ALWAYS use self.variable_name, NEVER bare variable names. (2) For URL parameters, MUST include URL format validation using self.url.startswith(). (3) Include ALL security checks, proper error handling, and follow best practices exactly as shown in examples."
+                        "content": "You are a SENIOR Python developer creating PRODUCTION-READY code for Flyto2. Your code MUST pass strict PR review (9.8/10). CRITICAL REQUIREMENTS: (1) UNIFIED RETURN FORMAT MANDATORY: ALL returns must use {\"ok\": bool, \"output\": {}, \"error\": None/Dict, \"meta\": {}}. NEVER use {\"status\": \"success\"}! (2) ALWAYS use self.variable_name, NEVER bare variables. (3) For URL parameters, MUST validate format with self.url.startswith(). (4) Include ALL security checks, proper error handling, and follow best practices exactly."
                     },
                     {"role": "user", "content": prompt}
                 ],
