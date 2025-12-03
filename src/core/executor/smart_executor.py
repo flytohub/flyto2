@@ -65,6 +65,12 @@ class SmartExecutor:
                 attempt_result["steps"].append({"step": "generate_workflow", "status": "success"})
                 attempt_result["workflow_generated"] = True
 
+                # Debug: Print workflow modules
+                if workflow and "steps" in workflow:
+                    print(f"\n📋 Workflow steps:")
+                    for step in workflow["steps"]:
+                        print(f"  - {step.get('id', '?')}: {step.get('module', '?')}")
+
                 # Step 1.5: Check for missing modules BEFORE execution
                 missing_modules = self._check_missing_modules(workflow)
                 if missing_modules:
@@ -511,7 +517,7 @@ Return ONLY valid JSON, no markdown or explanations."""
                     module_name = step["module"]
 
                     # Check if module is registered
-                    if not ModuleRegistry.has_module(module_name):
+                    if not ModuleRegistry.has(module_name):
                         # Module is NOT registered - needs to be generated
                         analysis["missing_modules"].append({
                             "name": module_name,
@@ -608,7 +614,7 @@ Return ONLY valid JSON, no markdown or explanations."""
                 module_name = step["module"]
 
                 # Check if module is registered
-                if not ModuleRegistry.has_module(module_name):
+                if not ModuleRegistry.has(module_name):
                     missing.append({
                         "name": module_name,
                         "reason": f"Module '{module_name}' used in workflow but not registered",
