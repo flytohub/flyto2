@@ -40,6 +40,10 @@ from telegram import Update, ReplyKeyboardMarkup, InlineKeyboardButton, InlineKe
 
 # Memory system integration
 from src.core.memory.conversation_memory import get_memory, clear_memory
+
+# V3.0 Evolution system integration
+from src.core.meta.v3_evolution import V3Evolution
+
 from telegram.ext import (
     Application,
     CommandHandler,
@@ -67,6 +71,9 @@ class EvolutionState:
         self.api_tokens: Dict[str, str] = {}  # User-provided API tokens for testing
         self.pending_test_token_collection = False  # Flag for token collection flow
         self.pending_practice_url_input = False  # Flag for practice URL input
+
+        # V3.0 Evolution system for quality automation
+        self.v3_evolution = V3Evolution()
 
         # Configurable escalation thresholds
         self.config = {
