@@ -119,7 +119,8 @@ class ModuleGenerator:
         # Validate category
         if "category" in spec:
             valid_categories = ["string", "array", "math", "object", "file",
-                              "datetime", "data", "utility", "test"]
+                              "datetime", "data", "utility", "test", "image",
+                              "video", "audio", "browser", "api", "ai"]
             if spec["category"] not in valid_categories:
                 errors.append(f"Invalid category: {spec['category']}")
 

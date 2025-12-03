@@ -1,0 +1,17 @@
+name: "Test image.download"
+description: "Download an image from a URL - Auto-generated test"
+
+steps:
+  - id: test_download_basic
+    module: image.download
+    params:
+      url: "test_value"
+      output_path: "test_value"
+    description: "Basic functionality test"
+
+  - id: verify_result
+    module: test.assert_not_null
+    params:
+      value: "${test_download_basic.result}"
+      message: "image.download should return a result"
+
