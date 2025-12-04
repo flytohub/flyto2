@@ -216,6 +216,77 @@ class DatabaseManager:
             cursor.execute(sql, params or ())
             return [dict(row) for row in cursor.fetchall()]
 
+    def insert_e2e_execution(
+        self,
+        execution_id: str,
+        task_id: str,
+        task_name: str,
+        status: str,
+        success: bool,
+        execution_time_seconds: float,
+        checks_total: int,
+        checks_passed: int,
+        checks_failed: int,
+        failed_checks: Optional[List[str]] = None,
+        modules_used: Optional[List[str]] = None,
+        workflow_steps: Optional[int] = None,
+        error_message: Optional[str] = None,
+        error_traceback: Optional[str] = None,
+        agent_mode: str = "autonomous",
+        llm_model: str = "gpt-4o"
+    ) -> None:
+        """
+        Insert E2E execution metric
+
+        Args:
+            execution_id: Unique execution ID (UUID)
+            task_id: Task identifier
+            task_name: Task name
+            status: Execution status (success/failed/error)
+            success: Whether execution succeeded
+            execution_time_seconds: Execution time
+            checks_total: Total number of checks
+            checks_passed: Number of passed checks
+            checks_failed: Number of failed checks
+            failed_checks: List of failed check IDs
+            modules_used: List of modules used
+            workflow_steps: Number of workflow steps
+            error_message: Error message if failed
+            error_traceback: Error traceback if failed
+            agent_mode: Agent mode (autonomous/guided)
+            llm_model: LLM model used
+        """
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                INSERT INTO e2e_executions (
+                    id, task_id, task_name, status, success,
+                    execution_time_seconds, checks_total, checks_passed, checks_failed,
+                    failed_checks, modules_used, workflow_steps,
+                    error_message, error_traceback, agent_mode, llm_model
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """,
+                (
+                    execution_id,
+                    task_id,
+                    task_name,
+                    status,
+                    success,
+                    execution_time_seconds,
+                    checks_total,
+                    checks_passed,
+                    checks_failed,
+                    json.dumps(failed_checks) if failed_checks else None,
+                    json.dumps(modules_used) if modules_used else None,
+                    workflow_steps,
+                    error_message,
+                    error_traceback,
+                    agent_mode,
+                    llm_model
+                )
+            )
+
     def execute(
         self,
         sql: str,

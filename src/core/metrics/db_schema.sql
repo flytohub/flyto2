@@ -65,6 +65,27 @@ CREATE TABLE IF NOT EXISTS convergence_events (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- E2E Task Execution Metrics Table
+CREATE TABLE IF NOT EXISTS e2e_executions (
+    id VARCHAR(36) PRIMARY KEY,
+    task_id VARCHAR(255) NOT NULL,
+    task_name VARCHAR(255) NOT NULL,
+    status VARCHAR(20) NOT NULL,
+    success BOOLEAN NOT NULL,
+    execution_time_seconds FLOAT NOT NULL,
+    checks_total INTEGER NOT NULL,
+    checks_passed INTEGER NOT NULL,
+    checks_failed INTEGER NOT NULL,
+    failed_checks JSONB,
+    modules_used JSONB,
+    workflow_steps INTEGER,
+    error_message TEXT,
+    error_traceback TEXT,
+    agent_mode VARCHAR(50),
+    llm_model VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Create indexes for performance
 CREATE INDEX IF NOT EXISTS idx_module_metrics_created_at ON module_metrics(created_at);
 CREATE INDEX IF NOT EXISTS idx_module_metrics_model ON module_metrics(model_used);
@@ -72,3 +93,6 @@ CREATE INDEX IF NOT EXISTS idx_module_metrics_success ON module_metrics(success)
 CREATE INDEX IF NOT EXISTS idx_refine_iterations_module_id ON refine_iterations(module_metrics_id);
 CREATE INDEX IF NOT EXISTS idx_issue_stats_type ON issue_stats(issue_type);
 CREATE INDEX IF NOT EXISTS idx_convergence_events_module_id ON convergence_events(module_metrics_id);
+CREATE INDEX IF NOT EXISTS idx_e2e_executions_task_id ON e2e_executions(task_id);
+CREATE INDEX IF NOT EXISTS idx_e2e_executions_status ON e2e_executions(status);
+CREATE INDEX IF NOT EXISTS idx_e2e_executions_created_at ON e2e_executions(created_at);

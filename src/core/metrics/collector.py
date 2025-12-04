@@ -261,3 +261,60 @@ class MetricsCollector:
             row["success_rate"] = successful / total if total > 0 else 0.0
 
         return results
+
+    def record_e2e_execution(
+        self,
+        execution_id: str,
+        task_id: str,
+        task_name: str,
+        success: bool,
+        status: str,
+        execution_time: float,
+        checks_total: int,
+        checks_passed: int,
+        failed_checks: Optional[List[str]] = None,
+        modules_used: Optional[List[str]] = None,
+        workflow_steps: Optional[int] = None,
+        error_message: Optional[str] = None,
+        agent_mode: str = "autonomous",
+        llm_model: str = "gpt-4o"
+    ) -> None:
+        """
+        Record E2E task execution metric
+
+        Args:
+            execution_id: Unique execution ID
+            task_id: Task identifier
+            task_name: Task name
+            success: Whether execution succeeded
+            status: Execution status
+            execution_time: Execution time in seconds
+            checks_total: Total number of checks
+            checks_passed: Number of passed checks
+            failed_checks: List of failed check IDs
+            modules_used: List of modules used
+            workflow_steps: Number of workflow steps
+            error_message: Error message if failed
+            agent_mode: Agent mode used
+            llm_model: LLM model used
+        """
+        checks_failed = checks_total - checks_passed
+
+        self.db_manager.insert_e2e_execution(
+            execution_id=execution_id,
+            task_id=task_id,
+            task_name=task_name,
+            status=status,
+            success=success,
+            execution_time_seconds=execution_time,
+            checks_total=checks_total,
+            checks_passed=checks_passed,
+            checks_failed=checks_failed,
+            failed_checks=failed_checks,
+            modules_used=modules_used,
+            workflow_steps=workflow_steps,
+            error_message=error_message,
+            error_traceback=None,
+            agent_mode=agent_mode,
+            llm_model=llm_model
+        )
