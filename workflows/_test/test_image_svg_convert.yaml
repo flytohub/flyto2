@@ -6,7 +6,7 @@ steps:
     module: image.svg_convert
     params:
       svg_path: "/tmp/test_svg_path.dat"
-      png_path: "/tmp/test_png_path.dat"
+      output_path: "/tmp/test_output_path.dat"
     description: "Basic functionality test"
 
   - id: verify_result
