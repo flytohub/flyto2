@@ -153,8 +153,9 @@ python -m src.core.metrics.init_db
 # 運行幾次生成，確認數據有寫入
 python test_metrics_collection.py
 
-# 檢查數據庫
-sqlite3 data/metrics/metrics.db "SELECT COUNT(*) FROM module_quality"
+# 檢查數據庫 (PRODUCTION: Use cloud PostgreSQL from .env - Neon)
+# Example for local verification only (NOT for production):
+# psql $POSTGRES_CONNECTION_STRING -c "SELECT COUNT(*) FROM module_quality"
 ```
 
 #### Day 8-9: API 層
@@ -322,7 +323,7 @@ pip install difflib              # Code diff (內建)
 # Metrics Dashboard
 pip install fastapi==0.104.1     # API server
 pip install uvicorn==0.24.0      # ASGI server
-pip install sqlite3              # Database (內建)
+pip install psycopg2-binary      # Cloud PostgreSQL driver (Neon)
 
 # E2E Runner
 pip install pyyaml==6.0.1        # YAML parser
@@ -395,7 +396,8 @@ flyto2/
 
   data/
     metrics/
-      metrics.db                         # 🆕 SQLite 數據庫
+      # ⚠️ DEPRECATED: Local metrics.db (SQLite) NOT used
+      # PRODUCTION: Cloud PostgreSQL (Neon) from .env.example
       schema.sql                         # 🆕 數據庫 schema
 
   docs/design/
