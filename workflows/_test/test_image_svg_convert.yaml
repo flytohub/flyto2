@@ -1,5 +1,5 @@
 name: "Test image.svg_convert"
-description: "Convert SVG file to PNG format - Auto-generated test"
+description: "Convert SVG files to PNG format - Auto-generated test"
 
 steps:
   - id: test_svg_convert_basic
