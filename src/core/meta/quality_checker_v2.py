@@ -3,8 +3,11 @@ Quality Checker V2 - Enterprise-grade code quality assessment
 Implements MODULE_QUALITY_STANDARDS.md with atomic, zero-coupling design
 """
 from pathlib import Path
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple, Optional, TYPE_CHECKING
 import re
+
+if TYPE_CHECKING:
+    from src.core.metrics.collector import MetricsCollector
 
 
 class QualityCheck:
@@ -452,7 +455,7 @@ class QualityCheckerV2:
     Implements all 10 checks from MODULE_QUALITY_STANDARDS.md
     """
 
-    def __init__(self):
+    def __init__(self, metrics_collector: Optional['MetricsCollector'] = None):
         self.checks: List[QualityCheck] = [
             UnifiedReturnFormatCheck(),          # 2.0 points
             NoDuplicateImportsCheck(),            # 1.0 point
@@ -465,6 +468,7 @@ class QualityCheckerV2:
             NoPlaceholderCodeCheck(),             # 0.5 points
             CompleteDocumentationCheck(),         # 0.5 points
         ]
+        self.metrics_collector = metrics_collector
 
     def review_module(self, file_path: str) -> Dict:
         """

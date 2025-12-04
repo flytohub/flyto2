@@ -1066,10 +1066,10 @@ onMounted(async () => {
 - [x] 設計並創建 PostgreSQL schema (已完成 - db_schema.sql)
 - [x] 實作 DatabaseManager (已完成 - db_manager.py with cloud PostgreSQL support)
 - [x] 實作 MetricsCollector (已完成 - collector.py with 16 tests passed)
-- [ ] 在現有系統中埋點
-  - QualityCheckerV2
-  - AutoRefineEngine (待完成後)
-  - E2E Runner (待完成後)
+- [x] 在現有系統中埋點 (已完成 - 7 integration tests passed)
+  - [x] QualityCheckerV2 (dependency injection ready)
+  - [x] AutoRefineEngine (integrated with 7 tests)
+  - [ ] E2E Runner (pending - will integrate after E2E implementation)
 
 ### Phase 2: API 層 (1-2 天)
 - [x] 實作 FastAPI endpoints (已完成 - api.py with 19 tests passed)
