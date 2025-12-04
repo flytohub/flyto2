@@ -39,14 +39,20 @@ class Not(BaseModule):
             Processing result
         """
         try:
-            # Generic implementation
-            # TODO: Implement actual logic here
-            result = None
+            # Boolean NOT operation
+            result = not self.input
 
             return {
-                "result": result,
-                "status": "success"
+                "ok": True,
+                "output": {"result": result},
+                "error": None,
+                "meta": {}
             }
 
         except Exception as e:
-            raise RuntimeError(f"{self.module_name} execution failed: {str(e)}")
+            return {
+                "ok": False,
+                "output": {},
+                "error": {"message": f"{self.module_name} execution failed: {str(e)}"},
+                "meta": {}
+            }

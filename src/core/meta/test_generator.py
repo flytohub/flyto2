@@ -117,7 +117,7 @@ class TestGenerator:
             step_id="verify_return_format",
             module="test.assert_structure",
             params={
-                "value": f"${{{ref_step_id}.result}}",
+                "value": f"${{{ref_step_id}}}",
                 "required_keys": ["ok", "output", "error", "meta"],
                 "message": f"{module_id} must return unified format with ok, output, error, meta"
             },
@@ -131,7 +131,7 @@ class TestGenerator:
             step_id="verify_success",
             module="test.assert_equals",
             params={
-                "actual": f"${{{ref_step_id}.result.ok}}",
+                "actual": f"${{{ref_step_id}.ok}}",
                 "expected": True,
                 "message": f"{module_id} should return ok=true for valid input"
             },
@@ -155,7 +155,7 @@ class TestGenerator:
             step_id="verify_error_format",
             module="test.assert_structure",
             params={
-                "value": f"${{{ref_step_id}.result}}",
+                "value": f"${{{ref_step_id}}}",
                 "required_keys": ["ok", "output", "error", "meta"],
                 "message": f"{module_id} error response must have unified format"
             },
@@ -169,7 +169,7 @@ class TestGenerator:
             step_id="verify_error_details",
             module="test.assert_equals",
             params={
-                "actual": f"${{{ref_step_id}.result.ok}}",
+                "actual": f"${{{ref_step_id}.ok}}",
                 "expected": False,
                 "message": f"{module_id} should return ok=false for invalid input"
             },
@@ -183,7 +183,7 @@ class TestGenerator:
             step_id="verify_metadata",
             module="test.assert_structure",
             params={
-                "value": f"${{{ref_step_id}.result.meta}}",
+                "value": f"${{{ref_step_id}.meta}}",
                 "required_keys": ["module", "execution_time"],
                 "message": f"{module_id} metadata must have module name and execution_time"
             },

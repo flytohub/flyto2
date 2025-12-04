@@ -34,55 +34,49 @@ class Reverse(BaseModule):
 
     async def execute(self) -> Any:
         """
-        Execute the module logic
+        Execute the module logic to reverse a text string.
 
         Returns:
-            Dict[str, Any] with keys: ok, output, error, meta
+            Dict with reversed text string
         """
         try:
-            async def execute(self) -> Any:
-                """
-                Execute the module logic to reverse a text string.
+            # Input validation first
+            if not isinstance(self.text, str):
+                return {
+                    "ok": False,
+                    "output": {},
+                    "error": {"message": "Invalid input: text must be a string"},
+                    "meta": {}
+                }
 
-                Returns:
-                    Dict with reversed text string
-                """
-                try:
-                    # Input validation first
-                    if not isinstance(self.text, str):
-                        return {
-                            "ok": False,
-                            "output": {},
-                            "error": {"message": "Invalid input: text must be a string"},
-                            "meta": {}
-                        }
+            # Main logic
+            reversed_text = self.text[::-1]
 
-                    # Main logic
-                    self.reversed_text = self.text[::-1]
+            return {
+                "ok": True,
+                "output": {"reversed_text": reversed_text},
+                "error": None,
+                "meta": {}
+            }
 
-                    return {
-                        "ok": True,
-                        "output": {"reversed_text": self.reversed_text},
-                        "error": None,
-                        "meta": {}
-                    }
-
-                except ValueError as e:
-                    return {
-                        "ok": False,
-                        "output": {},
-                        "error": {"message": f"Value error: {str(e)}"},
-                        "meta": {}
-                    }
-                except TypeError as e:
-                    return {
-                        "ok": False,
-                        "output": {},
-                        "error": {"message": f"Type error: {str(e)}"},
-                        "meta": {}
-                    }
-                except Exception as e:
-                    raise RuntimeError(f"text.reverse execution failed: {str(e)}")
-
+        except ValueError as e:
+            return {
+                "ok": False,
+                "output": {},
+                "error": {"message": f"Value error: {str(e)}"},
+                "meta": {}
+            }
+        except TypeError as e:
+            return {
+                "ok": False,
+                "output": {},
+                "error": {"message": f"Type error: {str(e)}"},
+                "meta": {}
+            }
         except Exception as e:
-            raise RuntimeError(f"{self.module_name} execution failed: {str(e)}")
+            return {
+                "ok": False,
+                "output": {},
+                "error": {"message": f"text.reverse execution failed: {str(e)}"},
+                "meta": {}
+            }

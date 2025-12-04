@@ -11,6 +11,6 @@ steps:
   - id: verify_result
     module: test.assert_not_null
     params:
-      value: "${test_reverse_basic.result}"
+      value: "${test_reverse_basic}"
       message: "text.reverse should return a result"
 

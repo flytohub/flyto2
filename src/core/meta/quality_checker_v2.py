@@ -3,7 +3,7 @@ Quality Checker V2 - Enterprise-grade code quality assessment
 Implements MODULE_QUALITY_STANDARDS.md with atomic, zero-coupling design
 """
 from pathlib import Path
-from typing import Dict, List, Tuple, Optional, TYPE_CHECKING
+from typing import Dict, List, Optional, TYPE_CHECKING
 import re
 
 if TYPE_CHECKING:
@@ -16,21 +16,21 @@ class QualityCheck:
     def __init__(self, weight: float, name: str):
         self.weight = weight
         self.name = name
-        self.score = 0.0
-        self.issues = []
-        self.strengths = []
+        self.score: float = 0.0
+        self.issues: List[Dict] = []
+        self.strengths: List[str] = []
 
     def check(self, content: str, file_path: str) -> float:
-        """Execute the quality check. Returns score (0 to weight)"""
+        """Execute the quality check. Returns score (0 to weight)."""
         raise NotImplementedError
 
-    def add_issue(self, message: str, deduction: float):
-        """Add an issue and reduce score"""
+    def add_issue(self, message: str, deduction: float) -> None:
+        """Add an issue and reduce score."""
         self.issues.append({"message": message, "deduction": deduction})
         self.score -= deduction
 
-    def add_strength(self, message: str):
-        """Add a strength"""
+    def add_strength(self, message: str) -> None:
+        """Add a strength."""
         self.strengths.append(message)
 
 
@@ -46,14 +46,12 @@ class UnifiedReturnFormatCheck(QualityCheck):
     def check(self, content: str, file_path: str) -> float:
         self.score = self.weight
 
-        # Find all return statements with dict (handle multi-line and nested dicts)
-        # This pattern handles one level of nested braces
+        # Find all dict-return statements (naive but robust enough)
         returns = re.findall(r'return\s+\{(?:[^{}]|\{[^{}]*\})*\}', content, re.DOTALL)
 
         if not returns:
             return self.score
 
-        # Check for required keys
         has_ok_key = False
         has_output_key = False
         has_error_key = False
@@ -69,11 +67,10 @@ class UnifiedReturnFormatCheck(QualityCheck):
             if '"meta":' in ret or "'meta':" in ret:
                 has_meta_key = True
 
-        # Check for wrong format (old style)
         has_status_key = any('"status":' in ret or "'status':" in ret for ret in returns)
 
         if has_status_key:
-            self.add_issue("Uses 'status' instead of 'ok' (wrong format)", 1.5)
+            self.add_issue("Uses 'status' instead of unified 'ok' format", 1.5)
 
         if not has_ok_key:
             self.add_issue("Missing 'ok' key in return", 0.4)
@@ -95,7 +92,6 @@ class UnifiedReturnFormatCheck(QualityCheck):
         else:
             self.add_strength("Has 'meta' key")
 
-        # Check consistency across all returns
         if len(returns) > 1:
             formats = []
             for ret in returns:
@@ -124,11 +120,14 @@ class NoDuplicateImportsCheck(QualityCheck):
     def check(self, content: str, file_path: str) -> float:
         self.score = self.weight
 
-        # Find imports inside functions (4+ spaces indent)
-        function_imports = re.findall(r'^\s{4,}(?:from|import)\s+[\w.]+', content, re.MULTILINE)
+        function_imports = re.findall(
+            r'^\s{4,}(?:from|import)\s+[\w.]+', content, re.MULTILINE
+        )
 
         if function_imports:
-            self.add_issue(f"Found {len(function_imports)} import(s) inside function", 1.0)
+            self.add_issue(
+                f"Found {len(function_imports)} import(s) inside function", 1.0
+            )
         else:
             self.add_strength("All imports at file top")
 
@@ -147,15 +146,17 @@ class ProperVariableReferencesCheck(QualityCheck):
     def check(self, content: str, file_path: str) -> float:
         self.score = self.weight
 
-        # Extract params assigned in validate_params
         params_pattern = r'self\.(\w+)\s*='
         params = re.findall(params_pattern, content)
 
         if not params:
             return self.score
 
-        # Look for usage without self. in execute method
-        execute_match = re.search(r'async def execute\(self\)[^:]*:(.*?)(?=\n    def |\n\nclass |\Z)', content, re.DOTALL)
+        execute_match = re.search(
+            r'async def execute\(self\)[^:]*:(.*?)(?=\n    def |\n\nclass |\Z)',
+            content,
+            re.DOTALL,
+        )
 
         if not execute_match:
             return self.score
@@ -164,27 +165,20 @@ class ProperVariableReferencesCheck(QualityCheck):
 
         issues_count = 0
         for param in params:
-            # Look for bare usage (not self.param)
-            # Match: param.method() or param[  but NOT self.param
             pattern = rf'(?<!self\.)\b{param}\b'
             matches = re.findall(pattern, execute_body)
 
-            # Filter out false positives (like in strings or comments)
-            real_matches = []
-            for match_str in matches:
-                # Check if it's in a context where it should have self.
-                context_pattern = rf'(?<!self\.)\b{param}\.(startswith|get|read|write|close|append)'
-                if re.search(context_pattern, execute_body):
-                    real_matches.append(match_str)
-
-            if real_matches:
-                issues_count += len(real_matches)
+            if matches:
+                issues_count += len(matches)
 
         if issues_count > 0:
             deduction = min(1.0, issues_count * 0.2)
-            self.add_issue(f"Found {issues_count} variable(s) without self. prefix", deduction)
+            self.add_issue(
+                f"Found {issues_count} variable usage(s) without self. prefix",
+                deduction,
+            )
         else:
-            self.add_strength("All variables use self. prefix")
+            self.add_strength("All instance variables use self. prefix")
 
         return max(0.0, self.score)
 
@@ -201,7 +195,6 @@ class NoNestedFunctionsCheck(QualityCheck):
     def check(self, content: str, file_path: str) -> float:
         self.score = self.weight
 
-        # Find nested function definitions (8+ spaces indent)
         nested_def_pattern = r'^\s{8,}(?:async\s+)?def\s+\w+'
         nested_defs = re.findall(nested_def_pattern, content, re.MULTILINE)
 
@@ -225,11 +218,10 @@ class CleanSeparationCheck(QualityCheck):
     def check(self, content: str, file_path: str) -> float:
         self.score = self.weight
 
-        # Extract validate_params method
         validate_match = re.search(
             r'def validate_params\(self\)[^:]*:(.*?)(?=\n    def |\n    async def |\Z)',
             content,
-            re.DOTALL
+            re.DOTALL,
         )
 
         if not validate_match:
@@ -237,10 +229,9 @@ class CleanSeparationCheck(QualityCheck):
 
         validate_body = validate_match.group(1)
 
-        # Check for business logic indicators
-        has_await = 'await ' in validate_body
-        has_http = 'httpx.' in validate_body or 'aiohttp.' in validate_body
-        has_file_ops = '.read_text(' in validate_body or '.write_' in validate_body
+        has_await = "await " in validate_body
+        has_http = "httpx." in validate_body or "aiohttp." in validate_body
+        has_file_ops = ".read_text(" in validate_body or ".write_" in validate_body
 
         if has_await:
             self.add_issue("validate_params contains async operations", 0.5)
@@ -252,7 +243,7 @@ class CleanSeparationCheck(QualityCheck):
             self.add_issue("validate_params contains file operations", 0.5)
 
         if not (has_await or has_http or has_file_ops):
-            self.add_strength("validate_params only validates")
+            self.add_strength("validate_params only performs validation")
 
         return max(0.0, self.score)
 
@@ -269,17 +260,15 @@ class AsyncIOCheck(QualityCheck):
     def check(self, content: str, file_path: str) -> float:
         self.score = self.weight
 
-        # Check for blocking I/O libraries
-        uses_requests = 'import requests' in content or 'from requests' in content
-        uses_urllib = 'import urllib' in content or 'from urllib' in content
+        uses_requests = "import requests" in content or "from requests" in content
+        uses_urllib = "import urllib" in content or "from urllib" in content
 
-        # Check for async libraries
-        uses_httpx = 'import httpx' in content or 'from httpx' in content
-        uses_aiohttp = 'import aiohttp' in content or 'from aiohttp' in content
+        uses_httpx = "import httpx" in content or "from httpx" in content
+        uses_aiohttp = "import aiohttp" in content or "from aiohttp" in content
 
         if uses_requests:
             self.add_issue("Uses blocking 'requests' library", 1.0)
-        elif uses_urllib and 'urllib.parse' not in content:
+        elif uses_urllib and "urllib.parse" not in content:
             self.add_issue("Uses blocking 'urllib' library", 1.0)
         elif uses_httpx or uses_aiohttp:
             self.add_strength("Uses async I/O library")
@@ -290,7 +279,7 @@ class AsyncIOCheck(QualityCheck):
 class ComprehensiveErrorHandlingCheck(QualityCheck):
     """
     Check 7: Comprehensive Error Handling (1.0 point)
-    Must catch at least 3 specific exception types
+    Must catch at least 3 specific exception types and avoid nested try/except.
     """
 
     def __init__(self):
@@ -299,16 +288,12 @@ class ComprehensiveErrorHandlingCheck(QualityCheck):
     def check(self, content: str, file_path: str) -> float:
         self.score = self.weight
 
-        # Check if has try/except
-        if 'try:' not in content or 'except' not in content:
+        if "try:" not in content or "except" not in content:
             self.add_issue("No error handling found", 1.0)
             return max(0.0, self.score)
 
-        # Count specific exception types
         specific_exceptions = re.findall(r'except\s+(\w+(?:\.\w+)?)\s+as', content)
-
-        # Filter out generic Exception
-        specific_exceptions = [e for e in specific_exceptions if e != 'Exception']
+        specific_exceptions = [e for e in specific_exceptions if e != "Exception"]
 
         num_specific = len(set(specific_exceptions))
 
@@ -323,16 +308,22 @@ class ComprehensiveErrorHandlingCheck(QualityCheck):
         else:
             self.add_strength(f"Has {num_specific} specific exception types")
 
-        # Check error return format
-        error_returns = re.findall(r'return\s+\{[^}]*"ok":\s*False[^}]*\}', content, re.DOTALL)
-
+        # Check error-return format
+        error_returns = re.findall(
+            r'return\s+\{[^}]*"ok":\s*False[^}]*\}', content, re.DOTALL
+        )
         if error_returns:
-            # Check if error returns have proper format
-            has_error_field = any('"error":' in ret or "'error':" in ret for ret in error_returns)
+            has_error_field = any(
+                '"error":' in ret or "'error':" in ret for ret in error_returns
+            )
             if has_error_field:
                 self.add_strength("Error returns use unified format")
             else:
                 self.add_issue("Error returns missing 'error' field", 0.3)
+
+        # Detect nested try/except (simple heuristic: try: followed by indented try:)
+        if re.search(r'try:\s*\n\s+try:', content):
+            self.add_issue("Nested try/except blocks detected", 0.7)
 
         return max(0.0, self.score)
 
@@ -349,27 +340,26 @@ class SecurityValidationsCheck(QualityCheck):
     def check(self, content: str, file_path: str) -> float:
         self.score = self.weight
 
-        # Check URL validation
-        has_url_param = 'self.url' in content
+        has_url_param = "self.url" in content
         if has_url_param:
-            has_url_validation = 'startswith("http' in content or 'startswith(\'http' in content
+            has_url_validation = 'startswith("http' in content or "startswith('http" in content
             if not has_url_validation:
                 self.add_issue("Missing URL format validation", 0.5)
             else:
                 self.add_strength("URL format validation present")
 
-        # Check Content-Type validation (for download/fetch modules)
-        is_download = 'download' in file_path.lower() or 'fetch' in file_path.lower()
-        if is_download or 'response.content' in content:
-            has_content_type = 'content-type' in content.lower() or 'content_type' in content
+        is_download = "download" in file_path.lower() or "fetch" in file_path.lower()
+        if is_download or "response.content" in content:
+            has_content_type = "content-type" in content.lower() or "content_type" in content
             if not has_content_type:
                 self.add_issue("Missing Content-Type validation", 0.5)
             else:
                 self.add_strength("Content-Type validation present")
 
-        # Check file size limit
-        if is_download or 'response.content' in content:
-            has_size_limit = 'content-length' in content.lower() or 'max_size' in content.lower()
+        if is_download or "response.content" in content:
+            has_size_limit = (
+                "content-length" in content.lower() or "max_size" in content.lower()
+            )
             if not has_size_limit:
                 self.add_issue("Missing file size limit check", 0.5)
             else:
@@ -381,7 +371,7 @@ class SecurityValidationsCheck(QualityCheck):
 class NoPlaceholderCodeCheck(QualityCheck):
     """
     Check 9: No Placeholder Code (0.5 points)
-    NO TODO, placeholder, pass, NotImplementedError
+    NO TODO, placeholder, NotImplementedError, etc.
     """
 
     def __init__(self):
@@ -390,12 +380,11 @@ class NoPlaceholderCodeCheck(QualityCheck):
     def check(self, content: str, file_path: str) -> float:
         self.score = self.weight
 
-        # Check for placeholder patterns
         placeholders = [
-            ('TODO', 'TODO comment found'),
-            ('placeholder', 'Placeholder code found'),
-            ('implement here', 'Implementation placeholder found'),
-            ('NotImplementedError', 'NotImplementedError found'),
+            ("TODO", "TODO comment found"),
+            ("placeholder", "Placeholder code found"),
+            ("implement here", "Implementation placeholder found"),
+            ("NotImplementedError", "NotImplementedError found"),
         ]
 
         found_placeholders = []
@@ -404,7 +393,9 @@ class NoPlaceholderCodeCheck(QualityCheck):
                 found_placeholders.append(message)
 
         if found_placeholders:
-            self.add_issue(f"Placeholder code: {', '.join(found_placeholders)}", 0.5)
+            self.add_issue(
+                f"Placeholder code: {', '.join(found_placeholders)}", 0.5
+            )
         else:
             self.add_strength("No placeholder code")
 
@@ -423,91 +414,110 @@ class CompleteDocumentationCheck(QualityCheck):
     def check(self, content: str, file_path: str) -> float:
         self.score = self.weight
 
-        # Check for class docstring
         has_class_docstring = '"""' in content or "'''" in content
 
         if not has_class_docstring:
             self.add_issue("Missing class docstring", 0.3)
-        else:
-            # Check if docstring has parameter documentation
-            docstring_match = re.search(r'"""(.*?)"""', content, re.DOTALL)
-            if docstring_match:
-                docstring = docstring_match.group(1)
-                has_params = 'Parameters:' in docstring or 'Args:' in docstring or 'param' in docstring.lower()
-                has_returns = 'Returns:' in docstring or 'return' in docstring.lower()
+            return max(0.0, self.score)
 
-                if has_params:
-                    self.add_strength("Has parameter documentation")
-                else:
-                    self.add_issue("Missing parameter documentation", 0.2)
+        docstring_match = re.search(r'"""(.*?)"""', content, re.DOTALL)
+        if docstring_match:
+            docstring = docstring_match.group(1)
+            has_params = (
+                "Parameters:" in docstring
+                or "Args:" in docstring
+                or "param" in docstring.lower()
+            )
+            has_returns = (
+                "Returns:" in docstring or "return" in docstring.lower()
+            )
 
-                if has_returns:
-                    self.add_strength("Has return documentation")
+            if has_params:
+                self.add_strength("Has parameter documentation")
             else:
-                self.add_strength("Has class docstring")
+                self.add_issue("Missing parameter documentation", 0.2)
+
+            if has_returns:
+                self.add_strength("Has return documentation")
+        else:
+            self.add_strength("Has class docstring")
 
         return max(0.0, self.score)
 
 
 class QualityCheckerV2:
     """
-    Enterprise-grade quality checker with atomic, zero-coupling design
-    Implements all 10 checks from MODULE_QUALITY_STANDARDS.md
+    Enterprise-grade quality checker with atomic, zero-coupling design.
+    Implements 10 checks from MODULE_QUALITY_STANDARDS.md, plus a syntax gate.
     """
 
-    def __init__(self, metrics_collector: Optional['MetricsCollector'] = None):
+    def __init__(self, metrics_collector: Optional["MetricsCollector"] = None):
         self.checks: List[QualityCheck] = [
-            UnifiedReturnFormatCheck(),          # 2.0 points
-            NoDuplicateImportsCheck(),            # 1.0 point
-            ProperVariableReferencesCheck(),      # 1.0 point
-            NoNestedFunctionsCheck(),             # 0.5 points
-            CleanSeparationCheck(),               # 1.0 point
-            AsyncIOCheck(),                       # 1.0 point
-            ComprehensiveErrorHandlingCheck(),    # 1.0 point
-            SecurityValidationsCheck(),           # 1.5 points
-            NoPlaceholderCodeCheck(),             # 0.5 points
-            CompleteDocumentationCheck(),         # 0.5 points
+            UnifiedReturnFormatCheck(),       # 2.0
+            NoDuplicateImportsCheck(),        # 1.0
+            ProperVariableReferencesCheck(),  # 1.0
+            NoNestedFunctionsCheck(),         # 0.5
+            CleanSeparationCheck(),           # 1.0
+            AsyncIOCheck(),                   # 1.0
+            ComprehensiveErrorHandlingCheck(),# 1.0
+            SecurityValidationsCheck(),       # 1.5
+            NoPlaceholderCodeCheck(),         # 0.5
+            CompleteDocumentationCheck(),     # 0.5
         ]
         self.metrics_collector = metrics_collector
 
     def review_module(self, file_path: str) -> Dict:
         """
-        Review a module file and return quality assessment
+        Review a module file and return quality assessment.
 
-        Returns:
-            {
-                "score": float,  # 0-10
-                "grade": str,    # A+, A, B, etc.
-                "pass": bool,    # True if score >= 9.8
-                "checks": List[Dict],  # Individual check results
-                "issues": List[Dict],
-                "strengths": List[str]
-            }
+        Hard gate:
+        - If the file cannot be compiled (SyntaxError), score is capped at 4.0
+          and pass=False regardless of atomic check scores.
         """
-        # Read file
         content = Path(file_path).read_text()
 
-        # Run all checks
+        syntax_ok = True
+        syntax_issue = None
+
+        try:
+            compile(content, file_path, "exec")
+        except SyntaxError as e:
+            syntax_ok = False
+            message = (
+                f"Syntax error: {e.msg} (line {e.lineno}, offset {e.offset})"
+            )
+            syntax_issue = {"message": message, "deduction": 6.0}
+
         total_score = 0.0
-        all_issues = []
-        all_strengths = []
-        check_results = []
+        all_issues: List[Dict] = []
+        all_strengths: List[str] = []
+        check_results: List[Dict] = []
 
         for check in self.checks:
             score = check.check(content, file_path)
             total_score += score
 
-            check_results.append({
-                "name": check.name,
-                "weight": check.weight,
-                "score": round(score, 2),
-                "percentage": round((score / check.weight) * 100, 1) if check.weight > 0 else 100
-            })
+            check_results.append(
+                {
+                    "name": check.name,
+                    "weight": check.weight,
+                    "score": round(score, 2),
+                    "percentage": round(
+                        (score / check.weight) * 100, 1
+                    )
+                    if check.weight > 0
+                    else 100.0,
+                }
+            )
 
             all_issues.extend(check.issues)
             all_strengths.extend(check.strengths)
 
-        # Calculate grade
+        if not syntax_ok and syntax_issue is not None:
+            all_issues.append(syntax_issue)
+            # 硬性限制：語法錯誤時最高 4 分，絕不可能通過 PR 門檻
+            total_score = min(total_score, 4.0)
+
         grade = self._calculate_grade(total_score)
 
         return {
@@ -516,11 +526,11 @@ class QualityCheckerV2:
             "pass": total_score >= 9.8,
             "checks": check_results,
             "issues": all_issues,
-            "strengths": all_strengths
+            "strengths": all_strengths,
         }
 
     def _calculate_grade(self, score: float) -> str:
-        """Calculate letter grade from score"""
+        """Calculate letter grade from score."""
         if score >= 9.8:
             return "A+"
         elif score >= 9.5:
@@ -536,7 +546,7 @@ class QualityCheckerV2:
 
 
 def review_module_file(file_path: str) -> Dict:
-    """Convenience function to review a single module file"""
+    """Convenience function to review a single module file."""
     checker = QualityCheckerV2()
     return checker.review_module(file_path)
 
@@ -557,21 +567,23 @@ if __name__ == "__main__":
     print(f"Score: {result['score']}/10.0 ({result['grade']})")
     print(f"Pass: {'YES' if result['pass'] else 'NO'}")
     print()
-
     print("Individual Checks:")
-    for check in result['checks']:
-        status = "PASS" if check['percentage'] >= 80 else "FAIL"
-        print(f"  [{status}] {check['name']}: {check['score']}/{check['weight']} ({check['percentage']}%)")
-    print()
+    for check in result["checks"]:
+        status = "PASS" if check["percentage"] >= 80 else "FAIL"
+        print(
+            f"  [{status}] {check['name']}: "
+            f"{check['score']}/{check['weight']} ({check['percentage']}%)"
+        )
 
-    if result['strengths']:
+    print()
+    if result["strengths"]:
         print("Strengths:")
-        for s in result['strengths']:
+        for s in result["strengths"]:
             print(f"  + {s}")
         print()
 
-    if result['issues']:
+    if result["issues"]:
         print("Issues:")
-        for i in result['issues']:
+        for i in result["issues"]:
             print(f"  - {i['message']} (-{i['deduction']})")
         print()

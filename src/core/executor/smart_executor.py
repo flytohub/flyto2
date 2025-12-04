@@ -813,7 +813,7 @@ CRITICAL REQUIREMENTS:
 4. NO text descriptions - ONLY executable Python code
 5. Use proper async/await syntax
 6. Include all necessary error handling
-7. Return structured dict with status and data
+7. MUST return UNIFIED format: {{"ok": bool, "output": dict, "error": None/dict, "meta": dict}}
 
 ❌ WRONG - Nested function definition (THIS WILL BE REJECTED):
 ```python
@@ -836,10 +836,14 @@ async with httpx.AsyncClient() as client:
     path.write_bytes(response.content)
 
     return {{
-        "status": "success",
-        "path": str(path),
-        "size": len(response.content),
-        "url": self.url
+        "ok": True,
+        "output": {{
+            "path": str(path),
+            "size": len(response.content),
+            "url": self.url
+        }},
+        "error": None,
+        "meta": {{}}
     }}
 ```
 
@@ -860,10 +864,14 @@ async with httpx.AsyncClient() as client:
     path.write_bytes(response.content)
 
     return {{
-        "status": "success",
-        "path": str(path),
-        "size": len(response.content),
-        "url": self.url
+        "ok": True,
+        "output": {{
+            "path": str(path),
+            "size": len(response.content),
+            "url": self.url
+        }},
+        "error": None,
+        "meta": {{}}
     }}
 ```
 
@@ -878,9 +886,13 @@ if not path.exists():
 content = path.read_text(encoding='utf-8')
 
 return {{
-    "status": "success",
-    "content": content,
-    "size": len(content)
+    "ok": True,
+    "output": {{
+        "content": content,
+        "size": len(content)
+    }},
+    "error": None,
+    "meta": {{}}
 }}
 ```
 

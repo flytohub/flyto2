@@ -1,5 +1,5 @@
 name: "Test image.download"
-description: "Downloads an image from a specified URL and saves it to a local path with validation. - Auto-generated test"
+description: "Downloads an image from a URL and saves it to a specified path. - Auto-generated test"
 
 steps:
   - id: test_download_basic
@@ -12,6 +12,6 @@ steps:
   - id: verify_result
     module: test.assert_not_null
     params:
-      value: "${test_download_basic.result}"
+      value: "${test_download_basic}"
       message: "image.download should return a result"
 
