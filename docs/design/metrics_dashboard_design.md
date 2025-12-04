@@ -18,7 +18,7 @@ Metrics Dashboard 是 Flyto2 的品質監控中心，提供模組品質、自動
 │         │                    │                    │         │
 │         ↓                    ↓                    ↓         │
 │  ┌──────────────────────────────────────────────────────┐ │
-│  │              Storage Layer (SQLite / JSON)           │ │
+│  │         Storage Layer (Cloud PostgreSQL - Neon)      │ │
 │  └──────────────────────────────────────────────────────┘ │
 │                             ↑                               │
 │  ┌──────────────────────────────────────────────────────┐ │
@@ -38,11 +38,11 @@ Metrics Dashboard 是 Flyto2 的品質監控中心，提供模組品質、自動
 
 追蹤每個模組的品質歷史。
 
-#### Schema (SQLite)
+#### Schema (PostgreSQL)
 
 ```sql
 CREATE TABLE module_quality (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id SERIAL PRIMARY KEY,
     module_id TEXT NOT NULL,
     module_name TEXT NOT NULL,
     version TEXT DEFAULT 'latest',
@@ -52,10 +52,10 @@ CREATE TABLE module_quality (
     passed BOOLEAN NOT NULL,
 
     -- Breakdown
-    score_breakdown JSON,  -- {"syntax": 10, "style": 9.5, ...}
+    score_breakdown JSONB,  -- {"syntax": 10, "style": 9.5, ...}
 
     -- Issues
-    issues JSON,           -- [{"type": "...", "severity": ...}, ...]
+    issues JSONB,           -- [{"type": "...", "severity": ...}, ...]
     issues_count INTEGER DEFAULT 0,
 
     -- Metadata
@@ -64,13 +64,12 @@ CREATE TABLE module_quality (
 
     -- Timestamps
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-    -- Indexes
-    INDEX idx_module_id (module_id),
-    INDEX idx_score (score),
-    INDEX idx_created_at (created_at)
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE INDEX idx_module_id ON module_quality(module_id);
+CREATE INDEX idx_score ON module_quality(score);
+CREATE INDEX idx_created_at ON module_quality(created_at);
 ```
 
 #### JSON Example
@@ -586,8 +585,13 @@ def run_e2e_task(task_spec: dict) -> ExecutionResult:
 
 ## MetricsCollector 實作
 
+> **⚠️ DEPRECATED EXAMPLE**
+> The code examples below use SQLite and are **DEPRECATED**.
+> **Actual implementation uses Cloud PostgreSQL (Neon)** - see `src/core/metrics/` for production code.
+
 ```python
-# src/core/metrics/collector.py
+# DEPRECATED EXAMPLE ONLY - DO NOT USE
+# Actual implementation: src/core/metrics/collector.py (PostgreSQL)
 
 import sqlite3
 import json
@@ -817,8 +821,13 @@ class MetricsCollector:
 
 ## API Server 實作
 
+> **⚠️ DEPRECATED EXAMPLE**
+> The code examples below use SQLite and are **DEPRECATED**.
+> **Actual implementation uses Cloud PostgreSQL (Neon)** - see `src/api/metrics/api.py` for production code.
+
 ```python
-# src/api/metrics_api.py
+# DEPRECATED EXAMPLE ONLY - DO NOT USE
+# Actual implementation: src/api/metrics/api.py (PostgreSQL)
 
 from fastapi import FastAPI, Query
 from typing import Optional, List
@@ -1062,14 +1071,14 @@ onMounted(async () => {
 
 ## 實作計劃
 
-### Phase 1: 數據層 (2-3 天)
+### Phase 1: 數據層 (2-3 天) ✅ COMPLETED
 - [x] 設計並創建 PostgreSQL schema (已完成 - db_schema.sql)
 - [x] 實作 DatabaseManager (已完成 - db_manager.py with cloud PostgreSQL support)
 - [x] 實作 MetricsCollector (已完成 - collector.py with 16 tests passed)
 - [x] 在現有系統中埋點 (已完成 - 7 integration tests passed)
   - [x] QualityCheckerV2 (dependency injection ready)
   - [x] AutoRefineEngine (integrated with 7 tests)
-  - [ ] E2E Runner (pending - will integrate after E2E implementation)
+  - [ ] E2E Runner (⏳ PENDING - waiting for E2E Runner implementation)
 
 ### Phase 2: API 層 (1-2 天)
 - [x] 實作 FastAPI endpoints (已完成 - api.py with 19 tests passed)
