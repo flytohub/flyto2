@@ -1065,17 +1065,17 @@ onMounted(async () => {
 ### Phase 1: 數據層 (2-3 天)
 - [x] 設計並創建 PostgreSQL schema (已完成 - db_schema.sql)
 - [x] 實作 DatabaseManager (已完成 - db_manager.py with cloud PostgreSQL support)
-- [ ] 實作 MetricsCollector
+- [x] 實作 MetricsCollector (已完成 - collector.py with 16 tests passed)
 - [ ] 在現有系統中埋點
   - QualityCheckerV2
   - AutoRefineEngine (待完成後)
   - E2E Runner (待完成後)
 
 ### Phase 2: API 層 (1-2 天)
-- [ ] 實作 FastAPI endpoints
-- [ ] 添加數據聚合查詢
-- [ ] 添加過濾和分頁
-- [ ] API 文檔 (Swagger)
+- [x] 實作 FastAPI endpoints (已完成 - api.py with 19 tests passed)
+- [x] 添加數據聚合查詢 (已完成 - get_summary_stats, get_model_comparison)
+- [x] 添加過濾和分頁 (已完成 - limit, min_score, days parameters)
+- [x] API 文檔 (Swagger) (已完成 - automatic via FastAPI)
 
 ### Phase 3: UI 層 (2-3 天)
 - [ ] 設計 Dashboard layout

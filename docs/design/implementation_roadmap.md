@@ -24,15 +24,16 @@
 - [x] Auto-Refine Integration Tests (7 tests passed, total 92 tests)
 - [x] Metrics Dashboard - PostgreSQL schema design
 - [x] Metrics Dashboard - DatabaseManager with cloud PostgreSQL
+- [x] Metrics Dashboard - MetricsCollector (16 tests passed)
+- [x] Metrics Dashboard - API Server (19 tests passed)
 
 ### ⚠️ 進行中
 - [ ] 測試 AutoRefiner V3 效果 (目標: 9.5+ 達成率 85%+)
 - [ ] 優化 prompt 策略
-- [ ] Metrics Dashboard - MetricsCollector implementation
+- [ ] Metrics Dashboard - Data collection integration
+- [ ] 集成 Auto-Refine Engine 到 EnhancedModuleGenerator
 
 ### ❌ 未開始
-- [ ] 集成 Auto-Refine Engine 到 EnhancedModuleGenerator
-- [ ] Metrics Dashboard API
 - [ ] Metrics Dashboard UI
 
 ---
