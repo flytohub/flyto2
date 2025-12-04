@@ -12,6 +12,6 @@ steps:
   - id: verify_result
     module: test.assert_not_null
     params:
-      value: "${test_svg_convert_basic.result}"
+      value: "${test_svg_convert_basic}"
       message: "image.svg_convert should return a result"
 
