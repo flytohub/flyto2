@@ -1,16 +1,19 @@
 """
 Enhanced Module Generator with Strict Quality Control and GitHub PR Integration
-支援連續 3 次成功驗證 + 自動 GitHub PR 創建
+Support continuous 3 successful validations + automatic GitHub PR creation
 """
 import os
 import json
 import subprocess
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, TYPE_CHECKING
 from pathlib import Path
 from openai import OpenAI
 
 from src.core.meta.quality_checker_v2 import QualityCheckerV2
-from src.core.meta.auto_refiner_v2 import MultiPassRefiner
+from src.core.meta.auto_refiner_v3 import MultiPassRefiner
+
+if TYPE_CHECKING:
+    from src.core.metrics.collector import MetricsCollector
 
 
 class EnhancedModuleGenerator:
@@ -24,13 +27,18 @@ class EnhancedModuleGenerator:
     4. Automatic GitHub PR creation
     """
 
-    def __init__(self, openai_api_key: Optional[str] = None):
+    def __init__(
+        self,
+        openai_api_key: Optional[str] = None,
+        metrics_collector: Optional['MetricsCollector'] = None
+    ):
         self.success_count = {}  # {module_name: success_count}
-        self.quality_checker = QualityCheckerV2()
+        self.quality_checker = QualityCheckerV2(metrics_collector=metrics_collector)
         self.openai_api_key = openai_api_key  # Store for multi-pass refiner
+        self.metrics_collector = metrics_collector
         self.REQUIRED_SUCCESS_COUNT = 3
         self.MIN_PR_SCORE = 9.5  # Temporarily lowered from 9.8 for testing
-        self.MAX_REFINE_ATTEMPTS = 2  # Multi-pass refinement
+        self.MAX_REFINE_ATTEMPTS = 5  # Multi-pass refinement (4 rounds + buffer)
 
     async def generate_module_with_validation(
         self,
@@ -97,13 +105,14 @@ class EnhancedModuleGenerator:
                 max_rounds=self.MAX_REFINE_ATTEMPTS,
                 target_score=self.MIN_PR_SCORE,
                 min_improvement=0.1,
+                metrics_collector=self.metrics_collector,
             )
 
             # Run multi-pass refinement
             refine_result = refiner.refine_module(
                 module_path=module_path,
                 initial_code=module_code,
-                initial_pr_result=pr_result,
+                initial_result=pr_result,
             )
 
             # Display results
@@ -178,10 +187,10 @@ class EnhancedModuleGenerator:
         使用升級後的 GPT-4o prompt 生成模組規格
         """
         # 升級後的 prompt（包含所有安全性要求 + Few-shot 範例）
-        prompt = f"""You are a SENIOR Python developer creating a PRODUCTION-READY Flyto2 atomic module.
+        prompt = """You are a SENIOR Python developer creating a PRODUCTION-READY Flyto2 atomic module.
 
-Module to create: {module_name}
-Purpose: {problem}
+Module to create: {{module_name}}
+Purpose: {{problem}}
 
 🔒 MANDATORY QUALITY RULES (Auto-checked by QualityCheckerV2 - Score must be 9.5+/10):
 
@@ -196,9 +205,52 @@ Purpose: {problem}
 ✅ REQUIRED PATTERNS (Must have):
 ✓ Specific exception types BEFORE generic Exception
 ✓ Complete parameter documentation (type + clear description)
-✓ Unified return format: {{"ok": bool, "output": dict, "error": None/Dict, "meta": dict}}
+✓ Unified return format: {{"ok": bool, "output": dict, "error": None or dict, "meta": dict}}
 ✓ All variables use self. prefix
 ✓ URL validation for URL parameters
+
+🔒 STRUCTURAL TEMPLATE (MANDATORY - USE THIS EXACT STRUCTURE):
+
+YOU MUST use EXACTLY this structure. Fill in the <placeholders> with your logic:
+
+class YourModuleName(BaseModule):
+    async def execute(self) -> Any:
+        \"\"\"
+        Execute the module logic
+
+        Returns:
+            <describe your return value>
+        \"\"\"
+        try:
+            # Step 1: Validate inputs
+            <your validation logic here>
+
+            # Step 2: Main execution logic
+            <your main logic here>
+
+            # Step 3: Return success result
+            return {{
+                "ok": True,
+                "output": {{"result_key": result_value}},
+                "error": None,
+                "meta": dict
+            }}
+
+        except SpecificException as e:
+            return {{
+                "ok": False,
+                "output": dict,
+                "error": {{"message": str(e)}},
+                "meta": dict
+            }}
+        except Exception as e:
+            raise RuntimeError(self.module_name + " execution failed: " + str(e))
+
+⚠️ CRITICAL RULES:
+• You MUST NOT define ANY function inside execute()
+• You MUST NOT create nested async def execute()
+• You MUST NOT add function definitions beyond the single execute() method shown above
+• ONLY fill in the <placeholder> sections with your specific logic
 
 🔒 CRITICAL SECURITY & QUALITY REQUIREMENTS (MANDATORY):
 
@@ -241,7 +293,7 @@ async def execute(self) -> Any:
     try:
         async def execute(self) -> Any:  # ❌ NESTED! This is FORBIDDEN!
             # ... code here ...
-            return {"ok": True, ...}
+            return {{"ok": True, ...}}
     except Exception as e:
         raise RuntimeError(...)
 ```
@@ -329,7 +381,7 @@ async def execute(self) -> Any:
             if not content_type.startswith("image/"):
                 return {{
                     "status": "error",
-                    "message": f"Invalid content type: {{content_type}} (expected image/*)"
+                    "message": "Invalid content type: {{content_type}} (expected image/*)"
                 }}
 
             content_length = int(head_response.headers.get("content-length", 0))
@@ -337,7 +389,7 @@ async def execute(self) -> Any:
             if content_length > max_size:
                 return {{
                     "status": "error",
-                    "message": f"File too large: {{content_length}} bytes (max: {{max_size}})"
+                    "message": "File too large: {{content_length}} bytes (max: {{max_size}})"
                 }}
 
             # Download with streaming
@@ -369,25 +421,25 @@ async def execute(self) -> Any:
     except httpx.HTTPStatusError as e:
         return {{
             "status": "error",
-            "message": f"HTTP error: {{e.response.status_code}}"
+            "message": "HTTP error: {{e.response.status_code}}"
         }}
     except httpx.RequestError as e:
         return {{
             "status": "error",
-            "message": f"Request failed: {{str(e)}}"
+            "message": "Request failed: {{str(e)}}"
         }}
     except IOError as e:
         return {{
             "status": "error",
-            "message": f"File I/O error: {{str(e)}}"
+            "message": "File I/O error: {{str(e)}}"
         }}
     except Exception as e:
-        raise RuntimeError(f"Unexpected error: {{str(e)}}")
+        raise RuntimeError("Unexpected error: {{str(e)}}")
 ```
 
 📤 RETURN JSON:
 {{
-  "module_id": "{module_name}",
+  "module_id": "{{module_name}}",
   "category": "string",  // ONE OF: image, file, string, array, utility, data, browser, api, ai
   "description": "One clear sentence describing what this module does",
   "params": {{
@@ -408,7 +460,7 @@ async def execute(self) -> Any:
 If you cannot write code that passes all rules above, return an error instead of low-quality code.
 Your code will be auto-tested by QualityCheckerV2. Follow the GOOD EXAMPLE template.
 
-Generate code NOW for: {module_name}"""
+Generate code NOW for: {module_name}""".format(module_name=module_name, problem=problem)
 
         try:
             client = OpenAI(api_key=openai_api_key)
@@ -558,8 +610,7 @@ TARGET SCORE: 9.5+/10.0 - This is MANDATORY."""
 Quality checks:
 {chr(10).join(f'  - {s}' for s in pr_result['strengths'][:5])}
 
-🤖 Generated with Claude Code
-Co-Authored-By: Claude <noreply@anthropic.com>"""
+🤖 Auto-generated by Flyto2"""
 
             subprocess.run(
                 ["git", "commit", "-m", commit_msg],
@@ -599,7 +650,7 @@ This module was automatically generated and validated by the Flyto2 Auto-Evoluti
 - Validation passes: {self.REQUIRED_SUCCESS_COUNT}
 - PR threshold: {self.MIN_PR_SCORE}/10.0
 
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
+🤖 Auto-generated by Flyto2
 """
 
             result = subprocess.run(

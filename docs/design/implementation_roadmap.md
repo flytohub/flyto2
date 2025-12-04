@@ -27,12 +27,12 @@
 - [x] Metrics Dashboard - MetricsCollector (16 tests passed)
 - [x] Metrics Dashboard - API Server (19 tests passed)
 - [x] Metrics Dashboard - Data collection integration (7 tests passed, total 42 metrics tests)
+- [x] Integrate Auto-Refine Engine to EnhancedModuleGenerator (metrics support added)
 
 ### ⚠️ 進行中
 - [ ] 測試 AutoRefiner V3 效果 (目標: 9.5+ 達成率 85%+)
 - [ ] 優化 prompt 策略
-- [ ] Metrics Dashboard - Data collection integration
-- [ ] 集成 Auto-Refine Engine 到 EnhancedModuleGenerator
+- [ ] End-to-end testing with metrics collection
 
 ### ❌ 未開始
 - [ ] Metrics Dashboard UI
