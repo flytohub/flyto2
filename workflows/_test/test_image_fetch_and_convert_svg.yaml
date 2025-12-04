@@ -1,0 +1,17 @@
+name: "Test image.fetch_and_convert_svg"
+description: "Fetches an SVG image from a URL and converts it to a PNG format. - Auto-generated test"
+
+steps:
+  - id: test_fetch_and_convert_svg_basic
+    module: image.fetch_and_convert_svg
+    params:
+      url: "https://httpbin.org/image/jpeg"
+      save_path: "/tmp/test_save_path.dat"
+    description: "Basic functionality test"
+
+  - id: verify_result
+    module: test.assert_not_null
+    params:
+      value: "${test_fetch_and_convert_svg_basic.result}"
+      message: "image.fetch_and_convert_svg should return a result"
+
