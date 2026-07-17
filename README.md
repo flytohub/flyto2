@@ -15,6 +15,8 @@ Current open-source entry points:
   documentation and citation surface.
 - [flyto2.com](https://flyto2.com) — product site, downloads, pricing, and
   public route discovery.
+- [AI workflow automation alternatives](https://blog.flyto2.com/posts/ai-workflow-automation-alternatives)
+  — how Flyto2 compares with n8n, Zapier, Make, Playwright, and LangGraph.
 
 ## Status
 
