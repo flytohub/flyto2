@@ -5,6 +5,17 @@ Deprecated legacy distribution shell for Flyto2.
 Flyto2 is now organized across product-line repositories. This repository is
 kept for legacy release/download metadata and security-policy routing only.
 
+Current open-source entry points:
+
+- [flyto-core](https://github.com/flytohub/flyto-core) — execution kernel,
+  browser automation, MCP-native runtime, recipes, evidence, and replay.
+- [flyto-indexer](https://github.com/flytohub/flyto-indexer) — code
+  intelligence MCP for impact analysis, dependency graphs, and AI coding gates.
+- [flyto-docs](https://github.com/flytohub/flyto-docs) — public technical
+  documentation and citation surface.
+- [flyto2.com](https://flyto2.com) — product site, downloads, pricing, and
+  public route discovery.
+
 ## Status
 
 - Repository status: deprecated
