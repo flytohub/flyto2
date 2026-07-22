@@ -6,6 +6,7 @@ This docs directory exists only to explain repository status.
 `flyto-docs`, product websites belong in `flyto-landing-page`, and product-line
 implementation docs belong with the active repos that own those surfaces.
 
+- [Legacy preservation whitepaper](WHITEPAPER.md)
 - [Supported legacy surfaces](FEATURES.md)
 - [Migration and repository routing](LEGACY_ROUTING.md)
 - [Architecture boundary](../ARCHITECTURE.md)

@@ -11,6 +11,7 @@
     "security": "SECURITY.md",
     "changelog": "CHANGELOG.md",
     "feature_reference": "docs/FEATURES.md",
+    "whitepaper": "docs/WHITEPAPER.md",
     "configuration_not_applicable": true,
     "module_roots": []
   },
