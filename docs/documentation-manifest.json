@@ -1,0 +1,72 @@
+{
+  "$schema": "https://docs.flyto2.com/schemas/documentation-contract-v1.json",
+  "schema_version": 1,
+  "repository": "flyto2",
+  "status": "deprecated",
+  "audiences": ["legacy users", "security reporters", "maintainers"],
+  "documentation": {
+    "index": "docs/README.md",
+    "architecture": "ARCHITECTURE.md",
+    "state": "STATE.md",
+    "security": "SECURITY.md",
+    "changelog": "CHANGELOG.md",
+    "feature_reference": "docs/FEATURES.md",
+    "configuration_not_applicable": true,
+    "module_roots": []
+  },
+  "source_areas": [
+    {
+      "id": "legacy-entrypoint",
+      "description": "Deprecated repository entry point that routes historical visitors to current Flyto2 product and documentation owners.",
+      "paths": ["README.md", "docs/**"],
+      "documentation": ["docs/FEATURES.md", "docs/LEGACY_ROUTING.md"]
+    },
+    {
+      "id": "policy-memory",
+      "description": "Security disclosure policy and durable project memory that keep the repository deprecated and non-authoritative.",
+      "paths": ["SECURITY.md", "PROJECT.md", "ARCHITECTURE.md", "STATE.md", "ROADMAP.md", "DECISIONS.md"],
+      "documentation": ["docs/FEATURES.md#security-disclosure-routing", "docs/FEATURES.md#project-memory"]
+    }
+  ],
+  "feature_surfaces": [
+    {
+      "id": "repository-routing",
+      "title": "Active repository routing",
+      "kind": "content",
+      "status": "active",
+      "description": "Routes users from a retired repository name to the current owners for runtime, cloud, security, indexer, docs, blog, and website work.",
+      "source": ["README.md", "docs/LEGACY_ROUTING.md"],
+      "documentation": ["docs/FEATURES.md#active-repository-routing", "docs/LEGACY_ROUTING.md"],
+      "verification": ["Review every external route and confirm that it resolves to a current Flyto2 owner"]
+    },
+    {
+      "id": "historical-releases",
+      "title": "Historical release discovery",
+      "kind": "content",
+      "status": "deprecated",
+      "description": "Preserves a non-authoritative pointer to historical GitHub Releases without claiming current builds, platforms, or compatibility.",
+      "source": ["README.md"],
+      "documentation": ["docs/FEATURES.md#historical-release-discovery", "README.md#historical-downloads"]
+    },
+    {
+      "id": "security-routing",
+      "title": "Security disclosure routing",
+      "kind": "governance",
+      "status": "active",
+      "description": "Provides a private Flyto2 disclosure channel for issues discovered through legacy artifacts or repository content.",
+      "source": ["SECURITY.md"],
+      "documentation": ["docs/FEATURES.md#security-disclosure-routing", "SECURITY.md"],
+      "verification": ["Run the organization documentation audit and verify the flyto2.com security contact domain"]
+    },
+    {
+      "id": "deprecation-guardrail",
+      "title": "Deprecation guardrail",
+      "kind": "governance",
+      "status": "active",
+      "description": "Records architectural non-goals and maintenance rules that prevent this shell from becoming an accidental product authority.",
+      "source": ["AGENTS.md", "PROJECT.md", "ARCHITECTURE.md", "STATE.md", "ROADMAP.md"],
+      "documentation": ["docs/FEATURES.md#project-memory", "ARCHITECTURE.md"],
+      "verification": ["Run the organization documentation audit and confirm that no runtime source or package manifest exists"]
+    }
+  ]
+}

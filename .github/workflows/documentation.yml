@@ -1,0 +1,44 @@
+name: Documentation
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    uses: flytohub/.github/.github/workflows/reusable-documentation.yml@main
+
+  verify:
+    name: Lint, test, build, and verify legacy docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Lint Markdown and patch hygiene
+        run: |
+          git diff --check
+          test -s README.md
+          test -s SECURITY.md
+          test -s docs/README.md
+      - name: Test Markdown links and required routes
+        run: |
+          grep -Fq "https://github.com/flytohub/flyto-core" README.md
+          grep -Fq "https://docs.flyto2.com" README.md
+          grep -Fq "security@flyto2.com" SECURITY.md
+          grep -Fq "Deprecated legacy distribution shell" README.md
+      - name: Build deterministic documentation bundle
+        run: |
+          mkdir -p out
+          COPYFILE_DISABLE=1 tar --sort=name --mtime='UTC 1970-01-01' --owner=0 --group=0 --numeric-owner -czf out/flyto2-legacy-docs.tar.gz *.md docs workflows handoffs
+          tar -tzf out/flyto2-legacy-docs.tar.gz >/dev/null
+      - name: Verify repository contract
+        run: |
+          python -m pip install flyto-indexer
+          flyto-index verify . --full-scan --strict --json

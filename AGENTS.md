@@ -5,6 +5,9 @@ This repository is a deprecated Flyto2 legacy distribution shell.
 Before making changes:
 
 - Read `PROJECT.md`, `ARCHITECTURE.md`, `STATE.md`, and `DECISIONS.md`.
+- Run `flyto-index context --path . --query "legacy routing documentation"`
+  before editing, then search with `rg` and run `flyto-index impact` when a
+  named symbol exists. Inspect every affected public route.
 - Do not add product authority, entitlement logic, workflow runtime logic, or
   security scanning logic here.
 - Keep this repo limited to legacy release/download metadata and compatibility
@@ -19,6 +22,10 @@ Flyto2 product authority lives in:
   lines.
 
 Use `git -C /Users/chester/flytohub/flyto2 ...` for git operations.
+
+After changes, run `flyto-index verify . --full-scan --strict` and confirm the
+documentation workflow still performs explicit lint, test, build, and verify
+steps. A reusable workflow alone is not sufficient local evidence.
 
 ## Flyto2 Project Memory Contract
 

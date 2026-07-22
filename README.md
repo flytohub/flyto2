@@ -46,26 +46,38 @@ Active work should move to the owning Flyto2 repository:
 - `flyto-data` and future intelligence/company-agent repos for upcoming product
   lines.
 
-## Download
+## API
 
-Download the latest version for your platform from the [Releases](https://github.com/flytohub/flyto2/releases) page.
+This repository exposes no API, command-line interface, package, MCP server, or
+runtime contract. Use the API and CLI references in the active owning
+repository; do not infer current endpoints from historical release artifacts.
 
-| Platform | File |
-|----------|------|
-| macOS (Apple Silicon) | `Flyto2_x.x.x_aarch64.dmg` |
-| Windows | `Flyto2_x.x.x_x64-setup.exe` |
-| Linux | `Flyto2_x.x.x_amd64.AppImage` |
+## Configuration
 
-## System Requirements
+There are no runtime settings, environment variables, credentials, or deploy
+profiles in this checkout. Current configuration belongs to the active product
+repository and [docs.flyto2.com](https://docs.flyto2.com).
 
-- **macOS**: 10.15+ (Apple Silicon)
-- **Windows**: 10+
-- **Linux**: Ubuntu 20.04+ or equivalent
+## Historical Downloads
+
+The [Releases](https://github.com/flytohub/flyto2/releases) page is the only
+authority for artifacts that were actually published. Filenames, supported
+platforms, signatures, and requirements vary by release; this deprecated
+repository does not promise a current desktop build or compatibility level.
+
+Verify checksums and release notes before running a historical artifact. For
+current installation paths, start at [docs.flyto2.com](https://docs.flyto2.com).
 
 ## Architecture
 
 This repository has no runtime architecture. See `ARCHITECTURE.md` for the
 legacy-shell boundary and active repo routing.
+
+## Documentation
+
+- [Legacy routing guide](docs/LEGACY_ROUTING.md)
+- [Supported repository surfaces](docs/FEATURES.md)
+- [Security policy](SECURITY.md)
 
 ## Testing
 
@@ -75,6 +87,22 @@ There is no app test suite in this repository. Verification is limited to:
 - security policy presence
 - secret scan cleanliness
 - Flyto2 product-gate classification
+
+The repository workflow also runs explicit Markdown lint, local documentation
+tests, a deterministic documentation bundle build, and strict Flyto2 Indexer
+verification.
+
+## Contributing
+
+Changes are limited to correcting legacy links, release metadata, security
+routing, and deprecation documentation. Open product features against the
+active repository listed in [the routing guide](docs/LEGACY_ROUTING.md).
+
+## License
+
+Historical release artifacts retain the license and notices shipped with their
+specific release. This legacy documentation checkout does not override those
+terms or grant rights to code maintained in another Flyto2 repository.
 
 ## Links
 
