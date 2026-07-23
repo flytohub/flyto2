@@ -36,9 +36,9 @@ jobs:
       - name: Build deterministic documentation bundle
         run: |
           mkdir -p out
-          COPYFILE_DISABLE=1 tar --sort=name --mtime='UTC 1970-01-01' --owner=0 --group=0 --numeric-owner -czf out/flyto2-legacy-docs.tar.gz *.md docs workflows handoffs
+          COPYFILE_DISABLE=1 tar --sort=name --mtime='UTC 1970-01-01' --owner=0 --group=0 --numeric-owner -czf out/flyto2-legacy-docs.tar.gz -- *.md docs workflows handoffs
           tar -tzf out/flyto2-legacy-docs.tar.gz >/dev/null
       - name: Verify repository contract
         run: |
-          python -m pip install "flyto-indexer @ git+https://github.com/flytohub/flyto-indexer@7ad6917887ffde8e43a3cee029c849a1a0ba2909"
+          python -m pip install "flyto-indexer @ git+https://github.com/flytohub/flyto-indexer@1b624987b15ef7cd2361370478d07ea36e5aa5ee"
           flyto-index verify . --full-scan --strict --json
