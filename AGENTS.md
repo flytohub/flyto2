@@ -21,7 +21,7 @@ Flyto2 product authority lives in:
 - Future `flyto-data`, company-agent, and big-data repos for their product
   lines.
 
-Use `git -C /Users/chester/flytohub/flyto2 ...` for git operations.
+Use `git -C /Users/chester/Projects/flytohub/flyto2 ...` for git operations.
 
 After changes, run `flyto-index verify . --full-scan --strict` and confirm the
 documentation workflow still performs explicit lint, test, build, and verify
@@ -60,3 +60,26 @@ Any frontend, website, dashboard, extension webview, app screen, or generated UI
 8. Hard-to-understand content: copy must be concrete, scannable, current, and consistent with Flyto2 terminology.
 
 Frontend verification must include the relevant automated checks plus manual or screenshot review for responsive layout, accessibility states, navigation clarity, loading/empty/error states, and content readability. Public pages must preserve SEO basics: canonical URL, sitemap coverage, metadata, structured data when relevant, and no broken internal or external links.
+
+## Repo notes
+
+Merged from `CLAUDE.md` so Codex and Claude read one set of rules.
+
+This repo is deprecated and must not become the active Flyto2 product root.
+
+When assisting here:
+
+- Explore the current repository with `flyto-index context`, search with `rg`,
+  and inspect `flyto-index impact` before changing public routing or policy
+  text.
+- Preserve README and security disclosure clarity for legacy visitors.
+- Route implementation work to the correct active repo.
+- Do not copy credentials, local secrets, or deployment tokens into files.
+- Keep generated notes small and explicit.
+
+Before finishing, run `flyto-index verify . --full-scan --strict` and report
+the exact local verification performed.
+
+If a task asks for runtime, marketplace, workflow, crawler, entitlement,
+security, AI governance, GEO, or i18n implementation, stop and inspect the
+corresponding active repo instead of implementing it here.
