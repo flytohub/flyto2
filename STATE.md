@@ -3,6 +3,9 @@
 ## Current State
 
 - Deprecated legacy distribution shell.
+- Governed coding jobs run patch hygiene, the local legacy routing and
+  deterministic documentation-bundle verifier, and strict Indexer validation
+  through `.flyto/coding.yaml` before independent Codex audit.
 - Contains README download pointers and security disclosure policy.
 - No source code, package manifest, app runtime, release pipeline, or deployable
   artifact is present in this checkout.

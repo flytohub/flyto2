@@ -1,0 +1,16 @@
+# Host-owned verification contract for governed Flyto2 coding jobs.
+version: flyto.coding-config.v1
+checks:
+  - name: patch-hygiene
+    argv: [git, diff, --check]
+    timeout_seconds: 120
+    required: true
+  - name: legacy-contract
+    argv: [python3, scripts/verify.py]
+    timeout_seconds: 300
+    required: true
+  - name: indexer
+    argv: [flyto-index, verify, ., --full-scan, --strict]
+    timeout_seconds: 600
+    required: true
+capabilities: []

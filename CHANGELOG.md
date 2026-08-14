@@ -4,6 +4,10 @@
 
 ### Added
 
+- Added a governed Flyto2 coding contract and local verifier for legacy routes,
+  deterministic documentation bundles, patch hygiene, and strict Indexer
+  validation.
+
 - Added project memory, workflow notes, docs pointer, and handoff registry for
   the deprecated legacy shell classification.
 - Added explicit feature coverage, legacy routing, and machine-readable

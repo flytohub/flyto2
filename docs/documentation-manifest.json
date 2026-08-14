@@ -27,6 +27,12 @@
       "description": "Security disclosure policy and durable project memory that keep the repository deprecated and non-authoritative.",
       "paths": ["SECURITY.md", "PROJECT.md", "ARCHITECTURE.md", "STATE.md", "ROADMAP.md", "DECISIONS.md"],
       "documentation": ["docs/FEATURES.md#security-disclosure-routing", "docs/FEATURES.md#project-memory"]
+    },
+    {
+      "id": "verification-automation",
+      "description": "Governed legacy-route checks, deterministic documentation bundling, and continuous verification.",
+      "paths": ["scripts/**", ".flyto/coding.yaml", ".github/workflows/**"],
+      "documentation": ["STATE.md", "AGENTS.md", "docs/FEATURES.md"]
     }
   ],
   "feature_surfaces": [
