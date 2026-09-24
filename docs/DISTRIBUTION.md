@@ -165,6 +165,8 @@ Align each source repository to output a candidate bundle with identical release
 
 ### Phase 3 — central ingest and promotion
 
+Implemented as `.github/workflows/ingest-release.yml` (inputs: `product`, `source_run_id`, `promote`). Source repositories are public, so the workflow reads the candidate with its own token and needs no cross-repository credential; it writes only to this repository. The first product wired to it is Flyto2 Runtime.
+
 Add a `workflow_dispatch`/trusted cross-repository ingest workflow in `flyto2`. It verifies candidate evidence and creates the namespaced distribution release.
 
 Use GitHub OIDC/GitHub App or another short-lived trusted mechanism for cross-repository release authorization. Do not store a reusable personal token in product source.

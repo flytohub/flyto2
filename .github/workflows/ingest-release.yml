@@ -1,0 +1,185 @@
+name: Ingest release
+
+# Verifies a release candidate built by a registered product's source
+# repository, publishes it under the product's namespaced tag, and optionally
+# moves a channel pointer to it. See docs/DISTRIBUTION.md.
+#
+# No cross-repository credential is involved: source repositories are public,
+# so this repository's own token reads the candidate, and it writes only here.
+on:
+  workflow_dispatch:
+    inputs:
+      product:
+        description: Product id from products/catalog.json
+        required: true
+        type: string
+      source_run_id:
+        description: Run id of the source repository's candidate build
+        required: true
+        type: string
+      promote:
+        description: Channel to point at the release once it is published
+        required: true
+        type: choice
+        options: [none, beta, stable]
+        default: none
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: ingest-release
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    name: Ingest ${{ inputs.product }} run ${{ inputs.source_run_id }}
+    # macOS installers are checked with Gatekeeper, which only macOS has.
+    runs-on: macos-latest
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PRODUCT: ${{ inputs.product }}
+      RUN_ID: ${{ inputs.source_run_id }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      - name: Install the schema validator
+        run: python -m pip install "jsonschema==4.23.0"
+
+      - name: Resolve the product
+        id: product
+        run: |
+          [[ "$RUN_ID" =~ ^[0-9]+$ ]] || { echo "source_run_id must be a number." >&2; exit 1; }
+          source_repository="$(python - <<'PY'
+          import json, os
+          catalog = json.load(open("products/catalog.json"))
+          matches = [p for p in catalog["products"] if p["id"] == os.environ["PRODUCT"]]
+          if not matches:
+              raise SystemExit(f"{os.environ['PRODUCT']!r} is not a registered product")
+          print(matches[0]["source_repository"])
+          PY
+          )"
+          echo "source_repository=$source_repository" >> "$GITHUB_OUTPUT"
+
+      - name: Fetch the candidate
+        env:
+          SOURCE: ${{ steps.product.outputs.source_repository }}
+        run: |
+          gh api "repos/$SOURCE/actions/runs/$RUN_ID" > run.json
+          gh run download "$RUN_ID" -R "$SOURCE" --pattern '*-candidate' --dir downloaded
+          manifests=(downloaded/*/release-manifest.json)
+          if [[ ${#manifests[@]} -ne 1 || ! -f "${manifests[0]}" ]]; then
+            echo "Run $RUN_ID of $SOURCE must carry exactly one candidate with a release-manifest.json." >&2
+            exit 1
+          fi
+          mv "$(dirname "${manifests[0]}")" candidate
+          ls -la candidate
+
+      - name: Resolve the source tag
+        id: tag
+        env:
+          SOURCE: ${{ steps.product.outputs.source_repository }}
+        run: |
+          tag="$(python -c 'import json; print(json.load(open("candidate/release-manifest.json"))["source"]["tag"])')"
+          ref="$(gh api "repos/$SOURCE/git/ref/tags/$tag")"
+          sha="$(jq -r .object.sha <<<"$ref")"
+          if [[ "$(jq -r .object.type <<<"$ref")" == "tag" ]]; then
+            sha="$(gh api "repos/$SOURCE/git/tags/$sha" --jq .object.sha)"
+          fi
+          echo "commit=$sha" >> "$GITHUB_OUTPUT"
+
+      - name: Verify identities, digests and SBOM
+        env:
+          TAG_COMMIT: ${{ steps.tag.outputs.commit }}
+        run: python scripts/ingest_release.py verify candidate --product "$PRODUCT" --run run.json --tag-commit "$TAG_COMMIT"
+
+      - name: Verify attestations
+        env:
+          SOURCE: ${{ steps.product.outputs.source_repository }}
+        run: |
+          read -r commit workflow sbom provenance sbom_bundle < <(python - <<'PY'
+          import json
+          m = json.load(open("candidate/release-manifest.json"))
+          bundles = [a["path"] for a in m.get("attestations", [])]
+          print(m["source"]["commit"], m["build"]["workflow"], m["sbom"]["path"], m["provenance"]["path"], bundles[0] if bundles else "-")
+          PY
+          )
+          signer="$SOURCE/$workflow"
+          for installer in $(jq -r '.artifacts[] | select(.kind == "installer") | .name' candidate/release-manifest.json); do
+            gh attestation verify "candidate/$installer" --repo "$SOURCE" --signer-workflow "$signer" \
+              --source-digest "$commit" --deny-self-hosted-runners --bundle "candidate/$provenance"
+            if [[ "$sbom_bundle" != "-" ]]; then
+              gh attestation verify "candidate/$installer" --repo "$SOURCE" --signer-workflow "$signer" \
+                --source-digest "$commit" --deny-self-hosted-runners --bundle "candidate/$sbom_bundle" \
+                --predicate-type https://cyclonedx.org/bom
+            fi
+          done
+
+      - name: Verify native signing
+        run: |
+          for installer in $(jq -r '.artifacts[] | select(.kind == "installer" and .platform == "macos") | .name' candidate/release-manifest.json); do
+            xcrun stapler validate "candidate/$installer"
+            spctl --assess --type open --context context:primary-signature --verbose=2 "candidate/$installer"
+            mount="$(hdiutil attach -nobrowse -readonly "candidate/$installer" | tail -n 1 | awk -F'\t' '{print $NF}')"
+            for app in "$mount"/*.app; do
+              spctl --assess --type execute --verbose=2 "$app" 2>&1 | tee assessment.txt
+              grep -q "source=Notarized Developer ID" assessment.txt
+            done
+            hdiutil detach "$mount"
+          done
+
+      - name: Publish the namespaced release
+        id: release
+        run: |
+          tag="$(jq -r .distribution_tag candidate/release-manifest.json)"
+          version="$(jq -r .version candidate/release-manifest.json)"
+          name="$(jq -r .display_name candidate/release-manifest.json) $version"
+          url="https://github.com/$GITHUB_REPOSITORY/releases/tag/$tag"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            # Published tags are immutable: the same candidate is a no-op, anything else is refused.
+            gh release download "$tag" --pattern release-manifest.json --dir published
+            if ! cmp -s published/release-manifest.json candidate/release-manifest.json; then
+              echo "$tag is already published from a different candidate." >&2
+              exit 1
+            fi
+            echo "$tag is already published from this candidate."
+          else
+            python scripts/ingest_release.py notes candidate > notes.md
+            args=(release create "$tag" --title "$name" --notes-file notes.md --target "$GITHUB_SHA" --latest=false)
+            if [[ "$(jq -r .channel candidate/release-manifest.json)" == "beta" ]]; then
+              args+=(--prerelease)
+            fi
+            gh "${args[@]}" candidate/*
+          fi
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "Published [$tag]($url)." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Promote the channel
+        if: inputs.promote != 'none'
+        env:
+          CHANNEL: ${{ inputs.promote }}
+          RELEASE_URL: ${{ steps.release.outputs.url }}
+          TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          python scripts/ingest_release.py promote --product "$PRODUCT" --channel "$CHANNEL" \
+            --manifest candidate/release-manifest.json --release-url "$RELEASE_URL"
+          python scripts/verify.py
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add products
+          if git diff --cached --quiet; then
+            echo "The $CHANNEL channel already points at $TAG."
+          else
+            git commit -m "release: promote $PRODUCT $CHANNEL to $TAG"
+            git push origin "HEAD:$GITHUB_REF_NAME"
+          fi
+          echo "Promoted $PRODUCT $CHANNEL to $TAG." >> "$GITHUB_STEP_SUMMARY"

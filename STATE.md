@@ -23,14 +23,24 @@
 - Provenance/attestation requirement: defined.
 - Native platform signing boundary: defined.
 
+### Ingest and promotion
+
+- Candidate ingest, namespaced release publication and channel promotion:
+  `.github/workflows/ingest-release.yml` + `scripts/ingest_release.py`
+  (2026-09-24). No cross-repository credential: the public source repository's
+  run and candidate artifact are read with this repository's own token.
+- Runtime source-repo candidate bundle: emitted by `flyto-runtime`'s
+  **macOS App** workflow with `candidate: true` (both Mac architectures,
+  notarized, CycloneDX SBOM, build provenance and SBOM attestations,
+  `SHA256SUMS`, `release-manifest.json`).
+- `scripts/verify.py` exercises the ingest rules on a synthetic candidate
+  (one accepted, five tampered variants refused) and a promotion on a copy.
+
 ### Still To Implement
 
-- Trusted cross-repository candidate ingest workflow.
-- Namespaced GitHub Release publisher.
-- Channel pointer/index publisher.
 - Flow source-repo candidate bundle alignment.
-- Runtime source-repo candidate bundle alignment.
 - Agent Firewall source-repo candidate bundle alignment.
+- Windows Runtime installer (needs an Authenticode certificate decision).
 - Website/updater consumption of distribution manifests.
 - Enterprise/offline mirror generation.
 
