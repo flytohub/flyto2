@@ -4,18 +4,17 @@
 
 ### Added
 
-- Added a governed Flyto2 coding contract and local verifier for legacy routes,
-  deterministic documentation bundles, patch hygiene, and strict Indexer
-  validation.
-
-- Added project memory, workflow notes, docs pointer, and handoff registry for
-  the deprecated legacy shell classification.
-- Added explicit feature coverage, legacy routing, and machine-readable
-  documentation ownership with a reusable CI gate.
-- Added a local lint, test, documentation-build, and strict Indexer CI loop,
-  plus explicit API, configuration, contribution, and license boundaries.
+- Reactivated the repository contract as the Flyto2 Distribution Hub.
+- Added product registration for Flyto2 Flow, Flyto2 Runtime, and Flyto2 Agent Firewall.
+- Added dedicated Markdown product/download pages plus per-product `stable.json` and `beta.json` channel entry points.
+- Added independent product tag namespaces and stable/beta release-channel policy.
+- Added `release-policy.json` for immutable versioning, required release evidence, signing, and artifact-storage rules.
+- Added a machine-readable release manifest schema.
+- Added distribution architecture and software-supply-chain documentation.
+- Added CycloneDX SBOM, SHA-256 checksum, provenance/attestation, and native-signing requirements.
 
 ### Changed
 
-- Removed unverified current platform and system-requirement claims from the
-  historical download section; GitHub Releases now remains the authority.
+- Reclassified historical `v0.x` desktop releases as the pre-rename Flyto2 Flow lineage without rewriting historical tags or assets.
+- Changed repository authority from deprecated routing shell to release/distribution authority while keeping product source ownership in product-specific repositories.
+- Updated repository verification to validate distribution metadata and preserve the no-runtime-source boundary.

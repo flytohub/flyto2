@@ -2,8 +2,13 @@
   "$schema": "https://docs.flyto2.com/schemas/documentation-contract-v1.json",
   "schema_version": 1,
   "repository": "flyto2",
-  "status": "deprecated",
-  "audiences": ["legacy users", "security reporters", "maintainers"],
+  "status": "active",
+  "audiences": [
+    "Flyto2 users",
+    "release maintainers",
+    "enterprise operators",
+    "security reporters"
+  ],
   "documentation": {
     "index": "docs/README.md",
     "architecture": "ARCHITECTURE.md",
@@ -12,68 +17,84 @@
     "changelog": "CHANGELOG.md",
     "feature_reference": "docs/FEATURES.md",
     "whitepaper": "docs/WHITEPAPER.md",
-    "configuration_not_applicable": true,
+    "distribution": "docs/DISTRIBUTION.md",
+    "supply_chain": "docs/SUPPLY_CHAIN.md",
+    "product_registry": "products/catalog.json",
+    "release_policy": "release-policy.json",
+    "release_manifest_schema": "schemas/release-manifest.schema.json",
     "module_roots": []
   },
   "source_areas": [
     {
-      "id": "legacy-entrypoint",
-      "description": "Deprecated repository entry point that routes historical visitors to current Flyto2 product and documentation owners.",
-      "paths": ["README.md", "docs/**"],
-      "documentation": ["docs/FEATURES.md", "docs/LEGACY_ROUTING.md"]
+      "id": "distribution-entrypoint",
+      "description": "Public Flyto2 distribution model, product catalog, historical release continuity, and source ownership routing.",
+      "paths": ["README.md", "docs/**", "products/**"],
+      "documentation": ["README.md", "docs/DISTRIBUTION.md", "docs/LEGACY_ROUTING.md"]
+    },
+    {
+      "id": "release-contract",
+      "description": "Machine-readable versioning, release evidence, SBOM/provenance, signing, and release-manifest contracts.",
+      "paths": ["release-policy.json", "schemas/**"],
+      "documentation": ["docs/DISTRIBUTION.md", "docs/SUPPLY_CHAIN.md"]
     },
     {
       "id": "policy-memory",
-      "description": "Security disclosure policy and durable project memory that keep the repository deprecated and non-authoritative.",
+      "description": "Security disclosure and durable project memory for the distribution/source-authority boundary.",
       "paths": ["SECURITY.md", "PROJECT.md", "ARCHITECTURE.md", "STATE.md", "ROADMAP.md", "DECISIONS.md"],
-      "documentation": ["docs/FEATURES.md#security-disclosure-routing", "docs/FEATURES.md#project-memory"]
+      "documentation": ["docs/FEATURES.md", "ARCHITECTURE.md"]
     },
     {
       "id": "verification-automation",
-      "description": "Governed legacy-route checks, deterministic documentation bundling, and continuous verification.",
+      "description": "Distribution-contract checks, deterministic metadata bundling, and strict repository verification.",
       "paths": ["scripts/**", ".flyto/coding.yaml", ".github/workflows/**"],
       "documentation": ["STATE.md", "AGENTS.md", "docs/FEATURES.md"]
     }
   ],
   "feature_surfaces": [
     {
-      "id": "repository-routing",
-      "title": "Active repository routing",
-      "kind": "content",
+      "id": "product-registry",
+      "title": "Product registry",
+      "kind": "distribution",
       "status": "active",
-      "description": "Routes users from a retired repository name to the current owners for runtime, cloud, security, indexer, docs, blog, and website work.",
-      "source": ["README.md", "docs/LEGACY_ROUTING.md"],
-      "documentation": ["docs/FEATURES.md#active-repository-routing", "docs/LEGACY_ROUTING.md"],
-      "verification": ["Review every external route and confirm that it resolves to a current Flyto2 owner"]
+      "description": "Binds installable Flyto2 product identities to source repositories and distribution tag namespaces.",
+      "source": ["products/catalog.json"],
+      "documentation": ["products/README.md", "README.md#products"]
     },
     {
-      "id": "historical-releases",
-      "title": "Historical release discovery",
-      "kind": "content",
-      "status": "deprecated",
-      "description": "Preserves a non-authoritative pointer to historical GitHub Releases without claiming current builds, platforms, or compatibility.",
-      "source": ["README.md"],
-      "documentation": ["docs/FEATURES.md#historical-release-discovery", "README.md#historical-downloads"]
+      "id": "release-governance",
+      "title": "Release governance",
+      "kind": "governance",
+      "status": "active",
+      "description": "Defines immutable product versions, required release evidence, channels, and artifact-storage boundaries.",
+      "source": ["release-policy.json", "schemas/release-manifest.schema.json"],
+      "documentation": ["docs/DISTRIBUTION.md", "docs/SUPPLY_CHAIN.md"]
+    },
+    {
+      "id": "historical-flow-lineage",
+      "title": "Historical Flyto2 Flow lineage",
+      "kind": "compatibility",
+      "status": "active",
+      "description": "Preserves root v0.x releases as the pre-rename Flyto2 Flow lineage without rewriting historical tags or assets.",
+      "source": ["README.md", "products/catalog.json"],
+      "documentation": ["README.md#historical-downloads", "docs/DISTRIBUTION.md#historical-flyto2-releases"]
     },
     {
       "id": "security-routing",
       "title": "Security disclosure routing",
       "kind": "governance",
       "status": "active",
-      "description": "Provides a private Flyto2 disclosure channel for issues discovered through legacy artifacts or repository content.",
+      "description": "Provides the private Flyto2 disclosure channel for distribution and historical artifacts.",
       "source": ["SECURITY.md"],
-      "documentation": ["docs/FEATURES.md#security-disclosure-routing", "SECURITY.md"],
-      "verification": ["Run the organization documentation audit and verify the flyto2.com security contact domain"]
+      "documentation": ["SECURITY.md"]
     },
     {
-      "id": "deprecation-guardrail",
-      "title": "Deprecation guardrail",
+      "id": "source-boundary",
+      "title": "Source authority boundary",
       "kind": "governance",
       "status": "active",
-      "description": "Records architectural non-goals and maintenance rules that prevent this shell from becoming an accidental product authority.",
-      "source": ["AGENTS.md", "PROJECT.md", "ARCHITECTURE.md", "STATE.md", "ROADMAP.md"],
-      "documentation": ["docs/FEATURES.md#project-memory", "ARCHITECTURE.md"],
-      "verification": ["Run the organization documentation audit and confirm that no runtime source or package manifest exists"]
+      "description": "Keeps product implementation in product repositories while flyto2 owns official distribution metadata and promotion.",
+      "source": ["AGENTS.md", "PROJECT.md", "ARCHITECTURE.md"],
+      "documentation": ["docs/LEGACY_ROUTING.md", "docs/DISTRIBUTION.md"]
     }
   ]
 }

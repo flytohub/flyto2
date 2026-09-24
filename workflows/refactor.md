@@ -1,6 +1,14 @@
 # Refactor
 
-This repo has no runtime refactor surface.
+Refactors here should improve the distribution control plane without absorbing product source.
 
-Refactor requests should normally be redirected to active Flyto2 repos. Only
-reorganize local docs if it improves handoff clarity.
+Good targets include:
+
+- simplifying product/release schemas;
+- reducing duplicate release metadata;
+- centralizing verification logic;
+- making channel promotion atomic and auditable;
+- improving deterministic release indexes;
+- clarifying source/distribution ownership.
+
+Do not move Flow, Runtime, Agent Firewall, or other product implementation into this repository as part of a refactor.

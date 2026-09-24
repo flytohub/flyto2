@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "id": "runtime",
+  "display_name": "Flyto2 Runtime",
+  "source_repository": "flytohub/flyto-runtime",
+  "distribution_tag_prefix": "runtime/v",
+  "documentation": "products/runtime/README.md"
+}

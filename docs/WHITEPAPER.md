@@ -1,55 +1,67 @@
-# Flyto2 Legacy Distribution Whitepaper
+# Flyto2 Distribution Hub
 
 ## Abstract
 
-The flyto2 repository is a deprecated distribution and routing shell. It
-exists because historical links, releases, and security reports continue to
-arrive after active implementation moved into product-specific repositories.
-Its purpose is preservation and redirection, not product development.
+Flyto2 has multiple independently releasable products. A single source monorepo would blur ownership, while unrelated release pages would fragment user trust, updater logic, SBOM delivery, provenance, and enterprise distribution.
 
-## Why Preserve The Repository
+The `flytohub/flyto2` repository therefore acts as a distribution control plane: product repositories own source; this repository owns the contract that turns an approved build into an official Flyto2 release.
 
-Deleting a legacy repository breaks release URLs, external references, and
-security-reporting paths. Leaving it unexplained invites contributors and
-automation to treat obsolete metadata as current architecture. A bounded shell
-preserves discoverability while making deprecation machine-readable and
-human-readable.
+## Why Centralize Distribution
+
+A shared distribution authority gives every product the same answers to operational questions:
+
+- What is the current stable version?
+- What exact source commit produced this installer?
+- Which CI run built it?
+- What is the SHA-256 digest?
+- What dependencies shipped with it?
+- What SBOM and provenance correspond to the artifact?
+- Is the package natively signed?
+- Which release should an updater or offline mirror consume?
+
+Centralizing those answers does not require centralizing source code.
 
 ## Authority Model
 
-This checkout owns only legacy release discovery, security disclosure routing,
-and repository-selection guidance. It exposes no API, CLI, package, MCP server,
-runtime configuration, deployment, or active application. Historical artifacts
-retain the license, compatibility, and checksum information shipped with their
-specific release.
+Source authority remains product-specific:
 
-Active authority belongs to:
+- Flyto2 Flow: `flytohub/flyto-flow`;
+- Flyto2 Runtime: `flytohub/flyto-runtime`;
+- Flyto2 Agent Firewall: `flytohub/flyto-engine`.
 
-- flyto-core for execution, automation, recipes, and MCP runtime;
-- flyto-indexer for code intelligence and verification;
-- flyto-cloud for hosted product and application workflows;
-- flyto-code, flyto-engine, and flyto-ai for security surfaces;
-- flyto-docs, flyto-blog, and flyto-landing-page for public information.
+Distribution authority lives here:
 
-## Safety And Maintenance
+- product registration;
+- release tag namespace;
+- release manifest schema;
+- checksum/SBOM/provenance/signing requirements;
+- immutable public release identity;
+- channel promotion;
+- historical release continuity;
+- website/updater/offline distribution metadata.
 
-No credentials, runtime code, billing rules, entitlements, tenant policy, or
-deployment logic should be added here. Security reports continue through
-private GitHub reporting or security@flyto2.com so users following old links
-still reach a maintained channel.
+## Historical Continuity
 
-## Verification
+The original Flyto2 desktop releases predate the Flyto2 Flow name. Their root `v0.x` tags remain immutable and form the historical Flow lineage.
 
-The repository gate checks required routing and security documents, Markdown,
-local links, deterministic documentation packaging, brand/contact policy, and
-strict Flyto2 Indexer classification. There is intentionally no application
-build or release publisher.
+The migration creates a clean future namespace without rewriting the past.
+
+## Supply Chain Model
+
+A production release is accepted only when the downloaded bytes can be tied to an exact source and trusted build through checksums, SBOM, provenance/attestation, and platform signing where applicable.
+
+CycloneDX is the canonical distribution SBOM format. Artifact attestation and native code signing are complementary: one proves build origin, while the other participates in platform trust.
+
+## Operational Model
+
+Product repositories build candidates. The distribution layer verifies candidates and publishes immutable namespaced releases. Stable/beta indexes point to those immutable releases.
+
+Enterprise and air-gapped mirrors consume the same evidence rather than inventing a separate package lineage.
+
+## Non-Goals
+
+The Distribution Hub does not become a product runtime, billing system, policy engine, or source-code monorepo. It does not keep signing private keys or customer credentials in Git.
 
 ## End State
 
-The repository remains deprecated until historical traffic and release
-retention no longer require it. Any reactivation would require a new project
-charter, architecture, ownership, tests, release process, and explicit
-migration decision; legacy presence alone is not authorization to restart
-product development.
-
+The desired end state is one Flyto2 download and updater contract across all installable products, with independent product development and versioning underneath it.

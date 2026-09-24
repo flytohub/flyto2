@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "distribution_repository": "flytohub/flyto2",
+  "products": [
+    {
+      "id": "flow",
+      "display_name": "Flyto2 Flow",
+      "source_repository": "flytohub/flyto-flow",
+      "distribution_tag_prefix": "flow/v",
+      "product_page": "products/flow/README.md",
+      "stable_channel": "products/flow/stable.json",
+      "beta_channel": "products/flow/beta.json",
+      "channels": ["stable", "beta"],
+      "legacy_release_lineage": {
+        "repository": "flytohub/flyto2",
+        "tag_pattern": "^v0\\.",
+        "note": "Historical Flyto2 desktop releases before the Flyto2 Flow rename."
+      }
+    },
+    {
+      "id": "runtime",
+      "display_name": "Flyto2 Runtime",
+      "source_repository": "flytohub/flyto-runtime",
+      "distribution_tag_prefix": "runtime/v",
+      "product_page": "products/runtime/README.md",
+      "stable_channel": "products/runtime/stable.json",
+      "beta_channel": "products/runtime/beta.json",
+      "channels": ["stable", "beta"]
+    },
+    {
+      "id": "agent-firewall",
+      "display_name": "Flyto2 Agent Firewall",
+      "source_repository": "flytohub/flyto-engine",
+      "distribution_tag_prefix": "agent-firewall/v",
+      "product_page": "products/agent-firewall/README.md",
+      "stable_channel": "products/agent-firewall/stable.json",
+      "beta_channel": "products/agent-firewall/beta.json",
+      "channels": ["stable", "beta"]
+    }
+  ]
+}

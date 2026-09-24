@@ -1,10 +1,11 @@
 # Bugfix
 
-Use this workflow for legacy-shell bugs only:
+Use this workflow for distribution-contract bugs:
 
-1. Confirm the bug belongs to this repo.
-2. Update the minimal affected document.
-3. Verify links and security-policy clarity.
-4. Record the change in `CHANGELOG.md`.
+1. Confirm the issue belongs to release metadata, product registration, verification, promotion, channel indexes, historical release continuity, or download routing.
+2. Preserve published tag/artifact immutability.
+3. Make the smallest contract or automation fix.
+4. Run `python3 scripts/verify.py` and strict Indexer verification.
+5. Record user/operator-visible changes in `CHANGELOG.md`.
 
-If the bug is product behavior, move it to the active owning repo.
+If the bug changes product behavior or product-specific packaging implementation, move it to the owning source repository.

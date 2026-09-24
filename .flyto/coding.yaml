@@ -5,7 +5,7 @@ checks:
     argv: [git, diff, --check]
     timeout_seconds: 120
     required: true
-  - name: legacy-contract
+  - name: distribution-contract
     argv: [python3, scripts/verify.py]
     timeout_seconds: 300
     required: true

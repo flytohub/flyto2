@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "versioning": {
+    "scheme": "semver",
+    "distribution_tag": "<product-prefix><semver>",
+    "immutable_published_tags": true,
+    "independent_product_versions": true
+  },
+  "channels": {
+    "stable": {
+      "prerelease": false,
+      "requires_all_evidence": true
+    },
+    "beta": {
+      "prerelease": true,
+      "requires_all_evidence": true
+    }
+  },
+  "required_evidence": [
+    "release_manifest",
+    "source_repository",
+    "source_commit",
+    "source_tag",
+    "build_workflow",
+    "build_run",
+    "sha256_checksums",
+    "cyclonedx_sbom",
+    "provenance"
+  ],
+  "signing": {
+    "artifact_attestation_required": true,
+    "native_platform_signing_required_when_supported": true,
+    "private_keys_must_not_be_stored_in_repository": true
+  },
+  "storage": {
+    "commit_binary_installers_to_git": false,
+    "approved_release_surfaces": [
+      "github_release_assets",
+      "approved_artifact_registry",
+      "approved_cdn",
+      "approved_offline_mirror"
+    ]
+  }
+}

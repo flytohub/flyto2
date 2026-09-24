@@ -1,27 +1,31 @@
 # Agent Instructions
 
-This repository is a deprecated Flyto2 legacy distribution shell.
+This repository is the Flyto2 **distribution and release-governance authority**.
 
 Before making changes:
 
 - Read `PROJECT.md`, `ARCHITECTURE.md`, `STATE.md`, and `DECISIONS.md`.
-- Run `flyto-index context --path . --query "legacy routing documentation"`
+- Run `flyto-index context --path . --query "distribution release metadata SBOM provenance"`
   before editing, then search with `rg` and run `flyto-index impact` when a
-  named symbol exists. Inspect every affected public route.
-- Do not add product authority, entitlement logic, workflow runtime logic, or
-  security scanning logic here.
-- Keep this repo limited to legacy release/download metadata and compatibility
-  notes.
+  named symbol exists. Inspect every affected public release route.
+- Do not add product runtime, billing, entitlement, tenant, or security-enforcement
+  business logic here.
+- Keep this repo focused on product registration, version namespaces, release
+  manifests, checksums, SBOM/provenance/signing policy, promotion, channel
+  metadata, historical release continuity, and download discovery.
+- Never commit installer binaries, signing private keys, release credentials, or
+  customer-specific licenses to normal Git history.
 
-Flyto2 product authority lives in:
+Flyto2 source authority remains in product repositories:
 
+- `flyto-flow` for Flyto2 Flow.
+- `flyto-runtime` for Flyto2 Runtime.
+- `flyto-engine` for Flyto2 Agent Firewall source/backend/connectors.
 - `flyto-core` for execution kernel and automation runtime primitives.
-- `flyto-cloud` for Cloud / Apps / Automation product surfaces.
-- `flyto-code`, `flyto-engine`, and `flyto-ai` for Security surfaces.
-- Future `flyto-data`, company-agent, and big-data repos for their product
-  lines.
+- `flyto-cloud` for hosted Cloud product surfaces.
+- `flyto-code` and related Security repos for security UI/product surfaces.
 
-Use `git -C /Users/chester/Projects/flytohub/flyto2 ...` for git operations.
+Use `git -C /Users/chester/flytohub/flyto2 ...` for git operations.
 
 After changes, run `flyto-index verify . --full-scan --strict` and confirm the
 documentation workflow still performs explicit lint, test, build, and verify
@@ -65,21 +69,25 @@ Frontend verification must include the relevant automated checks plus manual or 
 
 Merged from `CLAUDE.md` so Codex and Claude read one set of rules.
 
-This repo is deprecated and must not become the active Flyto2 product root.
+This repo is active as the Flyto2 Distribution Hub, but it must not become a
+product source monorepo.
 
 When assisting here:
 
 - Explore the current repository with `flyto-index context`, search with `rg`,
-  and inspect `flyto-index impact` before changing public routing or policy
-  text.
-- Preserve README and security disclosure clarity for legacy visitors.
-- Route implementation work to the correct active repo.
-- Do not copy credentials, local secrets, or deployment tokens into files.
-- Keep generated notes small and explicit.
+  and inspect `flyto-index impact` before changing public distribution or
+  release-policy text.
+- Preserve historical release URLs and immutable published identities.
+- Route product implementation work to the correct source repo.
+- Do not copy credentials, local secrets, signing keys, customer licenses, or
+  deployment tokens into files.
+- Keep release contracts machine-readable and fail closed on identity/digest
+  mismatch.
 
-Before finishing, run `flyto-index verify . --full-scan --strict` and report
-the exact local verification performed.
+Before finishing, run `python3 scripts/verify.py` and
+`flyto-index verify . --full-scan --strict`, and report the exact local
+verification performed.
 
 If a task asks for runtime, marketplace, workflow, crawler, entitlement,
-security, AI governance, GEO, or i18n implementation, stop and inspect the
-corresponding active repo instead of implementing it here.
+security enforcement, AI governance, GEO, or i18n implementation, inspect the
+corresponding source repo instead of implementing product behavior here.

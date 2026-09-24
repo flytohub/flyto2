@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "id": "flow",
+  "display_name": "Flyto2 Flow",
+  "source_repository": "flytohub/flyto-flow",
+  "distribution_tag_prefix": "flow/v",
+  "documentation": "products/flow/README.md"
+}

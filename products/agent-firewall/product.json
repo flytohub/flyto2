@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "id": "agent-firewall",
+  "display_name": "Flyto2 Agent Firewall",
+  "source_repository": "flytohub/flyto-engine",
+  "distribution_tag_prefix": "agent-firewall/v",
+  "documentation": "products/agent-firewall/README.md"
+}

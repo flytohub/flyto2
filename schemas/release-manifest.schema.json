@@ -1,0 +1,180 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/flytohub/flyto2/schemas/release-manifest.schema.json",
+  "title": "Flyto2 Release Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "product",
+    "display_name",
+    "version",
+    "channel",
+    "distribution_tag",
+    "source",
+    "build",
+    "artifacts",
+    "checksums",
+    "sbom",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "product": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "display_name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$"
+    },
+    "channel": {
+      "enum": ["stable", "beta"]
+    },
+    "distribution_tag": {
+      "type": "string",
+      "minLength": 3
+    },
+    "released_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "commit", "tag"],
+      "properties": {
+        "repository": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$"
+        },
+        "commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "tag": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "build": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["workflow", "run_id"],
+      "properties": {
+        "workflow": {
+          "type": "string",
+          "minLength": 1
+        },
+        "run_id": {
+          "type": ["integer", "string"]
+        },
+        "builder": {
+          "type": "string"
+        }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "platform", "arch", "kind", "sha256"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "platform": {
+            "type": "string",
+            "minLength": 1
+          },
+          "arch": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "enum": ["installer", "archive", "extension", "image", "metadata"]
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "native_signature": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "checksums": {
+      "$ref": "#/$defs/evidence"
+    },
+    "sbom": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/evidence"
+        },
+        {
+          "type": "object",
+          "required": ["format"],
+          "properties": {
+            "format": {
+              "enum": ["CycloneDX"]
+            }
+          }
+        }
+      ]
+    },
+    "provenance": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/evidence"
+        },
+        {
+          "type": "object",
+          "required": ["type"],
+          "properties": {
+            "type": {
+              "enum": ["slsa", "github-artifact-attestation", "in-toto"]
+            }
+          }
+        }
+      ]
+    },
+    "attestations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/evidence"
+      }
+    }
+  },
+  "$defs": {
+    "evidence": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    }
+  }
+}

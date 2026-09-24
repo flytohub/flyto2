@@ -1,14 +1,20 @@
-# flyto2 Documentation
+# flyto2 Distribution Documentation
 
-This docs directory exists only to explain repository status.
+`flytohub/flyto2` is the official distribution and release-governance repository for installable Flyto2 products.
 
-`flyto2` is a deprecated legacy distribution shell. Active Flyto2 docs belong in
-`flyto-docs`, product websites belong in `flyto-landing-page`, and product-line
-implementation docs belong with the active repos that own those surfaces.
+Product implementation stays in the owning source repository. This docs tree explains how approved outputs become trusted Flyto2 releases.
 
-- [Legacy preservation whitepaper](WHITEPAPER.md)
-- [Supported legacy surfaces](FEATURES.md)
-- [Migration and repository routing](LEGACY_ROUTING.md)
-- [Architecture boundary](../ARCHITECTURE.md)
-- [Security disclosure](../SECURITY.md)
-- [Current state](../STATE.md)
+## Start Here
+
+- [Distribution Architecture](DISTRIBUTION.md) — product ownership, versioning, release lifecycle, promotion, rollback, and migration.
+- [Software Supply Chain Policy](SUPPLY_CHAIN.md) — checksums, SBOM, provenance, artifact attestation, native signing, and offline delivery.
+- [Supported Distribution Surfaces](FEATURES.md) — what this repository actively owns.
+- [Repository and Source Routing](LEGACY_ROUTING.md) — where implementation work belongs.
+- [Architecture Boundary](../ARCHITECTURE.md)
+- [Current State](../STATE.md)
+- [Release Policy](../release-policy.json)
+- [Product Registry](../products/catalog.json)
+- [Release Manifest Schema](../schemas/release-manifest.schema.json)
+- [Security Disclosure](../SECURITY.md)
+
+Historical root `v0.x` releases remain available and are documented as the pre-rename Flyto2 Flow lineage.

@@ -1,10 +1,17 @@
 # Implementation
 
-Allowed implementation scope:
+Allowed implementation scope includes:
 
-- README updates
-- SECURITY policy updates
-- project memory updates
-- legacy release/download metadata
+- product registry and distribution identity;
+- release policy and manifest schemas;
+- checksum/SBOM/provenance/signing verification;
+- trusted release ingest and promotion automation;
+- stable/beta channel metadata;
+- website/updater distribution indexes;
+- historical release/download compatibility;
+- enterprise/offline mirror metadata;
+- README, SECURITY, project memory, and distribution documentation.
 
-Do not add runtime code or deployment logic here.
+Do not add product runtime code, billing/entitlement logic, security-enforcement business logic, or signing private keys here.
+
+Binary installers must remain release assets or registry/CDN objects rather than normal Git content.
