@@ -302,6 +302,89 @@ def verify_bundle() -> None:
     print(f"distribution contract bundle passed: {len(files)} files")
 
 
+def verify_ingest() -> None:
+    """Accept a well-formed candidate, refuse tampered ones, and promote a copy."""
+    import importlib.util
+    import shutil
+
+    spec = importlib.util.spec_from_file_location("ingest_release", ROOT / "scripts/ingest_release.py")
+    ingest = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(ingest)
+
+    commit = "a" * 40
+    with tempfile.TemporaryDirectory(prefix="flyto2-ingest-") as temp:
+        candidate = Path(temp) / "candidate"
+        candidate.mkdir()
+        files = {
+            "Flyto2-Runtime-1.2.3-macos-arm64.dmg": b"arm64 installer",
+            "Flyto2-Runtime-1.2.3-macos-x64.dmg": b"x64 installer",
+            "flyto2-runtime-1.2.3.cdx.json": json.dumps(
+                {"bomFormat": "CycloneDX", "specVersion": "1.6", "components": [{"type": "library", "name": "x"}]}
+            ).encode(),
+            "provenance.intoto.jsonl": b"{}\n",
+        }
+        for name, content in files.items():
+            (candidate / name).write_bytes(content)
+        digest = lambda name: ingest.sha256(candidate / name)
+        (candidate / "SHA256SUMS").write_text("".join(f"{digest(n)}  {n}\n" for n in sorted(files)))
+        manifest = {
+            "schema_version": 1,
+            "product": "runtime",
+            "display_name": "Flyto2 Runtime",
+            "version": "1.2.3",
+            "channel": "stable",
+            "distribution_tag": "runtime/v1.2.3",
+            "source": {"repository": "flytohub/flyto-runtime", "commit": commit, "tag": "v1.2.3"},
+            "build": {"workflow": ".github/workflows/macos-app.yml", "run_id": 42},
+            "artifacts": [
+                {"name": n, "platform": "macos", "arch": a, "kind": "installer", "sha256": digest(n),
+                 "size": len(files[n]), "native_signature": "apple-developer-id-notarized"}
+                for n, a in (("Flyto2-Runtime-1.2.3-macos-arm64.dmg", "arm64"), ("Flyto2-Runtime-1.2.3-macos-x64.dmg", "x64"))
+            ],
+            "checksums": {"path": "SHA256SUMS", "sha256": digest("SHA256SUMS")},
+            "sbom": {"path": "flyto2-runtime-1.2.3.cdx.json", "sha256": digest("flyto2-runtime-1.2.3.cdx.json"), "format": "CycloneDX"},
+            "provenance": {"path": "provenance.intoto.jsonl", "sha256": digest("provenance.intoto.jsonl"),
+                           "type": "github-artifact-attestation"},
+        }
+        (candidate / "release-manifest.json").write_text(json.dumps(manifest))
+        run = {"id": 42, "repository": {"full_name": "flytohub/flyto-runtime"}, "path": ".github/workflows/macos-app.yml",
+               "head_sha": commit, "head_branch": "main", "conclusion": "success"}
+
+        ingest.verify(candidate, "runtime", run, commit)
+        refusals = {
+            "tag on another commit": lambda: ingest.verify(candidate, "runtime", run, "b" * 40),
+            "failed build": lambda: ingest.verify(candidate, "runtime", {**run, "conclusion": "failure"}, commit),
+            "build from a branch": lambda: ingest.verify(candidate, "runtime", {**run, "head_branch": "dev"}, commit),
+            "wrong product": lambda: ingest.verify(candidate, "flow", run, commit),
+        }
+        (candidate / "Flyto2-Runtime-1.2.3-macos-x64.dmg").write_bytes(b"swapped installer")
+        refusals["swapped installer"] = lambda: ingest.verify(candidate, "runtime", run, commit)
+        for label, attempt in refusals.items():
+            try:
+                attempt()
+            except ingest.Rejected:
+                continue
+            raise RuntimeError(f"ingest accepted a candidate with a {label}")
+        (candidate / "Flyto2-Runtime-1.2.3-macos-x64.dmg").write_bytes(files["Flyto2-Runtime-1.2.3-macos-x64.dmg"])
+
+        copy = Path(temp) / "hub"
+        shutil.copytree(ROOT / "products", copy / "products")
+        ingest.ROOT = copy
+        try:
+            url = "https://github.com/flytohub/flyto2/releases/tag/runtime/v1.2.3"
+            ingest.promote("runtime", "stable", candidate / "release-manifest.json", url)
+            pointer = json.loads((copy / "products/runtime/stable.json").read_text())
+            page = (copy / "products/runtime/README.md").read_text()
+        finally:
+            ingest.ROOT = ROOT
+        if pointer.get("state") != "promoted" or pointer.get("distribution_tag") != "runtime/v1.2.3":
+            raise RuntimeError(f"promotion wrote an unexpected channel pointer: {pointer!r}")
+        if "releases/download/runtime/v1.2.3/Flyto2-Runtime-1.2.3-macos-arm64.dmg" not in page:
+            raise RuntimeError("promotion did not link the installers from the product page")
+    print(f"ingest contract passed: 1 accepted candidate, {len(refusals)} refused")
+
+
 if __name__ == "__main__":
     verify_contract()
     verify_bundle()
+    verify_ingest()

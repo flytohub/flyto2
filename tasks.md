@@ -10,10 +10,11 @@
 - [x] Preserve historical root releases as Flyto2 Flow pre-rename lineage.
 - [x] Define checksum, CycloneDX SBOM, provenance, and signing requirements.
 - [x] Define a release-manifest schema.
-- [ ] Implement trusted candidate ingest from product repositories.
-- [ ] Implement namespaced GitHub Release publication.
-- [ ] Implement stable/beta channel index publication.
-- [ ] Align each product repository to emit the required candidate bundle.
+- [x] Implement trusted candidate ingest from product repositories (`ingest-release.yml`).
+- [x] Implement namespaced GitHub Release publication.
+- [x] Implement stable/beta channel pointer promotion.
+- [x] Align Flyto2 Runtime to emit the required candidate bundle.
+- [ ] Align Flyto2 Flow and Flyto2 Agent Firewall to emit the candidate bundle.
 - [ ] Move flyto2.com download discovery to distribution manifests.
 - [ ] Add enterprise/offline mirror generation.
 

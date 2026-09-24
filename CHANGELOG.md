@@ -4,6 +4,9 @@
 
 ### Added
 
+- Added the **Ingest release** workflow: verifies a registered product's candidate (catalog identity, source tag and commit, successful main build run, every digest, `SHA256SUMS`, CycloneDX SBOM, build-provenance and SBOM attestations, macOS notarization), publishes it under the product's namespaced tag without becoming the repository-wide latest release, and optionally promotes a channel.
+- Added download instructions and generated download links to the Flyto2 Runtime product page.
+
 - Reactivated the repository contract as the Flyto2 Distribution Hub.
 - Added product registration for Flyto2 Flow, Flyto2 Runtime, and Flyto2 Agent Firewall.
 - Added dedicated Markdown product/download pages plus per-product `stable.json` and `beta.json` channel entry points.

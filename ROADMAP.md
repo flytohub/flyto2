@@ -7,12 +7,10 @@
 - Enforce product registry, product-specific Markdown/download entry points, stable/beta channel files, namespaced versions, release evidence, and immutable published tags.
 - Keep binary installers out of Git history.
 
-## Next — Candidate Ingest
+## Now — Candidate Ingest
 
-- Standardize source-repository candidate bundles.
-- Add trusted `flyto2` ingest workflow.
-- Verify source commit, CI run, checksums, CycloneDX SBOM, provenance, and signing evidence.
-- Create namespaced GitHub Releases.
+- Done for Flyto2 Runtime: `ingest-release.yml` verifies source commit, CI run, checksums, CycloneDX SBOM, provenance, and signing evidence, and creates namespaced GitHub Releases.
+- Next: Flyto2 Flow and Flyto2 Agent Firewall emit the same candidate bundle.
 
 ## Next — Channel Distribution
 
