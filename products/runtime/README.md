@@ -7,12 +7,13 @@ Flyto2 Runtime is the local execution layer for MCP hosts, AI Spaces, workspaces
 ## Downloads
 
 <!-- downloads:start -->
-Current stable release: **1.1.1** ([release notes and evidence](https://github.com/flytohub/flyto2/releases/tag/runtime/v1.1.1))
+Current stable release: **1.1.2** ([release notes and evidence](https://github.com/flytohub/flyto2/releases/tag/runtime/v1.1.2))
 
 | Platform | Download |
 | --- | --- |
-| macOS, Apple silicon (M1 and later) | [Flyto2-Runtime-1.1.1-macos-arm64.dmg](https://github.com/flytohub/flyto2/releases/download/runtime/v1.1.1/Flyto2-Runtime-1.1.1-macos-arm64.dmg) |
-| macOS, Intel | [Flyto2-Runtime-1.1.1-macos-x64.dmg](https://github.com/flytohub/flyto2/releases/download/runtime/v1.1.1/Flyto2-Runtime-1.1.1-macos-x64.dmg) |
+| macOS, Apple silicon (M1 and later) | [Flyto2-Runtime-1.1.2-macos-arm64.dmg](https://github.com/flytohub/flyto2/releases/download/runtime/v1.1.2/Flyto2-Runtime-1.1.2-macos-arm64.dmg) |
+| macOS, Intel | [Flyto2-Runtime-1.1.2-macos-x64.dmg](https://github.com/flytohub/flyto2/releases/download/runtime/v1.1.2/Flyto2-Runtime-1.1.2-macos-x64.dmg) |
+| Windows, x64 | [Flyto2-Runtime-1.1.2-windows-x64.zip](https://github.com/flytohub/flyto2/releases/download/runtime/v1.1.2/Flyto2-Runtime-1.1.2-windows-x64.zip) |
 <!-- downloads:end -->
 
 The macOS app includes everything it needs: its own Node.js, its dependencies,
