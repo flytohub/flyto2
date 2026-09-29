@@ -24,6 +24,13 @@ and cloudflared. Nothing has to be installed first.
 3. Open **Flyto2 Runtime** from Applications. The first launch walks you
    through setup in Terminal; later launches open the Runtime menu.
 
+Windows x64 packaged releases use a self-contained ZIP with the same principle:
+Node.js, production dependencies, and Cloudflare-signed `cloudflared.exe` are
+already included. Extract the ZIP and double-click **Install.cmd**. If the
+current stable table above has no Windows row, that promoted release predates
+the Windows package; the row is generated automatically when a newer Runtime
+release carrying the Windows archive is promoted.
+
 To check a download came from the Runtime source build, verify its attestation:
 
 ```bash
@@ -35,9 +42,10 @@ Installing from source instead: [flytohub/flyto-runtime](https://github.com/flyt
 ## How a Runtime release gets here
 
 1. `flytohub/flyto-runtime` builds, signs and notarizes the app on both Mac
-   architectures and assembles a candidate (disk images, CycloneDX SBOM,
-   GitHub artifact attestations, `SHA256SUMS`, `release-manifest.json`) with
-   its **macOS App** workflow, dispatched with `candidate: true`.
+   architectures, builds the self-contained Windows x64 ZIP, and assembles one
+   candidate (packages, CycloneDX SBOM, GitHub artifact attestations,
+   `SHA256SUMS`, `release-manifest.json`) with its **Runtime Packages**
+   workflow, dispatched with `candidate: true`.
 2. This repository's **Ingest release** workflow (`product=runtime`,
    `source_run_id=<that run>`) verifies every identity, digest, attestation and
    the notarization, then publishes `runtime/vX.Y.Z` and can move a channel.

@@ -105,19 +105,19 @@ jobs:
         env:
           SOURCE: ${{ steps.product.outputs.source_repository }}
         run: |
-          read -r commit workflow sbom provenance sbom_bundle < <(python - <<'PY'
+          read -r commit workflow provenance sbom_bundle < <(python - <<'PY'
           import json
           m = json.load(open("candidate/release-manifest.json"))
           bundles = [a["path"] for a in m.get("attestations", [])]
-          print(m["source"]["commit"], m["build"]["workflow"], m["sbom"]["path"], m["provenance"]["path"], bundles[0] if bundles else "-")
+          print(m["source"]["commit"], m["build"]["workflow"], m["provenance"]["path"], bundles[0] if bundles else "-")
           PY
           )
           signer="$SOURCE/$workflow"
-          for installer in $(jq -r '.artifacts[] | select(.kind == "installer") | .name' candidate/release-manifest.json); do
-            gh attestation verify "candidate/$installer" --repo "$SOURCE" --signer-workflow "$signer" \
+          for package in $(jq -r '.artifacts[] | select(.kind == "installer" or .kind == "archive") | .name' candidate/release-manifest.json); do
+            gh attestation verify "candidate/$package" --repo "$SOURCE" --signer-workflow "$signer" \
               --source-digest "$commit" --deny-self-hosted-runners --bundle "candidate/$provenance"
             if [[ "$sbom_bundle" != "-" ]]; then
-              gh attestation verify "candidate/$installer" --repo "$SOURCE" --signer-workflow "$signer" \
+              gh attestation verify "candidate/$package" --repo "$SOURCE" --signer-workflow "$signer" \
                 --source-digest "$commit" --deny-self-hosted-runners --bundle "candidate/$sbom_bundle" \
                 --predicate-type https://cyclonedx.org/bom
             fi

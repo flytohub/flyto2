@@ -30,9 +30,10 @@
   (2026-09-24). No cross-repository credential: the public source repository's
   run and candidate artifact are read with this repository's own token.
 - Runtime source-repo candidate bundle: emitted by `flyto-runtime`'s
-  **macOS App** workflow with `candidate: true` (both Mac architectures,
-  notarized, CycloneDX SBOM, build provenance and SBOM attestations,
-  `SHA256SUMS`, `release-manifest.json`).
+  **Runtime Packages** workflow with `candidate: true` (both Mac
+  architectures notarized plus a self-contained Windows x64 archive, one
+  CycloneDX SBOM, build provenance and SBOM attestations, `SHA256SUMS`,
+  `release-manifest.json`).
 - `scripts/verify.py` exercises the ingest rules on a synthetic candidate
   (one accepted, five tampered variants refused) and a promotion on a copy.
 
@@ -40,7 +41,9 @@
 
 - Flow source-repo candidate bundle alignment.
 - Agent Firewall source-repo candidate bundle alignment.
-- Windows Runtime installer (needs an Authenticode certificate decision).
+- Optional signed Windows MSI/EXE installer. The supported Windows x64
+  distribution is now an attested self-contained ZIP; a native installer still
+  requires a Flyto2 Authenticode certificate decision.
 - Website/updater consumption of distribution manifests.
 - Enterprise/offline mirror generation.
 

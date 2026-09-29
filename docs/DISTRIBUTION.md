@@ -98,6 +98,11 @@ provenance.intoto.jsonl
 <optional native signature or detached signature files>
 ```
 
+Portable archives are valid first-class packages when the platform does not
+yet have a product-owned native signing certificate. They still require
+artifact provenance, SBOM attestation, checksums, and exact source/build
+identity. Native installers remain subject to the platform-signing policy.
+
 ### 4. Promote a channel pointer
 
 After verification, the release may be promoted to `beta` or `stable`.

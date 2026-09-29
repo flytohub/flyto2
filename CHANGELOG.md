@@ -4,6 +4,10 @@
 
 ### Added
 
+- Added Windows x64 Runtime archive support to centralized ingest/promotion:
+  provenance and SBOM attestations are verified for both installers and
+  archives, and stable promotion generates a Windows download row alongside
+  the macOS disk images.
 - Added the **Ingest release** workflow: verifies a registered product's candidate (catalog identity, source tag and commit, successful main build run, every digest, `SHA256SUMS`, CycloneDX SBOM, build-provenance and SBOM attestations, macOS notarization), publishes it under the product's namespaced tag without becoming the repository-wide latest release, and optionally promotes a channel.
 - Added download instructions and generated download links to the Flyto2 Runtime product page.
 

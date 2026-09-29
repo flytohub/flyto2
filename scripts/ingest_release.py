@@ -157,7 +157,7 @@ def verify(candidate: Path, product_id: str, run: dict, tag_commit: str) -> dict
 
 
 def release_notes(candidate: Path) -> str:
-    """Markdown release notes: installers with digests, source, build and evidence."""
+    """Markdown release notes: packages with digests, source, build and evidence."""
     manifest = load_json(candidate / MANIFEST)
     source = manifest["source"]
     lines = [
@@ -167,7 +167,12 @@ def release_notes(candidate: Path) -> str:
         "| --- | --- | --- |",
     ]
     for item in manifest["artifacts"]:
-        label = {"arm64": "Apple silicon", "x64": "Intel"}.get(item["arch"], item["arch"])
+        if item["platform"] == "macos":
+            label = {"arm64": "Apple silicon", "x64": "Intel"}.get(item["arch"], item["arch"])
+        elif item["platform"] == "windows":
+            label = item["arch"]
+        else:
+            label = item["arch"]
         lines.append(f"| {item['platform']} ({label}) | `{item['name']}` | `{item['sha256']}` |")
     lines += [
         "",
@@ -176,7 +181,7 @@ def release_notes(candidate: Path) -> str:
         f"Build: [run {manifest['build']['run_id']}](https://github.com/{source['repository']}/actions/runs/{manifest['build']['run_id']})",
         "",
         f"Evidence: `{MANIFEST}`, `{CHECKSUMS}`, CycloneDX SBOM `{manifest['sbom']['path']}`, "
-        f"provenance `{manifest['provenance']['path']}`. Verify an installer with:",
+        f"provenance `{manifest['provenance']['path']}`. Verify a package with:",
         "",
         "```",
         f"gh attestation verify <file> --repo {source['repository']}",
@@ -225,10 +230,18 @@ def promote(product_id: str, channel: str, manifest_path: Path, release_url: str
             "| --- | --- |",
         ]
         for item in manifest["artifacts"]:
-            if item["kind"] != "installer":
+            if item["kind"] not in {"installer", "archive"}:
                 continue
-            label = {"arm64": "Apple silicon (M1 and later)", "x64": "Intel"}.get(item["arch"], item["arch"])
-            rows.append(f"| {item['platform'].replace('macos', 'macOS')}, {label} | [{item['name']}]({download}/{item['name']}) |")
+            if item["platform"] == "macos":
+                platform = "macOS"
+                label = {"arm64": "Apple silicon (M1 and later)", "x64": "Intel"}.get(item["arch"], item["arch"])
+            elif item["platform"] == "windows":
+                platform = "Windows"
+                label = {"x64": "x64"}.get(item["arch"], item["arch"])
+            else:
+                platform = item["platform"]
+                label = item["arch"]
+            rows.append(f"| {platform}, {label} | [{item['name']}]({download}/{item['name']}) |")
         block = "\n".join([DOWNLOADS_START, *rows, DOWNLOADS_END])
         start = text.index(DOWNLOADS_START)
         end = text.index(DOWNLOADS_END) + len(DOWNLOADS_END)

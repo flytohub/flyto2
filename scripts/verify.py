@@ -318,6 +318,7 @@ def verify_ingest() -> None:
         files = {
             "Flyto2-Runtime-1.2.3-macos-arm64.dmg": b"arm64 installer",
             "Flyto2-Runtime-1.2.3-macos-x64.dmg": b"x64 installer",
+            "Flyto2-Runtime-1.2.3-windows-x64.zip": b"windows portable package",
             "flyto2-runtime-1.2.3.cdx.json": json.dumps(
                 {"bomFormat": "CycloneDX", "specVersion": "1.6", "components": [{"type": "library", "name": "x"}]}
             ).encode(),
@@ -340,6 +341,10 @@ def verify_ingest() -> None:
                 {"name": n, "platform": "macos", "arch": a, "kind": "installer", "sha256": digest(n),
                  "size": len(files[n]), "native_signature": "apple-developer-id-notarized"}
                 for n, a in (("Flyto2-Runtime-1.2.3-macos-arm64.dmg", "arm64"), ("Flyto2-Runtime-1.2.3-macos-x64.dmg", "x64"))
+            ] + [
+                {"name": "Flyto2-Runtime-1.2.3-windows-x64.zip", "platform": "windows", "arch": "x64",
+                 "kind": "archive", "sha256": digest("Flyto2-Runtime-1.2.3-windows-x64.zip"),
+                 "size": len(files["Flyto2-Runtime-1.2.3-windows-x64.zip"])}
             ],
             "checksums": {"path": "SHA256SUMS", "sha256": digest("SHA256SUMS")},
             "sbom": {"path": "flyto2-runtime-1.2.3.cdx.json", "sha256": digest("flyto2-runtime-1.2.3.cdx.json"), "format": "CycloneDX"},
@@ -380,7 +385,9 @@ def verify_ingest() -> None:
         if pointer.get("state") != "promoted" or pointer.get("distribution_tag") != "runtime/v1.2.3":
             raise RuntimeError(f"promotion wrote an unexpected channel pointer: {pointer!r}")
         if "releases/download/runtime/v1.2.3/Flyto2-Runtime-1.2.3-macos-arm64.dmg" not in page:
-            raise RuntimeError("promotion did not link the installers from the product page")
+            raise RuntimeError("promotion did not link the macOS installer from the product page")
+        if "releases/download/runtime/v1.2.3/Flyto2-Runtime-1.2.3-windows-x64.zip" not in page:
+            raise RuntimeError("promotion did not link the Windows package from the product page")
     print(f"ingest contract passed: 1 accepted candidate, {len(refusals)} refused")
 
 
