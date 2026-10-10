@@ -11,6 +11,7 @@ Each product has its own Markdown entry point and independent release channels:
 - [**Flyto2 Flow**](flow/README.md) — [stable](flow/stable.json) · [beta](flow/beta.json)
 - [**Flyto2 Runtime**](runtime/README.md) — [stable](runtime/stable.json) · [beta](runtime/beta.json)
 - [**Flyto2 Agent Firewall**](agent-firewall/README.md) — [stable](agent-firewall/stable.json) · [beta](agent-firewall/beta.json)
+- [**Flyto2 Voice**](voice/README.md) — [stable](voice/stable.json) · [beta](voice/beta.json)
 
 The repository-wide GitHub `/releases/latest` alias is not a product channel and must not be used by the website or updaters.
 
@@ -20,7 +21,7 @@ Registration does not move source ownership into this repository. A product entr
 
 - stable product identifier;
 - public display name;
-- source repository;
+- public distribution identity and trusted source-authority binding (private source details stay outside public Git);
 - distribution tag namespace;
 - Markdown product/download page;
 - stable channel file;

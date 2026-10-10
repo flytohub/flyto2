@@ -8,9 +8,7 @@ Flyto2 Agent Firewall is the endpoint, MCP, browser, and enterprise connector su
 
 No Agent Firewall build has been promoted through the Flyto2 Distribution Hub yet.
 
-The source repository already owns the connector build/release implementation:
-
-- [flytohub/flyto-engine](https://github.com/flytohub/flyto-engine)
+The implementation repository already owns the connector build/release pipeline. Private/internal source-repository details are intentionally not published from this public distribution repository.
 
 The Distribution Hub will become the public product-specific release entry point after candidate ingest and promotion are wired.
 

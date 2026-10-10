@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "id": "voice",
+  "display_name": "Flyto2 Voice",
+  "distribution_tag_prefix": "voice/v",
+  "documentation": "products/voice/README.md"
+}

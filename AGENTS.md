@@ -16,14 +16,9 @@ Before making changes:
 - Never commit installer binaries, signing private keys, release credentials, or
   customer-specific licenses to normal Git history.
 
-Flyto2 source authority remains in product repositories:
+Flyto2 source authority remains outside this distribution repository.
 
-- `flyto-flow` for Flyto2 Flow.
-- `flyto-runtime` for Flyto2 Runtime.
-- `flyto-engine` for Flyto2 Agent Firewall source/backend/connectors.
-- `flyto-core` for execution kernel and automation runtime primitives.
-- `flyto-cloud` for hosted Cloud product surfaces.
-- `flyto-code` and related Security repos for security UI/product surfaces.
+Do not publish names or URLs of private/internal implementation repositories in this public repository. Public source links may be listed only for repositories that are intentionally public.
 
 Use `git -C /Users/chester/flytohub/flyto2 ...` for git operations.
 

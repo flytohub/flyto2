@@ -6,11 +6,12 @@ This repository is the **distribution authority** for Flyto2. Product source cod
 
 ## Products
 
-| Product | Purpose | Source repository | Distribution tag namespace |
-| --- | --- | --- | --- |
-| [**Flyto2 Flow**](products/flow/README.md) | Visual workflow and self-hosted automation product. This is the renamed lineage of the historical Flyto2 desktop releases. | [flyto-flow](https://github.com/flytohub/flyto-flow) | `flow/vX.Y.Z` |
-| [**Flyto2 Runtime**](products/runtime/README.md) | Local execution layer for MCP hosts, AI Spaces, workspaces, local tools, and delegated agents. | [flyto-runtime](https://github.com/flytohub/flyto-runtime) | `runtime/vX.Y.Z` |
-| [**Flyto2 Agent Firewall**](products/agent-firewall/README.md) | Endpoint, MCP, browser, and enterprise connector suite for AI/agent activity enforcement and evidence. | [flyto-engine](https://github.com/flytohub/flyto-engine) | `agent-firewall/vX.Y.Z` |
+| Product | Purpose | Distribution tag namespace |
+| --- | --- | --- |
+| [**Flyto2 Flow**](products/flow/README.md) | Visual workflow and self-hosted automation product. This is the renamed lineage of the historical Flyto2 desktop releases. | `flow/vX.Y.Z` |
+| [**Flyto2 Runtime**](products/runtime/README.md) | Local execution layer for MCP hosts, AI Spaces, workspaces, local tools, and delegated agents. | `runtime/vX.Y.Z` |
+| [**Flyto2 Agent Firewall**](products/agent-firewall/README.md) | Endpoint, MCP, browser, and enterprise connector suite for AI/agent activity enforcement and evidence. | `agent-firewall/vX.Y.Z` |
+| [**Flyto2 Voice**](products/voice/README.md) | Independent always-listening voice daemon for wake phrases and voice-to-agent/application routing. | `voice/vX.Y.Z` |
 
 New installable products must be added to [`products/catalog.json`](products/catalog.json) before they can be promoted through this repository.
 
@@ -21,6 +22,7 @@ Use the product page instead of the repository-wide GitHub `releases/latest` ali
 - [**Flyto2 Flow downloads**](products/flow/README.md#downloads) — includes the current historical v0.7.4 macOS, Windows, and Linux downloads.
 - [**Flyto2 Runtime downloads**](products/runtime/README.md#downloads) — product-specific release channel; centralized promotion is not active yet.
 - [**Flyto2 Agent Firewall downloads**](products/agent-firewall/README.md#downloads) — product-specific connector distribution; centralized promotion is not active yet.
+- [**Flyto2 Voice downloads**](products/voice/README.md#downloads) — macOS DMG pipeline exists; stable promotion waits for signing/notarization credentials.
 
 Each product page links its own `stable.json` and `beta.json`. Consumers and updaters must resolve the product-specific channel, not whichever product happened to publish the newest GitHub Release.
 
@@ -55,6 +57,7 @@ Each product versions independently with SemVer.
 flow/v1.2.0
 runtime/v0.9.3
 agent-firewall/v1.0.1
+voice/v0.1.0
 ```
 
 A Runtime patch does not force Flow or Agent Firewall to change version.
@@ -100,9 +103,11 @@ Flyto2-Runtime-0.9.3-linux-x64.tar.gz
 Flyto2-Agent-Firewall-1.0.1-windows-x64.zip
 Flyto2-Agent-Firewall-1.0.1-macos-arm64.tar.gz
 Flyto2-Agent-Firewall-1.0.1-linux-arm64.tar.gz
+
+Flyto2-Voice-0.1.0-macos-arm64.dmg
 ```
 
-Release metadata uses stable product identifiers: `flow`, `runtime`, and `agent-firewall`.
+Release metadata uses stable product identifiers: `flow`, `runtime`, `agent-firewall`, and `voice`.
 
 ## Distribution model
 
@@ -150,7 +155,6 @@ Every promoted release has a machine-readable manifest. A simplified example:
   "channel": "stable",
   "distribution_tag": "flow/v1.2.0",
   "source": {
-    "repository": "flytohub/flyto-flow",
     "commit": "0123456789abcdef0123456789abcdef01234567",
     "tag": "v1.2.0"
   },
@@ -227,16 +231,11 @@ Report vulnerabilities privately according to [SECURITY.md](SECURITY.md). Do not
 
 ## Source ownership
 
-Use the owning repository for implementation work:
+Product implementation remains outside this distribution repository.
 
-- [flyto-flow](https://github.com/flytohub/flyto-flow) — Flyto2 Flow.
-- [flyto-runtime](https://github.com/flytohub/flyto-runtime) — Flyto2 Runtime.
-- [flyto-engine](https://github.com/flytohub/flyto-engine) — Agent Firewall backend/connectors and security product contracts.
-- [flyto-core](https://github.com/flytohub/flyto-core) — shared execution kernel and automation primitives.
-- [flyto-cloud](https://github.com/flytohub/flyto-cloud) — hosted Cloud product.
-- [flyto-docs](https://github.com/flytohub/flyto-docs) — public technical documentation.
+Public source links are listed only when the owning project is intentionally public. Private or internal implementation repositories are deliberately not named here.
 
-Changes to a product are made and tested in that product repository. Changes to how an approved product artifact is named, verified, attested, promoted, indexed, mirrored, or downloaded belong here.
+Changes to a product are made and tested in its owning source repository. Changes to how an approved product artifact is named, verified, attested, promoted, indexed, mirrored, or downloaded belong here.
 
 ## Status
 

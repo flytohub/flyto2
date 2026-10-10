@@ -5,7 +5,6 @@
     {
       "id": "flow",
       "display_name": "Flyto2 Flow",
-      "source_repository": "flytohub/flyto-flow",
       "distribution_tag_prefix": "flow/v",
       "product_page": "products/flow/README.md",
       "stable_channel": "products/flow/stable.json",
@@ -20,7 +19,6 @@
     {
       "id": "runtime",
       "display_name": "Flyto2 Runtime",
-      "source_repository": "flytohub/flyto-runtime",
       "distribution_tag_prefix": "runtime/v",
       "product_page": "products/runtime/README.md",
       "stable_channel": "products/runtime/stable.json",
@@ -30,11 +28,19 @@
     {
       "id": "agent-firewall",
       "display_name": "Flyto2 Agent Firewall",
-      "source_repository": "flytohub/flyto-engine",
       "distribution_tag_prefix": "agent-firewall/v",
       "product_page": "products/agent-firewall/README.md",
       "stable_channel": "products/agent-firewall/stable.json",
       "beta_channel": "products/agent-firewall/beta.json",
+      "channels": ["stable", "beta"]
+    },
+    {
+      "id": "voice",
+      "display_name": "Flyto2 Voice",
+      "distribution_tag_prefix": "voice/v",
+      "product_page": "products/voice/README.md",
+      "stable_channel": "products/voice/stable.json",
+      "beta_channel": "products/voice/beta.json",
       "channels": ["stable", "beta"]
     }
   ]

@@ -4,18 +4,14 @@
 
 ## Authority Split
 
-Product repositories are source authorities:
+Product implementation stays in the source authority that owns each product. This public repository intentionally does **not** publish private/internal source-repository names or URLs.
 
-- `flyto-flow` — Flyto2 Flow;
-- `flyto-runtime` — Flyto2 Runtime;
-- `flyto-engine` — Flyto2 Agent Firewall source and security contracts.
-
-This repository is the distribution authority for approved outputs from those repositories.
+This repository is the distribution authority for approved outputs from those source authorities.
 
 ## Data Flow
 
 ```text
-source repo
+source authority
   └─ test/build/sign/SBOM/provenance
           │
           ▼
@@ -24,7 +20,8 @@ candidate release bundle
           ▼
 flyto2 distribution verification
   ├─ product registry
-  ├─ source/commit verification
+  ├─ trusted source-authority verification
+  ├─ source-revision verification
   ├─ checksum verification
   ├─ SBOM verification
   ├─ provenance/attestation verification
@@ -42,13 +39,13 @@ namespaced GitHub Release
 
 ## Repository Surfaces
 
-- `products/catalog.json` — registered product identities and source ownership.
+- `products/catalog.json` — registered public product identities and distribution namespaces.
 - `release-policy.json` — shared release evidence and immutability rules.
-- `schemas/release-manifest.schema.json` — machine-readable release contract.
+- `schemas/release-manifest.schema.json` — machine-readable public release contract.
 - `docs/DISTRIBUTION.md` — lifecycle, versioning, promotion, rollback, migration.
 - `docs/SUPPLY_CHAIN.md` — SBOM, checksum, provenance, attestation, and signing policy.
 - `scripts/verify.py` — local structural verification.
-- GitHub workflows — verification and, when implemented, trusted ingest/promotion.
+- GitHub workflows — verification and trusted ingest/promotion.
 
 ## Version Boundary
 
@@ -58,6 +55,7 @@ Each product has independent SemVer. Distribution tags are namespaced:
 flow/vX.Y.Z
 runtime/vX.Y.Z
 agent-firewall/vX.Y.Z
+voice/vX.Y.Z
 ```
 
 Historical root tags are immutable and remain available.
@@ -75,10 +73,11 @@ Do not add:
 - RBAC/tenant policy engines;
 - signing private keys;
 - release credentials or personal access tokens;
-- customer-specific offline licenses.
+- customer-specific offline licenses;
+- private/internal repository names or URLs.
 
-Cross-repository publication should use short-lived trusted identity such as GitHub OIDC/GitHub App or an equivalent protected release mechanism.
+Trusted cross-repository publication should use private CI configuration and short-lived trusted identity such as GitHub OIDC/GitHub App or an equivalent protected release mechanism.
 
 ## Verification Boundary
 
-The distribution verifier checks consistency and required release evidence. Product repositories remain responsible for product-specific tests, vulnerability policy, license policy, platform packaging, and native signing.
+The public distribution verifier checks product identity, public release metadata, consistency, and required release evidence. Private source-authority allowlists belong in CI configuration/secrets and are not committed here.

@@ -37,15 +37,23 @@ FORBIDDEN_PRODUCT_ROOTS = (
     "src-tauri",
 )
 EXPECTED_PRODUCTS = {
-    "flow": ("flytohub/flyto-flow", "flow/v"),
-    "runtime": ("flytohub/flyto-runtime", "runtime/v"),
-    "agent-firewall": ("flytohub/flyto-engine", "agent-firewall/v"),
+    "flow": "flow/v",
+    "runtime": "runtime/v",
+    "agent-firewall": "agent-firewall/v",
+    "voice": "voice/v",
 }
 PRODUCT_FILES = ("README.md", "product.json", "stable.json", "beta.json")
+PUBLIC_SOURCE_IDENTIFIERS = {
+    "flyto-runtime",
+    "flyto-core",
+    "flyto-indexer",
+    "flyto-index",
+    "flyto-docs",
+}
+SOURCE_IDENTIFIER = re.compile(r"\bflyto-[a-z0-9-]+\b")
 REQUIRED_EVIDENCE = {
     "release_manifest",
-    "source_repository",
-    "source_commit",
+    "source_revision",
     "source_tag",
     "build_workflow",
     "build_run",
@@ -81,13 +89,12 @@ def verify_registry() -> None:
 
     seen_ids: set[str] = set()
     seen_prefixes: set[str] = set()
-    resolved: dict[str, tuple[str, str]] = {}
+    resolved: dict[str, str] = {}
 
     for product in products:
         if not isinstance(product, dict):
             raise RuntimeError("products/catalog.json: every product must be an object")
         product_id = product.get("id")
-        source = product.get("source_repository")
         prefix = product.get("distribution_tag_prefix")
         channels = product.get("channels")
         product_page = product.get("product_page")
@@ -95,10 +102,10 @@ def verify_registry() -> None:
         beta_channel = product.get("beta_channel")
         if not all(
             isinstance(value, str) and value
-            for value in (product_id, source, prefix, product_page, stable_channel, beta_channel)
+            for value in (product_id, prefix, product_page, stable_channel, beta_channel)
         ):
             raise RuntimeError(
-                "products/catalog.json: product id/source/prefix/page/channel paths must be non-empty strings"
+                "products/catalog.json: product id/prefix/page/channel paths must be non-empty strings"
             )
         if product_id in seen_ids:
             raise RuntimeError(f"duplicate product id: {product_id}")
@@ -132,7 +139,6 @@ def verify_registry() -> None:
         if (
             product_meta.get("id") != product_id
             or product_meta.get("display_name") != product.get("display_name")
-            or product_meta.get("source_repository") != source
             or product_meta.get("distribution_tag_prefix") != prefix
         ):
             raise RuntimeError(f"{product_id}: product.json does not match catalog identity")
@@ -152,7 +158,7 @@ def verify_registry() -> None:
 
         seen_ids.add(product_id)
         seen_prefixes.add(prefix)
-        resolved[product_id] = (source, prefix)
+        resolved[product_id] = prefix
 
     if resolved != EXPECTED_PRODUCTS:
         raise RuntimeError(f"product registry mismatch: {resolved!r}")
@@ -220,13 +226,11 @@ def verify_contract() -> None:
     required_readme = (
         "Flyto2 Distribution Hub",
         "Flyto2 Flow",
-        "https://github.com/flytohub/flyto-flow",
-        "https://github.com/flytohub/flyto-runtime",
-        "https://github.com/flytohub/flyto-engine",
         "CycloneDX",
         "products/flow/README.md",
         "products/runtime/README.md",
         "products/agent-firewall/README.md",
+        "products/voice/README.md",
         "https://flyto2.com",
     )
     absent = [value for value in required_readme if value not in readme]
@@ -234,6 +238,26 @@ def verify_contract() -> None:
         raise RuntimeError(f"README is missing distribution contract text: {absent}")
     if "security@flyto2.com" not in security:
         raise RuntimeError("SECURITY.md is missing the canonical contact")
+
+    public_text_files = [
+        path
+        for path in ROOT.rglob("*")
+        if path.is_file()
+        and ".git" not in path.parts
+        and ".flyto-index" not in path.parts
+        and path.suffix in {".md", ".json", ".py", ".yml", ".yaml"}
+    ]
+    leaks: list[str] = []
+    for path in public_text_files:
+        content = path.read_text(encoding="utf-8", errors="ignore")
+        for identifier in SOURCE_IDENTIFIER.findall(content):
+            if identifier not in PUBLIC_SOURCE_IDENTIFIERS:
+                leaks.append(f"{path.relative_to(ROOT)}: unapproved source identifier {identifier}")
+    if leaks:
+        raise RuntimeError(
+            "non-public source identifier leaked into public metadata:\n"
+            + "\n".join(sorted(set(leaks)))
+        )
 
     verify_registry()
     verify_release_policy()

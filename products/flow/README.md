@@ -30,7 +30,7 @@ Do not use the repository-wide `/releases/latest` URL as a Flow updater contract
 
 ## Source
 
-- [flytohub/flyto-flow](https://github.com/flytohub/flyto-flow)
+Flyto2 Flow implementation is maintained separately from this public distribution repository. Private implementation repository details are intentionally not published here.
 
 ## Distribution metadata
 

@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "product": "voice",
+  "channel": "stable",
+  "state": "unpromoted",
+  "version": null,
+  "distribution_tag": null,
+  "release_url": null
+}

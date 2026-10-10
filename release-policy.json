@@ -18,8 +18,7 @@
   },
   "required_evidence": [
     "release_manifest",
-    "source_repository",
-    "source_commit",
+    "source_revision",
     "source_tag",
     "build_workflow",
     "build_run",
@@ -27,6 +26,10 @@
     "cyclonedx_sbom",
     "provenance"
   ],
+  "source_privacy": {
+    "private_repository_names_in_public_metadata": false,
+    "private_source_authority_verified_out_of_band": true
+  },
   "signing": {
     "artifact_attestation_required": true,
     "native_platform_signing_required_when_supported": true,

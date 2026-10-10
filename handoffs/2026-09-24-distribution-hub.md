@@ -9,11 +9,7 @@
 
 `flytohub/flyto2` is no longer treated as a deprecated legacy-only shell. It is now the Flyto2 distribution and release-governance authority.
 
-Product source authority remains separate:
-
-- `flyto-flow` → Flyto2 Flow
-- `flyto-runtime` → Flyto2 Runtime
-- `flyto-engine` → Flyto2 Agent Firewall
+Product source authority remains separate from the Distribution Hub. Private/internal source repository identities are intentionally not recorded in this public handoff. Public source links may be listed only when the source repository is intentionally public.
 
 Historical root `v0.x` releases are preserved as the pre-rename Flyto2 Flow lineage.
 
