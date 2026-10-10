@@ -11,6 +11,7 @@ Current registered installable products:
 - **Flyto2 Flow** — source: `flytohub/flyto-flow`; distribution tags: `flow/vX.Y.Z`.
 - **Flyto2 Runtime** — source: `flytohub/flyto-runtime`; distribution tags: `runtime/vX.Y.Z`.
 - **Flyto2 Agent Firewall** — source: `flytohub/flyto-engine`; distribution tags: `agent-firewall/vX.Y.Z`.
+- **Flyto Presenter** — private source: `ChesterHsu/flyto-presenter`; distribution tags: `presenter/vX.Y.Z`.
 
 Historical root `v0.x` releases are preserved as the pre-rename Flyto2 Flow lineage.
 

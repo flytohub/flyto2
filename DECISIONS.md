@@ -1,12 +1,18 @@
 # Decisions
 
+## 2026-10-10 - Register Flyto Presenter without implying private-source access
+
+Decision: reserve `presenter` as the Flyto Presenter distribution identity, use `presenter/vX.Y.Z`, publish its approved PR brand icon and unpromoted channel metadata, and keep centralized ingest disabled until protected access to `ChesterHsu/flyto-presenter` is configured.
+
+Reason: registration gives the product a stable public identity without exposing source or pretending that the public Distribution Hub can read a private repository. A future release route must use least-privilege trusted access and the same checksum, SBOM, provenance, signing, and attestation contract as other products.
+
 ## 2026-09-24 - Reactivate flyto2 as the Flyto2 Distribution Hub
 
 Decision: `flytohub/flyto2` is the official distribution authority for installable Flyto2 products, while product source authority remains in product-specific repositories.
 
 Reason: Flyto2 now has multiple independently releasable products. A shared distribution contract provides one trusted place for version namespaces, release manifests, checksums, SBOM, provenance, signatures, channels, historical continuity, and download discovery without recreating a monorepo.
 
-Current registered products are Flyto2 Flow, Flyto2 Runtime, and Flyto2 Agent Firewall.
+Current registered products are Flyto2 Flow, Flyto2 Runtime, Flyto2 Agent Firewall, and Flyto Presenter.
 
 This decision supersedes the 2026-06-21 deprecated-shell classification for current repository purpose.
 

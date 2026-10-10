@@ -36,6 +36,17 @@
       "stable_channel": "products/agent-firewall/stable.json",
       "beta_channel": "products/agent-firewall/beta.json",
       "channels": ["stable", "beta"]
+    },
+    {
+      "id": "presenter",
+      "display_name": "Flyto Presenter",
+      "source_repository": "ChesterHsu/flyto-presenter",
+      "distribution_tag_prefix": "presenter/v",
+      "product_page": "products/presenter/README.md",
+      "stable_channel": "products/presenter/stable.json",
+      "beta_channel": "products/presenter/beta.json",
+      "icon": "products/presenter/icon.png",
+      "channels": ["stable", "beta"]
     }
   ]
 }

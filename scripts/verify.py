@@ -10,7 +10,6 @@ import tarfile
 import tempfile
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 LOCAL_LINK = re.compile(r"(?<!!)\[[^\]]+\]\(([^)]+)\)")
 REQUIRED_FILES = (
@@ -40,6 +39,7 @@ EXPECTED_PRODUCTS = {
     "flow": ("flytohub/flyto-flow", "flow/v"),
     "runtime": ("flytohub/flyto-runtime", "runtime/v"),
     "agent-firewall": ("flytohub/flyto-engine", "agent-firewall/v"),
+    "presenter": ("ChesterHsu/flyto-presenter", "presenter/v"),
 }
 PRODUCT_FILES = ("README.md", "product.json", "stable.json", "beta.json")
 REQUIRED_EVIDENCE = {
@@ -59,7 +59,7 @@ def load_json(path: str) -> dict:
     with (ROOT / path).open(encoding="utf-8") as source:
         value = json.load(source)
     if not isinstance(value, dict):
-        raise RuntimeError(f"{path} must contain a JSON object")
+        raise TypeError(f"{path} must contain a JSON object")
     return value
 
 
@@ -77,7 +77,7 @@ def verify_registry() -> None:
     catalog = load_json("products/catalog.json")
     products = catalog.get("products")
     if not isinstance(products, list):
-        raise RuntimeError("products/catalog.json: products must be a list")
+        raise TypeError("products/catalog.json: products must be a list")
 
     seen_ids: set[str] = set()
     seen_prefixes: set[str] = set()
@@ -85,7 +85,7 @@ def verify_registry() -> None:
 
     for product in products:
         if not isinstance(product, dict):
-            raise RuntimeError("products/catalog.json: every product must be an object")
+            raise TypeError("products/catalog.json: every product must be an object")
         product_id = product.get("id")
         source = product.get("source_repository")
         prefix = product.get("distribution_tag_prefix")
@@ -93,6 +93,7 @@ def verify_registry() -> None:
         product_page = product.get("product_page")
         stable_channel = product.get("stable_channel")
         beta_channel = product.get("beta_channel")
+        icon = product.get("icon")
         if not all(
             isinstance(value, str) and value
             for value in (product_id, source, prefix, product_page, stable_channel, beta_channel)
@@ -106,6 +107,10 @@ def verify_registry() -> None:
             raise RuntimeError(f"duplicate distribution tag prefix: {prefix}")
         if channels != ["stable", "beta"]:
             raise RuntimeError(f"{product_id}: channels must be ['stable', 'beta']")
+        if icon is not None:
+            expected_icon = f"products/{product_id}/icon.png"
+            if icon != expected_icon or not (ROOT / icon).is_file():
+                raise RuntimeError(f"{product_id}: icon must exist at {expected_icon}")
         product_dir = ROOT / "products" / product_id
         missing_product_files = [
             name for name in PRODUCT_FILES if not (product_dir / name).is_file()
@@ -134,6 +139,7 @@ def verify_registry() -> None:
             or product_meta.get("display_name") != product.get("display_name")
             or product_meta.get("source_repository") != source
             or product_meta.get("distribution_tag_prefix") != prefix
+            or product_meta.get("icon") != (Path(icon).name if icon else None)
         ):
             raise RuntimeError(f"{product_id}: product.json does not match catalog identity")
 
@@ -143,12 +149,11 @@ def verify_registry() -> None:
                 raise RuntimeError(f"{product_id}: {channel}.json identity mismatch")
             if channel_data.get("state") not in {"legacy", "unpromoted", "promoted"}:
                 raise RuntimeError(f"{product_id}: unsupported {channel} channel state")
-            if channel_data.get("state") == "promoted":
-                if not all(
+            if channel_data.get("state") == "promoted" and not all(
                     isinstance(channel_data.get(name), str) and channel_data.get(name)
                     for name in ("version", "distribution_tag", "release_url")
-                ):
-                    raise RuntimeError(f"{product_id}: promoted {channel} channel is incomplete")
+            ):
+                raise RuntimeError(f"{product_id}: promoted {channel} channel is incomplete")
 
         seen_ids.add(product_id)
         seen_prefixes.add(prefix)
@@ -198,11 +203,11 @@ def verify_manifest_schema() -> None:
 
     properties = schema.get("properties")
     if not isinstance(properties, dict):
-        raise RuntimeError("release-manifest schema: properties must be an object")
+        raise TypeError("release-manifest schema: properties must be an object")
     sbom = properties.get("sbom")
     provenance = properties.get("provenance")
     if not isinstance(sbom, dict) or not isinstance(provenance, dict):
-        raise RuntimeError("release-manifest schema must define SBOM and provenance")
+        raise TypeError("release-manifest schema must define SBOM and provenance")
 
 
 def verify_contract() -> None:
@@ -279,15 +284,17 @@ def verify_bundle() -> None:
 
     with tempfile.TemporaryDirectory(prefix="flyto2-distribution-") as temp:
         archive = Path(temp) / "flyto2-distribution-contract.tar.gz"
-        with archive.open("wb") as raw:
-            with gzip.GzipFile(fileobj=raw, mode="wb", mtime=0) as compressed:
-                with tarfile.open(fileobj=compressed, mode="w") as bundle:
-                    for path in files:
-                        info = bundle.gettarinfo(str(path), path.relative_to(ROOT).as_posix())
-                        info.uid = info.gid = info.mtime = 0
-                        info.uname = info.gname = ""
-                        with path.open("rb") as source:
-                            bundle.addfile(info, source)
+        with (
+            archive.open("wb") as raw,
+            gzip.GzipFile(fileobj=raw, mode="wb", mtime=0) as compressed,
+            tarfile.open(fileobj=compressed, mode="w") as bundle,
+        ):
+            for path in files:
+                info = bundle.gettarinfo(str(path), path.relative_to(ROOT).as_posix())
+                info.uid = info.gid = info.mtime = 0
+                info.uname = info.gname = ""
+                with path.open("rb") as source:
+                    bundle.addfile(info, source)
         with tarfile.open(archive, "r:gz") as bundle:
             names = set(bundle.getnames())
         expected = {

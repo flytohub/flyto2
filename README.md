@@ -11,6 +11,7 @@ This repository is the **distribution authority** for Flyto2. Product source cod
 | [**Flyto2 Flow**](products/flow/README.md) | Visual workflow and self-hosted automation product. This is the renamed lineage of the historical Flyto2 desktop releases. | [flyto-flow](https://github.com/flytohub/flyto-flow) | `flow/vX.Y.Z` |
 | [**Flyto2 Runtime**](products/runtime/README.md) | Local execution layer for MCP hosts, AI Spaces, workspaces, local tools, and delegated agents. | [flyto-runtime](https://github.com/flytohub/flyto-runtime) | `runtime/vX.Y.Z` |
 | [**Flyto2 Agent Firewall**](products/agent-firewall/README.md) | Endpoint, MCP, browser, and enterprise connector suite for AI/agent activity enforcement and evidence. | [flyto-engine](https://github.com/flytohub/flyto-engine) | `agent-firewall/vX.Y.Z` |
+| [**Flyto Presenter**](products/presenter/README.md) | Privacy-conscious macOS presentation companion with controlled external-display output and authorized assistance. | Private `ChesterHsu/flyto-presenter` | `presenter/vX.Y.Z` |
 
 New installable products must be added to [`products/catalog.json`](products/catalog.json) before they can be promoted through this repository.
 
@@ -21,6 +22,7 @@ Use the product page instead of the repository-wide GitHub `releases/latest` ali
 - [**Flyto2 Flow downloads**](products/flow/README.md#downloads) — includes the current historical v0.7.4 macOS, Windows, and Linux downloads.
 - [**Flyto2 Runtime downloads**](products/runtime/README.md#downloads) — product-specific release channel; centralized promotion is not active yet.
 - [**Flyto2 Agent Firewall downloads**](products/agent-firewall/README.md#downloads) — product-specific connector distribution; centralized promotion is not active yet.
+- [**Flyto Presenter downloads**](products/presenter/README.md#downloads) — registered but not yet promoted; private-source ingest access is not configured.
 
 Each product page links its own `stable.json` and `beta.json`. Consumers and updaters must resolve the product-specific channel, not whichever product happened to publish the newest GitHub Release.
 
@@ -55,6 +57,7 @@ Each product versions independently with SemVer.
 flow/v1.2.0
 runtime/v0.9.3
 agent-firewall/v1.0.1
+presenter/v1.2.5
 ```
 
 A Runtime patch does not force Flow or Agent Firewall to change version.

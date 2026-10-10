@@ -3,7 +3,8 @@
 ## Current State
 
 - Repository role changed from deprecated legacy shell to **Flyto2 Distribution Hub** on 2026-09-24.
-- Distribution contract is defined for Flyto2 Flow, Flyto2 Runtime, and Flyto2 Agent Firewall.
+- Distribution contract is defined for Flyto2 Flow, Flyto2 Runtime, Flyto2 Agent Firewall, and Flyto Presenter.
+- Flyto Presenter is registered with its approved PR brand icon and unpromoted stable/beta channels. Its source remains private under `ChesterHsu/flyto-presenter`; centralized ingest is intentionally blocked until protected cross-repository access and candidate evidence are configured.
 - Historical root `v0.x` releases remain published and are classified as the pre-rename Flyto2 Flow lineage.
 - Product source code remains outside this repository.
 - No installer binaries are committed in the checkout.
@@ -41,6 +42,7 @@
 
 - Flow source-repo candidate bundle alignment.
 - Agent Firewall source-repo candidate bundle alignment.
+- Presenter source-repo candidate bundle alignment and least-privilege access from this public hub to the private source build.
 - Optional signed Windows MSI/EXE installer. The supported Windows x64
   distribution is now an attested self-contained ZIP; a native installer still
   requires a Flyto2 Authenticode certificate decision.

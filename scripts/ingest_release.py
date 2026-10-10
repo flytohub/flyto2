@@ -176,12 +176,16 @@ def release_notes(candidate: Path) -> str:
         lines.append(f"| {item['platform']} ({label}) | `{item['name']}` | `{item['sha256']}` |")
     lines += [
         "",
-        f"Source: [{source['repository']}@{source['tag']}](https://github.com/{source['repository']}/tree/{source['commit']}) "
-        f"(`{source['commit']}`)",
+        (
+            f"Source: [{source['repository']}@{source['tag']}](https://github.com/{source['repository']}/tree/{source['commit']}) "
+            f"(`{source['commit']}`)"
+        ),
         f"Build: [run {manifest['build']['run_id']}](https://github.com/{source['repository']}/actions/runs/{manifest['build']['run_id']})",
         "",
-        f"Evidence: `{MANIFEST}`, `{CHECKSUMS}`, CycloneDX SBOM `{manifest['sbom']['path']}`, "
-        f"provenance `{manifest['provenance']['path']}`. Verify a package with:",
+        (
+            f"Evidence: `{MANIFEST}`, `{CHECKSUMS}`, CycloneDX SBOM `{manifest['sbom']['path']}`, "
+            f"provenance `{manifest['provenance']['path']}`. Verify a package with:"
+        ),
         "",
         "```",
         f"gh attestation verify <file> --repo {source['repository']}",
