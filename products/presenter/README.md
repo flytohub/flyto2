@@ -1,14 +1,14 @@
-# Flyto Presenter
+# Flyto2 Presenter
 
 [← Back to Flyto2 Distribution Hub](../../README.md)
 
-<img src="icon.png" alt="Flyto Presenter PR app icon" width="160">
+<img src="icon.png" alt="Flyto2 Presenter PR app icon" width="160">
 
-Flyto Presenter is a privacy-conscious macOS presentation companion for controlled external-display output, local speaker notes, PowerPoint following, and user-authorized interview or presentation assistance.
+Flyto2 Presenter is a privacy-conscious macOS presentation companion for controlled external-display output, local speaker notes, PowerPoint following, and user-authorized interview or presentation assistance.
 
 ## Downloads
 
-No Flyto Presenter build has been promoted through the Flyto2 Distribution Hub yet.
+No Flyto2 Presenter build has been promoted through the Flyto2 Distribution Hub yet.
 
 The current source repository is private:
 

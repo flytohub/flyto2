@@ -11,7 +11,7 @@ Each product has its own Markdown entry point and independent release channels:
 - [**Flyto2 Flow**](flow/README.md) — [stable](flow/stable.json) · [beta](flow/beta.json)
 - [**Flyto2 Runtime**](runtime/README.md) — [stable](runtime/stable.json) · [beta](runtime/beta.json)
 - [**Flyto2 Agent Firewall**](agent-firewall/README.md) — [stable](agent-firewall/stable.json) · [beta](agent-firewall/beta.json)
-- [**Flyto Presenter**](presenter/README.md) — [stable](presenter/stable.json) · [beta](presenter/beta.json)
+- [**Flyto2 Presenter**](presenter/README.md) — [stable](presenter/stable.json) · [beta](presenter/beta.json)
 
 The repository-wide GitHub `/releases/latest` alias is not a product channel and must not be used by the website or updaters.
 

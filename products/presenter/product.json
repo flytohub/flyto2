@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "id": "presenter",
-  "display_name": "Flyto Presenter",
+  "display_name": "Flyto2 Presenter",
   "source_repository": "ChesterHsu/flyto-presenter",
   "distribution_tag_prefix": "presenter/v",
   "documentation": "products/presenter/README.md",

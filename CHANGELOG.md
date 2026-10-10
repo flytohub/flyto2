@@ -4,7 +4,7 @@
 
 ### Added
 
-- Registered Flyto Presenter with the `presenter/vX.Y.Z` namespace, approved PR app icon, product page, and unpromoted stable/beta channels. The public hub does not yet have access to its private source repository.
+- Registered Flyto2 Presenter with the `presenter/vX.Y.Z` namespace, approved PR app icon, product page, and unpromoted stable/beta channels. The public hub does not yet have access to its private source repository.
 - Added Windows x64 Runtime archive support to centralized ingest/promotion:
   provenance and SBOM attestations are verified for both installers and
   archives, and stable promotion generates a Windows download row alongside
