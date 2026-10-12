@@ -39,7 +39,7 @@ EXPECTED_PRODUCTS = {
     "flow": ("flytohub/flyto-flow", "flow/v"),
     "runtime": ("flytohub/flyto-runtime", "runtime/v"),
     "agent-firewall": ("flytohub/flyto-engine", "agent-firewall/v"),
-    "presenter": ("ChesterHsu/flyto-presenter", "presenter/v"),
+    "presenter": ("flytohub/flyto-presenter", "presenter/v"),
 }
 PRODUCT_FILES = ("README.md", "product.json", "stable.json", "beta.json")
 REQUIRED_EVIDENCE = {
@@ -82,6 +82,7 @@ def verify_registry() -> None:
     seen_ids: set[str] = set()
     seen_prefixes: set[str] = set()
     resolved: dict[str, tuple[str, str]] = {}
+    listing_contracts: list[tuple[str, str, bool]] = []
 
     for product in products:
         if not isinstance(product, dict):
@@ -94,6 +95,7 @@ def verify_registry() -> None:
         stable_channel = product.get("stable_channel")
         beta_channel = product.get("beta_channel")
         icon = product.get("icon")
+        public_listing = product.get("public_listing")
         if not all(
             isinstance(value, str) and value
             for value in (product_id, source, prefix, product_page, stable_channel, beta_channel)
@@ -107,6 +109,8 @@ def verify_registry() -> None:
             raise RuntimeError(f"duplicate distribution tag prefix: {prefix}")
         if channels != ["stable", "beta"]:
             raise RuntimeError(f"{product_id}: channels must be ['stable', 'beta']")
+        if not isinstance(public_listing, bool):
+            raise TypeError(f"{product_id}: public_listing must be a boolean")
         if icon is not None:
             expected_icon = f"products/{product_id}/icon.png"
             if icon != expected_icon or not (ROOT / icon).is_file():
@@ -158,9 +162,26 @@ def verify_registry() -> None:
         seen_ids.add(product_id)
         seen_prefixes.add(prefix)
         resolved[product_id] = (source, prefix)
+        listing_contracts.append((product_id, product_page, public_listing))
 
     if resolved != EXPECTED_PRODUCTS:
         raise RuntimeError(f"product registry mismatch: {resolved!r}")
+
+    public_indexes = {
+        "README.md": (ROOT / "README.md").read_text(encoding="utf-8"),
+        "products/README.md": (ROOT / "products/README.md").read_text(encoding="utf-8"),
+    }
+    for product_id, product_page, public_listing in listing_contracts:
+        index_targets = {
+            "README.md": product_page,
+            "products/README.md": product_page.removeprefix("products/"),
+        }
+        for index_name, target in index_targets.items():
+            is_listed = target in public_indexes[index_name]
+            if public_listing and not is_listed:
+                raise RuntimeError(f"{product_id}: missing from public index {index_name}")
+            if not public_listing and is_listed:
+                raise RuntimeError(f"{product_id}: private product exposed in public index {index_name}")
 
 
 def verify_release_policy() -> None:

@@ -1,8 +1,14 @@
 # Decisions
 
+## 2026-10-12 - Keep private products out of public indexes
+
+Decision: retain Flyto2 Presenter in the machine-readable distribution registry with `public_listing: false`, but remove it from the repository homepage and public product index. Its private source authority is `flytohub/flyto-presenter`.
+
+Reason: a public navigation entry that sends unauthorised visitors to a private repository is a dead end. Release governance still needs a stable product identity without presenting the product as a publicly accessible source or download.
+
 ## 2026-10-10 - Register Flyto2 Presenter without implying private-source access
 
-Decision: reserve `presenter` as the Flyto2 Presenter distribution identity, use `presenter/vX.Y.Z`, publish its approved PR brand icon and unpromoted channel metadata, and keep centralized ingest disabled until protected access to `ChesterHsu/flyto-presenter` is configured.
+Decision: reserve `presenter` as the Flyto2 Presenter distribution identity, use `presenter/vX.Y.Z`, keep its approved PR brand icon and unpromoted channel metadata in the distribution registry, and keep centralized ingest disabled until protected access to `flytohub/flyto-presenter` is configured. Public indexes follow the later `public_listing` decision above.
 
 Reason: registration gives the product a stable public identity without exposing source or pretending that the public Distribution Hub can read a private repository. A future release route must use least-privilege trusted access and the same checksum, SBOM, provenance, signing, and attestation contract as other products.
 

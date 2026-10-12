@@ -23,6 +23,8 @@
 
 ### Changed
 
+- Removed private Flyto2 Presenter from public product indexes while retaining its release-governance registration with `public_listing: false`.
+- Updated Presenter source ownership from `ChesterHsu/flyto-presenter` to `flytohub/flyto-presenter`.
 - Reclassified historical `v0.x` desktop releases as the pre-rename Flyto2 Flow lineage without rewriting historical tags or assets.
 - Changed repository authority from deprecated routing shell to release/distribution authority while keeping product source ownership in product-specific repositories.
 - Updated repository verification to validate distribution metadata and preserve the no-runtime-source boundary.

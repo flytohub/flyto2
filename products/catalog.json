@@ -10,6 +10,7 @@
       "product_page": "products/flow/README.md",
       "stable_channel": "products/flow/stable.json",
       "beta_channel": "products/flow/beta.json",
+      "public_listing": true,
       "channels": ["stable", "beta"],
       "legacy_release_lineage": {
         "repository": "flytohub/flyto2",
@@ -25,6 +26,7 @@
       "product_page": "products/runtime/README.md",
       "stable_channel": "products/runtime/stable.json",
       "beta_channel": "products/runtime/beta.json",
+      "public_listing": true,
       "channels": ["stable", "beta"]
     },
     {
@@ -35,17 +37,19 @@
       "product_page": "products/agent-firewall/README.md",
       "stable_channel": "products/agent-firewall/stable.json",
       "beta_channel": "products/agent-firewall/beta.json",
+      "public_listing": true,
       "channels": ["stable", "beta"]
     },
     {
       "id": "presenter",
       "display_name": "Flyto2 Presenter",
-      "source_repository": "ChesterHsu/flyto-presenter",
+      "source_repository": "flytohub/flyto-presenter",
       "distribution_tag_prefix": "presenter/v",
       "product_page": "products/presenter/README.md",
       "stable_channel": "products/presenter/stable.json",
       "beta_channel": "products/presenter/beta.json",
       "icon": "products/presenter/icon.png",
+      "public_listing": false,
       "channels": ["stable", "beta"]
     }
   ]

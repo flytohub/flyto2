@@ -12,7 +12,7 @@ No Flyto2 Presenter build has been promoted through the Flyto2 Distribution Hub 
 
 The current source repository is private:
 
-- `ChesterHsu/flyto-presenter`
+- `flytohub/flyto-presenter`
 
 Registration reserves the product identity and release namespace. It does not grant this public repository access to that private source. Centralized ingest must remain disabled until a protected GitHub App, OIDC-based route, or equivalent least-privilege access is configured and the source workflow emits the required candidate evidence.
 

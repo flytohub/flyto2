@@ -9,7 +9,7 @@ Product repositories are source authorities:
 - `flyto-flow` — Flyto2 Flow;
 - `flyto-runtime` — Flyto2 Runtime;
 - `flyto-engine` — Flyto2 Agent Firewall source and security contracts.
-- `ChesterHsu/flyto-presenter` — private Flyto2 Presenter macOS source until an organization-owned source route is established.
+- `flytohub/flyto-presenter` — private Flyto2 Presenter macOS source; registered for release governance but excluded from public product indexes.
 
 This repository is the distribution authority for approved outputs from those repositories.
 
